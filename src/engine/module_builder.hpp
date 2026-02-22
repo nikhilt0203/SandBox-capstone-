@@ -41,7 +41,7 @@ public:
   }
 
   template<typename T>
-  [[nodiscard]] T get(unsigned int id) const
+  [[nodiscard]] T get(std::uint32_t id) const
   {
     static_assert(std::is_pointer_v<T>);
     auto it = findWithID(id);
@@ -58,15 +58,15 @@ public:
     return getFromEntry<T>(*it);
   }
 
-  [[nodiscard]] std::optional<unsigned int> getID(sndbx::grid::Position pos) const 
+  [[nodiscard]] std::optional<std::uint32_t> getID(sndbx::grid::Position pos) const 
   {
-    std::optional<unsigned int> id{};
+    std::optional<std::uint32_t> id{};
     auto it = findWithPosition(pos);
     if (it != m_ModuleRegistry.end()) { id = (*it).id; };
     return id;
   }
 
-  [[nodiscard]] std::optional<sndbx::grid::Position> getPosition(unsigned int id) const
+  [[nodiscard]] std::optional<sndbx::grid::Position> getPosition(std::uint32_t id) const
   {
     std::optional<sndbx::grid::Position> position{};
     auto it = findWithID(id);
@@ -98,7 +98,7 @@ public:
 
 private:
   template<typename T, typename... Args>
-  [[nodiscard]] ModuleEntry makeEntry(unsigned int id, sndbx::grid::Position pos, Args&& ...args) const
+  [[nodiscard]] ModuleEntry makeEntry(std::uint32_t id, sndbx::grid::Position pos, Args&& ...args) const
   {
     static_assert(std::is_base_of_v<Module, T>, "Entry must be derived from Module.");
 
@@ -145,7 +145,7 @@ private:
     if constexpr (std::is_same_v<T, Animatable*>) { return entry.animatable; }
   }
 
-  [[nodiscard]] std::vector<ModuleEntry>::const_iterator findWithID(unsigned int id) const
+  [[nodiscard]] std::vector<ModuleEntry>::const_iterator findWithID(std::uint32_t id) const
   {
     return std::find_if(
       m_ModuleRegistry.begin(),
