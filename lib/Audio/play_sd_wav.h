@@ -1,0 +1,79 @@
+/* Audio Library for Teensy 3.X
+ * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
+ *
+ * Development of this audio library was funded by PJRC.COM, LLC by sales of
+ * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
+ * open source software by purchasing Teensy or other PJRC products.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice, development funding notice, and this permission
+ * notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef play_sd_wav_h_
+#define play_sd_wav_h_
+
+#include <Arduino.h>     // github.com/PaulStoffregen/cores/blob/master/teensy4/Arduino.h
+#include <AudioStream.h> // github.com/PaulStoffregen/cores/blob/master/teensy4/AudioStream.h
+#include <SD.h>          // github.com/PaulStoffregen/SD/blob/Juse_Use_SdFat/src/SD.h
+
+// Need to buffer at least two audio blocks of samples, for stereo files,
+// but if AUDIO_BLOCK_SAMPLES has been set to a small value (<128 samples)
+// then it's better to buffer 2*128 samples, which happens to be an SD
+// card sector.
+#if AUDIO_BLOCK_SAMPLES < 128
+	#define BUFFER_BYTES 2*128*sizeof(int16_t)
+#else
+	#define BUFFER_BYTES 2*AUDIO_BLOCK_SAMPLES*sizeof(int16_t)
+#endif // AUDIO_BLOCK_SAMPLES < 128
+
+class AudioPlaySdWav : public AudioStream
+{
+public:
+	AudioPlaySdWav(void) : AudioStream(0, NULL), block_left(NULL), block_right(NULL) { begin(); }
+	~AudioPlaySdWav(){SAFE_RELEASE_INPUTS(); SAFE_RELEASE_MANY(2,block_left,block_right);}
+	void begin(void);
+	bool play(const char *filename);
+	void togglePlayPause(void);
+	void stop(void);
+	bool isPlaying(void);
+	bool isPaused(void);
+	bool isStopped(void);
+	uint32_t positionMillis(void);
+	uint32_t lengthMillis(void);
+	virtual void update(void);
+private:
+	File wavfile;
+	bool consume(uint32_t size);
+	bool parse_format(void);
+	uint32_t header[10];		// temporary storage of wav header data
+	uint32_t data_length;		// number of bytes remaining in current section
+	uint32_t total_length;		// number of audio data bytes in file
+	uint32_t bytes2millis;
+	audio_block_t *block_left; // released in destructor
+	audio_block_t *block_right; // released in destructor
+	uint16_t block_offset;		// how much data is in block_left & block_right
+	uint8_t buffer[BUFFER_BYTES];	// buffer at least two audio blocks of data
+	uint16_t buffer_offset;		// where we're at consuming "buffer"
+	uint16_t buffer_length;		// how much data is in "buffer" (512 until last read)
+	uint8_t header_offset;		// number of bytes in header[]
+	uint8_t state;
+	uint8_t state_play;
+	uint8_t leftover_bytes;
+};
+
+#endif
