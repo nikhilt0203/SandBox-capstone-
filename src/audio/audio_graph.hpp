@@ -173,7 +173,7 @@ private:
     return std::find_if(
       m_Connections.begin(), 
       m_Connections.end(),
-      [src, srcPort, dest, destPort](const Patch& patch) {
+      [src, srcPort, dest, destPort](const Patch& patch){
         return patch.m_Source == src && 
                patch.m_SourcePort == srcPort && 
                patch.m_Destination == dest && 

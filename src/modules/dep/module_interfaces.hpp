@@ -10,6 +10,9 @@
   static constexpr std::string_view DESCRIPTION = description; \
   static constexpr std::uint32_t COLOR = color 
 
+inline static const std::vector<std::string_view> EMPTY{};
+inline static const std::vector<float> EMPTYF{};
+
 class Controllable
 {
 public:

@@ -65,6 +65,7 @@
 "editor.indentSize": "tabSize",
 "editor.tabSize": 2,
 "cmake.sourceDirectory": "/Users/nikhiltalwalkar/Projects/teensy41/.pio/libdeps/teensy41/Adafruit BusIO",
-
+"clang-format.executable": "clang-format",
+"C_Cpp.formatting": "clangFormat",
 "C_Cpp.default.configurationProvider": "platformio.platformio-ide"
 }

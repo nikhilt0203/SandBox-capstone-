@@ -4,29 +4,19 @@
 #include "audio/audio_graph.hpp"
 #include <cstdint>
 
-//============================================================================
-// MODULE - inputs and outputs
-//============================================================================
 class Module 
 : public Patchable
 {
 public:
   struct Port
   {
-    Module* m_Connected{};
-    std::size_t m_Index;
-    bool available() const { return !m_Connected; }
+    Module* connectedModule{};
+    std::size_t index;
+    [[nodiscard]] bool isAvailable() const { return !connectedModule; }
   };
 
 public:
-  Module(std::size_t inputs, std::size_t outputs) 
-  : m_Inputs(inputs), 
-    m_Outputs(outputs) 
-  {
-    for (std::size_t i{}; i < inputs; i++) { m_Inputs.at(i).m_Index = i; }
-    for (std::size_t i{}; i < outputs; i++) { m_Outputs.at(i).m_Index = i; }
-  }
-
+  Module(std::size_t inputs, std::size_t outputs);
   virtual ~Module() = default;
 
   [[nodiscard]] std::size_t numInputs() const { return m_Inputs.size(); }

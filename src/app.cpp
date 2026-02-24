@@ -37,9 +37,8 @@ struct AppContext
     View
   };
 
-
-  Mode currentMode{Mode::Edit};
-  State currentState{State::Idle};
+  Mode mode{Mode::Edit};
+  State state{State::Idle};
 
   std::optional<Module*> selectedModule{};
   std::optional<Displayable*> selectedDisplayable{};
@@ -114,8 +113,7 @@ namespace sndbx::input
       }
     }
     
-    auto& selectedModule = ::g_AppContext.selectedControllable;
-    if (selectedModule) 
+    if (auto& selectedModule = ::g_AppContext.selectedControllable) 
     { 
       selectedModule.value()->changeControl(encoderNum, delta);
       ::g_DisplayContext.displayUpdated = false;
@@ -147,13 +145,13 @@ namespace sndbx::app
 
     for (const auto& port : ports)
     {
-      if (!port.m_Connected) 
+      if (!port.connectedModule) 
       {
         portColors.push_back(0);
         continue;
       }
 
-      const auto connectedID = port.m_Connected->id();
+      const auto connectedID = port.connectedModule->id();
 
       if (Displayable* connectedModule = builder.get<Displayable*>(connectedID))
       {
@@ -179,75 +177,145 @@ namespace sndbx::app
     );
   }
   
-  std::map<std::uint32_t, sndbx::grid::Position> keyboardStartPositions;
-  std::map<std::uint32_t, sndbx::grid::Position> keyboardEndPositions;
+  struct KeyboardPosition
+  {
+    sndbx::grid::Position position;
+    std::vector<sndbx::grid::Position> keyPositions;
+  };
+
+  std::map<std::uint32_t, KeyboardPosition> allKeyboardPositions;
 
   bool addKeyboardKey(Keyboard& keyboard)
   {
     const auto keyboardID = keyboard.id();
 
-    auto it = keyboardEndPositions.find(keyboardID);
-    if (it == keyboardEndPositions.end()) { return false; }
-  
-    const auto lastKeyPos = (*it).second.index();
-    const auto newKeyPos = sndbx::grid::toPosition(lastKeyPos + 1);
+    auto it = allKeyboardPositions.find(keyboardID);
+    if (it == allKeyboardPositions.end()) { return false; }
 
-    if (!grid::isBuildableArea(newKeyPos)) { return false; }
+    auto& positions = it->second.keyPositions;
 
-    auto key = engine::builder.make<KeyboardKey>(newKeyPos, keyboard);
+    const auto lastKeyPosition = 
+      positions.empty() ? it->second.position 
+                        : positions.back();
+
+    auto newKeyPosition = sndbx::grid::toPosition(lastKeyPosition.index() + 1);
+
+    if (!grid::isBuildableArea(newKeyPosition)) { return false; }
+
+    auto key = engine::builder.make<KeyboardKey>(newKeyPosition, keyboard);
     if (!key) { return false; }
-    
-    keyboardEndPositions[keyboardID] = newKeyPos;
+
+    key->setAmplitude(0.04167 * positions.size());
+    positions.push_back(newKeyPosition);
+    placeModule(key, newKeyPosition);
     return true;
   }
 
-  bool deleteModule(const sndbx::grid::Position& pos);
+  bool deleteModule(sndbx::grid::Position pos);
+
   bool subtractKeyboardKey(Keyboard& keyboard)
   {
-    auto it = keyboardEndPositions.find(keyboard.id());
-    if (it == keyboardEndPositions.end()) { return false; }
+    Serial.println("Subtracting key");
+    if (keyboard.numKeys() == 0) { return false; }
 
-    const auto lastKeyPos = (*it).second;
-    keyboardEndPositions.erase(it);
-    
-    return deleteModule(lastKeyPos);
+    const auto keyboardID = keyboard.id();
+
+    auto it = allKeyboardPositions.find(keyboardID);
+    if (it == allKeyboardPositions.end()) { return false; }
+
+    const auto lastKeyPosition = it->second.keyPositions.back();
+
+    if (!deleteModule(lastKeyPosition)) { return false; }
+
+    allKeyboardPositions[keyboardID].keyPositions.pop_back();
+    return true;
   }
 
-  void clearModuleSelections(AppContext& appContext);
-  bool deleteModule(const grid::Position& pos)
+  bool isKeyboardKeyAt(grid::Position pos)
+  {
+    auto it = std::find_if(
+      allKeyboardPositions.begin(),
+      allKeyboardPositions.end(),
+      [pos](const auto& pair)
+      {
+        const auto& keyPositions = pair.second.keyPositions;
+        auto it = std::find_if(
+            keyPositions.begin(),
+            keyPositions.end(),
+            [pos](const auto &position){ return position == pos; }
+          );
+        return it != keyPositions.end();
+      }
+    );
+
+    return it != allKeyboardPositions.end();
+  }
+
+  bool deleteKeyboard(grid::Position pos)
+  {
+    auto it = std::find_if(
+        allKeyboardPositions.begin(),
+        allKeyboardPositions.end(),
+        [pos](const auto &pair){ return pair.second.position == pos; }
+      );
+    
+    if (it == allKeyboardPositions.end()) { return false; }
+
+    auto keyboardPosition = it->second.position;
+    auto& keyPositions = it->second.keyPositions;
+
+    std::for_each(
+      keyPositions.begin(), 
+      keyPositions.end(), 
+      [](const auto& pos) { deleteModule(pos); }
+    );
+
+    deleteModule(keyboardPosition);
+    allKeyboardPositions.erase(it);
+    return true;
+  }
+
+  void handleDeleteModule(grid::Position pos)
+  {
+    if (deleteKeyboard(pos)) { return; }
+    if (!isKeyboardKeyAt(pos)) { deleteModule(pos); }
+  }
+
+  void createKeyboard(grid::Position pos)
+  {
+    auto keyboard = engine::builder.make<Keyboard>(pos);
+    if (keyboard) 
+    {
+      keyboard->setAddKeyCallback(addKeyboardKey);
+      keyboard->setSubtractKeyCallback(subtractKeyboardKey);
+      allKeyboardPositions[keyboard->id()].position = pos;
+    }
+  }
+
+  bool deleteModule(grid::Position pos)
   {
     auto module = engine::builder.get<Module*>(pos);
     if (!module) { return false; }
 
+    patch::detachFromGraph(engine::audioGraph, module);
     engine::audioGraph.deletePatchesWith(module);
 
     if (!engine::builder.destroy(pos)) { return false; }
   
     auto& moduleDisplays = ::g_DisplayContext.moduleDisplays;
-    if (moduleDisplays.find(pos) != moduleDisplays.end()) 
-    { 
-      moduleDisplays.erase(pos); 
-    }
-    clearModuleSelections(g_AppContext);
+    if (moduleDisplays.find(pos) != moduleDisplays.end()) { moduleDisplays.erase(pos); }
+
     ::g_DisplayContext.ledsUpdated = false;
-    
     return true;
   }
 
-  void createModule(const grid::Position bankPos, const grid::Position gridPos)
+  void createModule(grid::Position bankPos, grid::Position gridPos)
   {
     const std::size_t typeIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.currentOffset;
 
     if (typeIndex == engine::typeIndexOf<Keyboard>())
     {
-      auto keyboard = engine::builder.make<Keyboard>(gridPos);
-      if (keyboard) 
-      {
-        keyboard->setAddKeyCallback(addKeyboardKey);
-        keyboard->setSubtractKeyCallback(subtractKeyboardKey);
-        keyboardStartPositions[keyboard->id()] = gridPos;
-        keyboardEndPositions[keyboard->id()] = gridPos;
-      }
+      createKeyboard(gridPos);
     }
     else
     {
@@ -296,7 +364,7 @@ namespace sndbx::app
 
       for (const auto& port : module->outputs())
       {
-        const auto connectedModule = port.m_Connected;
+        const auto connectedModule = port.connectedModule;
         if (!connectedModule) { continue; }
 
         if (auto destPos = engine::builder.getPosition(connectedModule))
@@ -323,12 +391,12 @@ namespace sndbx::app
     const auto input = sndbx::patch::firstAvailablePort(dest->inputs());
     if (!output || !input) { return false; }
 
-    bool success = sndbx::patch::connect(engine::audioGraph, src, *output, dest, *input);
-    if (!success) { return false; }
+    bool connectSuccess = sndbx::patch::connect(engine::audioGraph, src, *output, dest, *input);
+    if (!connectSuccess) { return false; }
 
     auto srcDisplay = engine::builder.get<Displayable*>(srcPos);
     auto destDisplay = engine::builder.get<Displayable*>(destPos);
-    if (!srcDisplay || !destDisplay) { return success; }
+    if (!srcDisplay || !destDisplay) { return connectSuccess; }
 
     ui::clearAndDraw<PatchDisplayPage>(
       display::screen,
@@ -343,6 +411,7 @@ namespace sndbx::app
     return true;
   }
 
+  void clearModuleSelections(AppContext& appContext);
   void patchHandler(grid::Position srcPos, grid::Position destPos)
   {
     auto* srcModule = engine::builder.get<Module*>(srcPos);
@@ -351,15 +420,15 @@ namespace sndbx::app
     auto* destModule = engine::builder.get<Module*>(destPos);
     if (!destModule) { return; }
 
-    bool success = 
+    bool patchChanged = 
       sndbx::patch::connectionExists(srcModule, destModule) 
       ? handleDisconnect(srcModule, destModule)
       : handleConnect(srcModule, srcPos, destModule, destPos);
 
-    if (success) 
+    if (patchChanged) 
     { 
       clearModuleSelections(::g_AppContext);
-      ::g_AppContext.currentState = AppContext::State::Patching;
+      ::g_AppContext.state = AppContext::State::Patching;
       drawAllConnections(display::ledMatrix); 
       ::g_DisplayContext.displayUpdated = false;
     }
@@ -374,6 +443,7 @@ namespace sndbx::app
     appContext.selectedModule.reset();
     appContext.selectedDisplayable.reset();
     appContext.selectedControllable.reset();
+    appContext.selectedAnimatable.reset();
   }
 
   void handleDoublePress(std::vector<event::TrellisPress>& events)
@@ -404,7 +474,7 @@ namespace sndbx::app
     }
     else if (grid::isBankArea(firstPos) && grid::isBuildableArea(secondPos))
     {
-      ::g_AppContext.currentState = AppContext::State::Creating;
+      ::g_AppContext.state = AppContext::State::Creating;
       createModule(firstPos, secondPos);
       events.clear();
     }
@@ -421,11 +491,9 @@ namespace sndbx::app
 
     if (events.size() == 2) { handleDoublePress(events); }
 
-    if (auto module = builder.get<Module*>(position)) 
-    { 
-      ::g_AppContext.selectedModule = module;
-    } 
-    else { return; } //not occupied
+    auto module = builder.get<Module*>(position);
+    if (!module) { return; }
+    ::g_AppContext.selectedModule = module;
 
     if (auto pressable = builder.get<Pressable*>(position)) 
     { 
@@ -441,26 +509,19 @@ namespace sndbx::app
     if (auto displayable = builder.get<Displayable*>(position))
     {
       ::g_AppContext.selectedDisplayable = displayable;
-      ::g_AppContext.currentState = AppContext::State::Displaying;
+      ::g_AppContext.state = AppContext::State::Displaying;
     }
 
     if (auto animatable = builder.get<Animatable*>(position))
     {
       ::g_AppContext.selectedAnimatable = animatable;
+      ::g_AppContext.state = AppContext::State::Displaying;
     }
   }
 
   void handleTrellisRisingEdge(const event::TrellisPress& event)
   {
     ::g_AppContext.trellisEvents.push_back(event);
-
-      Serial.print("{ ");
-      for (auto p : ::g_AppContext.trellisEvents)
-      {
-        Serial.printf("%d, ", p.position.index());
-      }
-      Serial.print("}\n");
-
     handleGridPress(event, ::g_AppContext.trellisEvents);
   }
 
@@ -475,10 +536,11 @@ namespace sndbx::app
 
   void handleLongPress(const event::TrellisPress& event)
   {
-    switch (::g_AppContext.currentMode)
+    switch (::g_AppContext.mode)
     {
       case AppContext::Mode::Edit: 
-        deleteModule(event.position); 
+        handleDeleteModule(event.position); 
+        clearModuleSelections(::g_AppContext);
         break;
       case AppContext::Mode::View: 
         break;
@@ -488,7 +550,7 @@ namespace sndbx::app
   void handleTrellisPress(const event::TrellisPress& event)
   {
     static Timer holdTimer;
-    constexpr static auto holdThresholdMs = 2000;
+    constexpr static auto holdThresholdMs = 1500;
 
     const auto edge = event.edge;
 
@@ -506,14 +568,16 @@ namespace sndbx::app
 
   void updateLEDs(LEDMatrixDisplay& ledMatrix)
   {
+    if (!::g_DisplayContext.ledsUpdated) 
+    { 
+      ledMatrix.clear();
+      drawAllConnections(ledMatrix);
+      ui::draw<ModuleBank>(ledMatrix, g_ModuleBankDisplay.colors, g_ModuleBankDisplay.currentOffset);
+    }
+
     for (auto& [position, module] : ::g_DisplayContext.moduleDisplays) 
     { 
       ledMatrix.drawPixel(position, module->ledColor());
-    }
-    
-    if (!::g_DisplayContext.ledsUpdated) 
-    { 
-      ui::draw<ModuleBank>(ledMatrix, g_ModuleBankDisplay.colors, g_ModuleBankDisplay.currentOffset);
     }
 
     ledMatrix.renderFrame();
@@ -522,6 +586,13 @@ namespace sndbx::app
 
   void displaySelectedModule()
   {
+    if (auto animatable = ::g_AppContext.selectedAnimatable)
+    {
+      (*animatable)->drawNext(display::screen.currentFrame());
+      display::screen.setFrameAvailable(true);
+      return;
+    }
+
     if (auto selected = ::g_AppContext.selectedDisplayable)
     {
       Displayable* cur = *selected;
@@ -531,10 +602,6 @@ namespace sndbx::app
         ::g_DisplayContext.lastDisplayed = cur;
         ::g_DisplayContext.displayUpdated = true;
       }
-    }
-    if (auto animatable = ::g_AppContext.selectedAnimatable)
-    {
-      (*animatable)->drawNext(display::screen.currentFrame());
     }
   }
 
@@ -559,7 +626,7 @@ namespace sndbx::app
 
   void updateState() 
   {
-    switch (::g_AppContext.currentState)
+    switch (::g_AppContext.state)
     {
       case AppContext::State::Idle:
       case AppContext::State::Creating:

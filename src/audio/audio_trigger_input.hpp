@@ -21,30 +21,35 @@ public:
 
     if (!block) 
     {
-      m_RisingEdgeTriggeredLast = false;
-      m_FallingEdgeTriggeredLast = false;
+      if (m_RisingEdgeTriggeredLast) 
+      {
+        m_RisingEdgeTriggeredLast = false;
+        if (m_FallingEdgeCallback) { m_FallingEdgeCallback(); }
+      }
       return;
     }
 
-    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; i++)
+    bool sawHigh = false;
+
+    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
     {
       const float sample = block->data[i] / 32767.0f;
-
-      if (sample >= m_Threshold && !m_RisingEdgeTriggeredLast)
-      {
-        m_RisingEdgeTriggeredLast = true;
-        m_FallingEdgeTriggeredLast = false;
-
-        if (m_RisingEdgeCallback) { m_RisingEdgeCallback(); }
+      if (sample >= m_Threshold) 
+      { 
+        sawHigh = true; 
+        break; 
       }
+    }
 
-      if (sample < m_Threshold && !m_FallingEdgeTriggeredLast)
-      {
-        m_FallingEdgeTriggeredLast = true;
-        m_RisingEdgeTriggeredLast = false;
-
-        if (m_FallingEdgeCallback) { m_FallingEdgeCallback(); }
-      }
+    if (sawHigh && !m_RisingEdgeTriggeredLast) 
+    {
+      m_RisingEdgeTriggeredLast = true;
+      if (m_RisingEdgeCallback) { m_RisingEdgeCallback(); }
+    } 
+    else if (!sawHigh && m_RisingEdgeTriggeredLast)
+    {
+      m_RisingEdgeTriggeredLast = false;
+      if (m_FallingEdgeCallback) { m_FallingEdgeCallback(); }
     }
 
     release(block);

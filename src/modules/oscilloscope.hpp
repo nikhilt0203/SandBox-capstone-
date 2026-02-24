@@ -9,6 +9,7 @@
 
 class Oscilloscope 
 : public Module,
+  public Displayable,
   public Animatable
 {
 using AudioBuffer = AudioBufferInput<1024>;
@@ -25,13 +26,20 @@ public:
     m_Audio.mapOutput(0, m_AudioBuffer, 0); 
   }
 
-  void drawNext(GFXcanvas16& frame) const override
-  {
-    WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw();
-  }
+  [[nodiscard]] std::string_view displayName() const override { return NAME; }
+  [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
+
+  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override { return EMPTY; }
+  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override { return m_InputNames; }
+  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override { return m_OutputNames; }
+  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override { return EMPTYF; }
+
+  void drawNext(GFXcanvas16& frame) const override { WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw(); }
 
 private: 
   AudioBuffer* m_AudioBuffer{};
+  inline static const std::vector<std::string_view> m_InputNames{"in"};
+  inline static const std::vector<std::string_view> m_OutputNames{"out"};
 };
 
 #endif

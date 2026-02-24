@@ -21,7 +21,7 @@ public:
     {
       for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i) 
       {
-        outBlock->data[i] = 32767;
+        if (i < 20 ) outBlock->data[i] = 32767;
       }
       m_On = false;
     }

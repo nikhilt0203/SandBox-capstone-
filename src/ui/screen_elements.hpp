@@ -433,11 +433,12 @@ public:
 
   void draw() const override
   {
+    m_Frame.fillScreen(0);
     m_Frame.drawRoundRect(WINDOW_X, WINDOW_Y, WINDOW_WIDTH, WINDOW_HEIGHT, 20, BORDER_COLOR);
     m_Frame.drawFastHLine(WINDOW_X, WINDOW_Y + WINDOW_HEIGHT / 2, WINDOW_WIDTH, ZERO_LINE_COLOR);
 
     Text title(0, TITLE_Y, "Oscilloscope", ILI9341_CYAN, 1, m_Frame);
-    title.centerX(WINDOW_WIDTH, WINDOW_X);
+    title.centerX();
     title.draw();
 
     uint16_t color;

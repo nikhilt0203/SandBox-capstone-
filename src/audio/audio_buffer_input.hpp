@@ -18,26 +18,20 @@ public:
     audio_block_t* block = receiveReadOnly(0);
     if (!block) { return; }
 
-    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; i++)
+    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
     {
-      std::size_t nextIndex = m_BufferIndex + 1;
-      
-      if (nextIndex >= bufferSize()) { break; }
-
       float sampleNormalized = block->data[i] / 32767.0f;
-      m_SampleBuffer[nextIndex % bufferSize()] = sampleNormalized;
-      m_BufferIndex = nextIndex;
+
+      // ring buffer write
+      m_SampleBuffer[m_BufferIndex] = sampleNormalized;
+      m_BufferIndex = (m_BufferIndex + 1) % bufferSize();
     }
 
-    if (block) { transmit(block, 0); }
+    transmit(block, 0);
     release(block);
   }
 
-  const SampleBuffer& flush() 
-  {
-    m_BufferIndex = 0;
-    return m_SampleBuffer;
-  }
+  const SampleBuffer& flush() { return m_SampleBuffer; }
 
   constexpr std::size_t const bufferSize() { return N; }
 
@@ -46,7 +40,7 @@ public:
 private:
   audio_block_t* inputQueueArray[1];
   volatile std::size_t m_BufferIndex{};
-  SampleBuffer m_SampleBuffer{};
+  inline static SampleBuffer m_SampleBuffer{}; //shared among instances
 };
 
 #endif

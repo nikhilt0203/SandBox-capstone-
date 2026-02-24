@@ -30,7 +30,7 @@ public:
   [[nodiscard]] const std::vector<std::string_view>& controlNames() const override { return m_ControlNames; }
   [[nodiscard]] const std::vector<std::string_view>& inputNames() const override { return m_InputNames; }
   [[nodiscard]] const std::vector<std::string_view>& outputNames() const override { return m_OutputNames; }
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override { return m_ControlValues; }
+  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override;
 
 private:
   void frequencyAdjustCoarse(int delta);
