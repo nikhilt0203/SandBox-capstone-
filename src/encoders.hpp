@@ -1,14 +1,15 @@
-#ifndef encoders_hpp_
-#define encoders_hpp_
+#ifndef SANDBOX_ENCODERS_HPP_
+#define SANDBOX_ENCODERS_HPP_
 
 #include "Encoder.h"
 #include "pinouts.hpp"
 
 class Encoders
 {   
-  using EncoderCallback = void(*)(std::size_t, int);
+using TurnCallback = void(*)(std::size_t, int);
+
 public:
-  Encoders(EncoderCallback onTurn) 
+  Encoders(TurnCallback onTurn)
   : m_TurnCallback(onTurn)
   { 
     for (std::size_t i{}; i < numEncoders; i++)
@@ -48,7 +49,7 @@ private:
 
   std::array<int, numEncoders> m_EncoderPositions{};
 
-  EncoderCallback m_TurnCallback;
+  TurnCallback m_TurnCallback;
 };
 
 #endif

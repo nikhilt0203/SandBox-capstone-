@@ -11,7 +11,7 @@ Keyboard::Keyboard() : Module(0, 2)
   m_Audio.mapOutput(1, m_TrigOut, 0);
 }
 
-const std::vector<float>& Keyboard::normalizedControlValues() const
+auto Keyboard::normalizedControlValues() const -> const std::vector<float>&
 {
   m_ControlValues.clear();
   m_ControlValues.push_back(m_NumKeys);
@@ -37,7 +37,7 @@ void Keyboard::lengthAdjust(int delta)
   if (success) { m_NumKeys.change(lenCurve, delta); }
 }
 
-const std::vector<float>& KeyboardKey::normalizedControlValues() const
+auto KeyboardKey::normalizedControlValues() const -> const std::vector<float>&
 {
   m_ControlValues.clear();
   m_ControlValues.push_back(m_Amplitude);

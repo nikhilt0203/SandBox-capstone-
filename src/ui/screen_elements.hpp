@@ -1,5 +1,5 @@
-#ifndef screen_elements_hpp_
-#define screen_elements_hpp_
+#ifndef SANDBOX_SCREEN_ELEMENTS_HPP_
+#define SANDBOX_SCREEN_ELEMENTS_HPP_
 
 #include "Adafruit_ILI9341.h"
 #include "ui/tft_display.hpp"
@@ -28,6 +28,8 @@ public:
     m_Width(TFT::width),
     m_Height(TFT::height)
   {}
+
+  virtual ~ScreenElement() = default;
 
   virtual void draw() const = 0;
 
@@ -118,6 +120,8 @@ public:
   : ScreenElement(x, y, width, height, frame),
     m_BitmapData(bitmap565)
   {}
+
+  virtual ~Bitmap() = default;
 
   void draw() const override { m_Frame.drawRGBBitmap(m_X, m_Y, m_BitmapData, m_Width, m_Height); }
 

@@ -1,5 +1,5 @@
-#ifndef timer_hpp_
-#define timer_hpp_
+#ifndef SANDBOX_TIMER_HPP_
+#define SANDBOX_TIMER_HPP_
 
 #include <Arduino.h>
 

@@ -1,5 +1,5 @@
-#ifndef audio_buffer_input_hpp_
-#define audio_buffer_input_hpp_
+#ifndef SANDBOX_AUDIO_BUFFER_INPUT_HPP_
+#define SANDBOX_AUDIO_BUFFER_INPUT_HPP_
 
 #include <Audio.h>
 #include <array>

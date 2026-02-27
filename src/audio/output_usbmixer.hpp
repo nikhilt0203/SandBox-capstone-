@@ -1,5 +1,5 @@
-#ifndef output_usbmixer_hpp_
-#define output_usbmixer_hpp_
+#ifndef SANDBOX_OUTPUT_USBMIXER_HPP_
+#define SANDBOX_OUTPUT_USBMIXER_HPP_
 
 #include <Audio.h>
 
@@ -29,35 +29,35 @@ public:
     if (usb_audio_transmit_setting == 0) {
       if (left) release(left);
       if (right) release(right);
-      if (left_1st) { release(left_1st); left_1st = NULL; }
-      if (left_2nd) { release(left_2nd); left_2nd = NULL; }
-      if (right_1st) { release(right_1st); right_1st = NULL; }
-      if (right_2nd) { release(right_2nd); right_2nd = NULL; }
+      if (left_1st) { release(left_1st); left_1st = nullptr; }
+      if (left_2nd) { release(left_2nd); left_2nd = nullptr; }
+      if (right_1st) { release(right_1st); right_1st = nullptr; }
+      if (right_2nd) { release(right_2nd); right_2nd = nullptr; }
       offset_1st = 0;
       return;
     }
-    if (left == NULL) {
+    if (left == nullptr) {
       left = allocate();
-      if (left == NULL) {
+      if (left == nullptr) {
         if (right) release(right);
         return;
       }
       memset(left->data, 0, sizeof(left->data));
     }
-    if (right == NULL) {
+    if (right == nullptr) {
       right = allocate();
-      if (right == NULL) {
+      if (right == nullptr) {
         release(left);
         return;
       }
       memset(right->data, 0, sizeof(right->data));
     }
     __disable_irq();
-    if (left_1st == NULL) {
+    if (left_1st == nullptr) {
       left_1st = left;
       right_1st = right;
       offset_1st = 0;
-    } else if (left_2nd == NULL) {
+    } else if (left_2nd == nullptr) {
       left_2nd = left;
       right_2nd = right;
     } else {

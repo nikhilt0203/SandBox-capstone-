@@ -69,7 +69,7 @@ void disconnectOthers(AudioGraph& graph, Module* module, const std::vector<Modul
   }
 }
 
-void detachFromGraph(AudioGraph& graph, Module* module)
+void disconnectAll(AudioGraph& graph, Module* module)
 {
   disconnectOthers(graph, module, module->inputs());
   disconnectOthers(graph, module, module->outputs());

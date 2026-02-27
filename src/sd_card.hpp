@@ -1,5 +1,5 @@
-#ifndef sd_card_hpp_
-#define sd_card_hpp_
+#ifndef SANDBOX_SD_CARD_HPP_
+#define SANDBOX_SD_CARD_HPP_
 
 #include "SD.h"
 #include <string_view>
@@ -43,7 +43,7 @@ namespace sndbx::sdcard
     return true;
   }
 
-  [[nodiscard]] const std::vector<std::string> fileContents(std::filesystem::path path)
+  [[nodiscard]] const auto fileContents(std::filesystem::path path) -> std::vector<std::string>
   {
     auto filePath = path.c_str();
     std::vector<std::string> contents;
@@ -77,7 +77,7 @@ namespace sndbx::sdcard
     return contents;
   }
 
-  [[nodiscard]] const std::vector<std::string> directoryContents(std::filesystem::path path)
+  [[nodiscard]] const auto directoryContents(std::filesystem::path path) -> std::vector<std::string>
   {
     auto directoryPath = path.c_str();
     std::vector<std::string> contents;

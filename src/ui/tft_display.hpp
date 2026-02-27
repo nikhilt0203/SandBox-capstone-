@@ -1,6 +1,7 @@
-#ifndef tft_display_hpp_
-#define tft_display_hpp_
+#ifndef SANDBOX_TFT_DISPLAY_HPP_
+#define SANDBOX_TFT_DISPLAY_HPP_
 
+#include "pinouts.hpp"
 #include "Adafruit_ILI9341.h"
 #include <cstring>
 #include <cstdint>
@@ -67,14 +68,11 @@ private:
   }
 
 private:
-  static constexpr auto CS_PIN = 14;
-  static constexpr auto DC_PIN = 15;
-
-  Adafruit_ILI9341 m_TFT{CS_PIN, DC_PIN};
+  Adafruit_ILI9341 m_TFT{TFT_CS_PIN, TFT_DC_PIN};
   GFXcanvas16 m_FrameBuffer1{width, height};
   GFXcanvas16 m_FrameBuffer2{width, height};
   std::array<GFXcanvas16*, 2> m_DoubleFrameBuffer{&m_FrameBuffer1, &m_FrameBuffer2};
-  bool m_FrameAvailable{false};
+  bool m_FrameAvailable{};
 };
 
 #endif

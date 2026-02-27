@@ -1,5 +1,5 @@
-#ifndef audio_filter_hpp_
-#define audio_filter_hpp_
+#ifndef SANDBOX_AUDIO_FILTER_HPP_
+#define SANDBOX_AUDIO_FILTER_HPP_
 
 #include <Audio.h>
 

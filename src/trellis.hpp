@@ -1,5 +1,5 @@
-#ifndef trellis_hpp_
-#define trellis_hpp_
+#ifndef SANDBOX_TRELLIS_HPP_
+#define SANDBOX_TRELLIS_HPP_
 
 #include "Adafruit_NeoTrellis.h"
 #include "grid.hpp"
@@ -14,9 +14,11 @@ public:
   Trellis();
   
   void update() { m_MultiTrellis.read(); }
+
   [[nodiscard]] bool hasEvent() { return !m_KeyEventQueue.empty(); }
   [[nodiscard]] std::optional<sndbx::event::TrellisPress> popEvent();
   [[nodiscard]] std::optional<sndbx::event::TrellisPress> const readEvent();
+  
   [[nodiscard]] constexpr std::size_t numCells() noexcept { return numKeys; }
   [[nodiscard]] Adafruit_MultiTrellis& trellis() { return m_MultiTrellis; }
   

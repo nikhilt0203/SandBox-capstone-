@@ -1,5 +1,5 @@
-#ifndef oscilloscope_hpp_
-#define oscilloscope_hpp_
+#ifndef SANDBOX_OSCILLOSCOPE_HPP_
+#define SANDBOX_OSCILLOSCOPE_HPP_
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
@@ -12,7 +12,8 @@ class Oscilloscope
   public Displayable,
   public Animatable
 {
-using AudioBuffer = AudioBufferInput<1024>;
+static constexpr std::size_t bufferSize = 1024;
+using AudioBuffer = AudioBufferInput<bufferSize>;
 
 public:
   MODULE_TYPE_INFO("scope", "displays the input signal", 0x34FF75);
@@ -29,15 +30,23 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override { return EMPTY; }
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override { return m_InputNames; }
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override { return m_OutputNames; }
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override { return EMPTYF; }
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames; }
+
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+
+  [[nodiscard]] auto controlNames() const 
+    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
+
+  [[nodiscard]] auto normalizedControlValues() const 
+    -> const std::vector<float>& override { return emptyVectorFloat(); }
 
   void drawNext(GFXcanvas16& frame) const override { WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw(); }
 
 private: 
   AudioBuffer* m_AudioBuffer{};
+
   inline static const std::vector<std::string_view> m_InputNames{"in"};
   inline static const std::vector<std::string_view> m_OutputNames{"out"};
 };

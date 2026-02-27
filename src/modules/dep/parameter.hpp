@@ -1,5 +1,5 @@
-#ifndef parameter_hpp_
-#define parameter_hpp_
+#ifndef SANDBOX_PARAMETER_HPP_
+#define SANDBOX_PARAMETER_HPP_
 
 template<typename T>
 class Parameter
@@ -16,16 +16,17 @@ public:
   {}
 
   operator T() const { return m_Value; }
-  T& value() { return m_Value; }
-  T max() const { return m_Max; }
-  T min() const { return m_Min; }
+  [[nodiscard]] T& value() { return m_Value; }
+  [[nodiscard]] const T& value() const { return m_Value; }
 
-  void change(ChangeFunc changeFunc, int delta) 
-  { 
-    m_Value = std::clamp(changeFunc(m_Value, delta), m_Min, m_Max);
-  }
+  [[nodiscard]] T max() const { return m_Max; }
+  [[nodiscard]] T min() const { return m_Min; }
 
-  float normalized() const 
+  void setValue(T value) { m_Value = std::clamp(value, m_Min, m_Max); }
+
+  void change(ChangeFunc changeFunc, int delta) { setValue(changeFunc(m_Value, delta)); }
+
+  [[nodiscard]] float normalized() const 
   { 
     return static_cast<float>(m_Value - m_Min) / static_cast<float>(m_Max - m_Min);
   }

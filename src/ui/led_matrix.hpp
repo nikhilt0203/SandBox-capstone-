@@ -1,5 +1,5 @@
-#ifndef led_matrix_hpp_
-#define led_matrix_hpp_
+#ifndef SANDBOX_LED_MATRIX_HPP_
+#define SANDBOX_LED_MATRIX_HPP_
 
 #include "led_frame.hpp"
 #include "grid.hpp"
@@ -41,17 +41,17 @@ public:
     if (!m_FrameAvailable) { return; }
 
     auto& previousFrame = *m_DoubleFrameBuffer[1];
-    auto& currentFrame = *m_DoubleFrameBuffer[0];
+    const auto& currentFrame = *m_DoubleFrameBuffer[0];
 
     for (std::size_t px{}; px < LEDFrame::size; px++)
     {
-      auto currentPixel = currentFrame[px];
-      if (currentPixel == previousFrame[px]) { continue; }
+      const auto currentPixel = currentFrame.at(px);
+      if (currentPixel == previousFrame.at(px)) { continue; }
 
       const auto pixelColor = sndbx::color::changeBrightness(currentPixel, m_Brightness);
       m_Trellis.setPixelColor(px, pixelColor);
 
-      previousFrame[px] = currentPixel;
+      previousFrame.at(px) = currentPixel;
     }
 
     m_Trellis.show();
@@ -74,7 +74,7 @@ private:
   LEDFrame m_FrameBuffer1;
   LEDFrame m_FrameBuffer2;
   std::array<LEDFrame*, 2> m_DoubleFrameBuffer{&m_FrameBuffer1, &m_FrameBuffer2};
-  bool m_FrameAvailable{false};
+  bool m_FrameAvailable{};
   float m_Brightness{0.5f};
 };
 

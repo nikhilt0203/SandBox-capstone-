@@ -1,5 +1,5 @@
-#ifndef vcf_hpp_
-#define vcf_hpp_
+#ifndef SANDBOX_VCF_HPP_
+#define SANDBOX_VCF_HPP_
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
@@ -16,87 +16,33 @@ public:
   MODULE_TYPE_INFO("vcf", "voltage controlled filter", 0xB427F5);
 
 public:
-  VCF() : Module(2, 1)
-  {
-    m_Audio.addDevice<AudioFilter>();
-    m_Filter = m_Audio.device<AudioFilter>();
+  VCF();
 
-    m_Filter->frequency(m_CutoffFrequency);
-    m_Filter->resonance(m_Resonance);
-    m_Filter->octaveControl(m_FMDepth);
-
-    m_Audio.mapInput(0, m_Filter, 0);
-    m_Audio.mapInput(1, m_Filter, 1);
-    m_Audio.mapOutput(0, m_Filter, 0);
-  }
+  VCF(float cutoff, float resonance, float fmDepth, int filterType);
 
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
 
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override 
-  {
-    static const std::vector<std::string_view> controlNames{
-      "cutoff", "reso", "fm", "type"
-    };
-    return controlNames;
-  }
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames; }
 
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override
-  { 
-    static std::vector<float> values;
-    values.reserve(4);
-    values.clear();
-    values.push_back(m_CutoffFrequency.normalized());
-    values.push_back(m_Resonance.normalized());
-    values.push_back(m_FMDepth.normalized());
-    values.push_back(m_FilterType.normalized());
-    return values;
-  }
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return m_OutputNames; }
 
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override 
-  {
-    static const std::vector<std::string_view> inputNames{"in", "fm"};
-    return inputNames;
-  }
+  [[nodiscard]] auto controlNames() const
+    -> const std::vector<std::string_view>& override { return m_ControlNames; }
 
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override 
-  {
-    static const std::vector<std::string_view> outputNames{"out"};
-    return outputNames;
-  }
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
 
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
 private:
-  void cutoffAdjust(int delta) 
-  {
-    auto freqCurve = [](float cur, int delta){ return cur * powf(1.08f, 1*delta); };
-    m_CutoffFrequency.change(freqCurve, delta);
-    m_Filter->frequency(m_CutoffFrequency);
-  }
-
-  void fmDepthAdjust(int delta) 
-  {
-    auto fmCurve = [](float cur, int delta){ return cur + 0.25f*delta; };
-    m_FMDepth.change(fmCurve, delta);
-    m_Filter->octaveControl(m_FMDepth);
-  }
-
-  void resonanceAdust(int delta) 
-  {
-    auto resoCurve = [](float cur, int delta){ return cur + 1*delta; };
-    m_Resonance.change(resoCurve, delta);
-    m_Filter->resonance(m_Resonance);
-  }
-
-  void filterTypeAdjust(int delta) 
-  {
-    auto curve = [](int cur, int delta){ return (cur + delta) % 3; };
-    m_FilterType.change(curve, delta);
-    m_Filter->filterType(m_FilterType);
-  }
+  void cutoffAdjust(int delta);
+  void fmDepthAdjust(int delta);
+  void resonanceAdjust(int delta);
+  void filterTypeAdjust(int delta);
 
 protected:
   Parameter<float> m_CutoffFrequency{440.0f, 0.0f, 18000.0f};
@@ -108,10 +54,15 @@ protected:
 
   Controls m_Controls{
     [this](int delta){ cutoffAdjust(delta); },
-    [this](int delta){ resonanceAdust(delta); },
+    [this](int delta){ resonanceAdjust(delta); },
     [this](int delta){ fmDepthAdjust(delta); },
     [this](int delta){ filterTypeAdjust(delta); }
   };
+
+  inline static const std::vector<std::string_view> m_InputNames{"in", "fm"};
+  inline static const std::vector<std::string_view> m_OutputNames{"out"};
+  inline static const std::vector<std::string_view> m_ControlNames{"cutoff", "reso", "fm", "type"};
+  mutable std::vector<float> m_ControlValues;
 };
 
 #endif

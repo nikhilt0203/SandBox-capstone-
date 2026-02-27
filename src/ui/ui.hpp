@@ -1,5 +1,5 @@
-#ifndef ui_hpp_
-#define ui_hpp_
+#ifndef SANDBOX_UI_HPP_
+#define SANDBOX_UI_HPP_
 
 #include "ui/tft_display.hpp"
 #include "ui/led_elements.hpp"

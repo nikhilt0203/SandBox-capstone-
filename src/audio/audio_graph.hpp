@@ -1,5 +1,5 @@
-#ifndef audio_graph_hpp_
-#define audio_graph_hpp_
+#ifndef SANDBOX_AUDIO_GRAPH_HPP_
+#define SANDBOX_AUDIO_GRAPH_HPP_
 
 #include <Audio.h>
 #include <vector>
@@ -12,8 +12,13 @@
 class AudioComponent
 {
 public:
-  using AudioPort = std::pair<AudioStream*, std::size_t>;
-  using PortMap = std::map<std::size_t, AudioPort>;
+  struct AudioStreamPort
+  {
+    AudioStream* device;
+    std::size_t port;
+  };
+
+  using PortMap = std::map<std::size_t, AudioStreamPort>;
   
 public:
   AudioComponent() = default;
@@ -36,21 +41,21 @@ public:
 
   void mapInput(std::size_t index, AudioStream* device, std::size_t devicePort) 
   { 
-    m_InputMap[index] = AudioPort{device, devicePort}; 
+    m_InputMap[index] = AudioStreamPort{device, devicePort}; 
   }
 
   void mapOutput(std::size_t index, AudioStream* device, std::size_t devicePort) 
   { 
-    m_OutputMap[index] = AudioPort{device, devicePort}; 
+    m_OutputMap[index] = AudioStreamPort{device, devicePort}; 
   }
 
-  [[nodiscard]] AudioPort getInputMapping(std::size_t index) const { return m_InputMap.at(index); }
-  [[nodiscard]] AudioPort getOutputMapping(std::size_t index) const { return m_OutputMap.at(index); }
+  [[nodiscard]] AudioStreamPort getInputMapping(std::size_t index) const { return m_InputMap.at(index); }
+  [[nodiscard]] AudioStreamPort getOutputMapping(std::size_t index) const { return m_OutputMap.at(index); }
 
   [[nodiscard]] const PortMap& inputMap() const { return m_InputMap; }
   [[nodiscard]] const PortMap& outputMap() const { return m_OutputMap; }
 
-  [[nodiscard]] float cpuUsage() const
+  [[nodiscard]] float processorUsage() const
   {
     float total{};
     for (const auto& device: m_AudioDevices) { total += device->processorUsage(); }
@@ -89,10 +94,10 @@ public:
 
     Patch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort)
     : m_Connection(std::make_unique<AudioConnection>(
-        *(src->audio().getOutputMapping(srcPort).first), 
-          src->audio().getOutputMapping(srcPort).second, 
-        *(dest->audio().getInputMapping(destPort).first), 
-          dest->audio().getInputMapping(destPort).second
+        *(src->audio().getOutputMapping(srcPort).device), 
+          src->audio().getOutputMapping(srcPort).port, 
+        *(dest->audio().getInputMapping(destPort).device), 
+          dest->audio().getInputMapping(destPort).port
       )),
       m_Source(src), 
       m_SourcePort(srcPort), 
@@ -165,7 +170,7 @@ public:
     __enable_irq();
   }
 
-  float cpuUsage() const { return AudioProcessorUsage(); } 
+  float processorUsage() const { return AudioProcessorUsage(); } 
 
 private:
   [[nodiscard]] std::vector<Patch>::const_iterator findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const

@@ -1,6 +1,6 @@
 #include "modules/oscillator.hpp"
 
-std::array<Oscillator::Waveform, Oscillator::numWaveforms> Oscillator::m_Waveforms = {
+const std::array<Oscillator::Waveform, Oscillator::numWaveforms> Oscillator::m_Waveforms = {
   Waveform{ WAVEFORM_SINE,             "sine",      0x00FF00 },
   Waveform{ WAVEFORM_SQUARE,           "square",    0xFF0000 },
   Waveform{ WAVEFORM_SAWTOOTH,         "saw",       0xFF00FF },
@@ -24,7 +24,19 @@ Oscillator::Oscillator() : Module(2, 1)
   m_Audio.mapOutput(0, m_Oscillator, 0);
 }
 
-const std::vector<float>& Oscillator::normalizedControlValues() const 
+Oscillator::Oscillator(float frequency, int fineTuneOffset, float fmDepth, std::size_t waveform)
+  : Oscillator()
+{
+  m_Frequency.setValue(frequency);
+  m_FineTuneOffset.setValue(fineTuneOffset);
+  m_FMDepth.setValue(fmDepth);
+  m_WaveformIndex.setValue(waveform);
+
+  m_Oscillator->begin(0.5f, m_Frequency + m_FineTuneOffset, m_Waveforms.at(m_WaveformIndex).id);
+  m_Oscillator->frequencyModulation(m_FMDepth);
+}
+
+auto Oscillator::normalizedControlValues() const -> const std::vector<float>&
 { 
   m_ControlValues.reserve(4); 
   m_ControlValues.clear();

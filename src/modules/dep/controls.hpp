@@ -1,5 +1,5 @@
-#ifndef controls_hpp_
-#define controls_hpp_
+#ifndef SANDBOX_CONTROLS_HPP_
+#define SANDBOX_CONTROLS_HPP_
 
 #include <vector>
 #include <functional>

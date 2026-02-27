@@ -1,5 +1,5 @@
-#ifndef audio_trigger_output_hpp_
-#define audio_trigger_output_hpp_
+#ifndef SANDBOX_AUDIO_TRIGGER_OUTPUT_HPP_
+#define SANDBOX_AUDIO_TRIGGER_OUTPUT_HPP_
 
 #include <Arduino.h>
 #include <AudioStream.h>
@@ -7,8 +7,7 @@
 class AudioTriggerOutput : public AudioStream
 {
 public:
-  AudioTriggerOutput() : AudioStream(1, m_InputQueueArray)
-  {}
+  AudioTriggerOutput() : AudioStream(1, m_InputQueueArray) {}
 
   ~AudioTriggerOutput() { SAFE_RELEASE_INPUTS(); }
 
@@ -19,9 +18,9 @@ public:
 
     if (m_On) 
     {
-      for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i) 
+      for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
       {
-        if (i < 20 ) outBlock->data[i] = 32767;
+        if (i < 20) outBlock->data[i] = 32767;
       }
       m_On = false;
     }

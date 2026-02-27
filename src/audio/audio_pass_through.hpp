@@ -1,5 +1,5 @@
-#ifndef audio_pass_through_hpp_
-#define audio_pass_through_hpp_
+#ifndef SANDBOX_AUDIO_PASS_THROUGH_HPP_
+#define SANDBOX_AUDIO_PASS_THROUGH_HPP_
 
 #include <Arduino.h>
 #include <AudioStream.h>

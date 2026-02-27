@@ -24,7 +24,7 @@ Envelope::Envelope() : Module(2, 2)
   m_Audio.mapOutput(1, m_TrigOut, 0);
 }
 
-const std::vector<float>& Envelope::normalizedControlValues() const
+auto Envelope::normalizedControlValues() const -> const std::vector<float>&
 { 
   m_ControlValues.reserve(4);
   m_ControlValues.clear();

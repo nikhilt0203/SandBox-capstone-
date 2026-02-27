@@ -1,5 +1,5 @@
-#ifndef color_hpp_
-#define color_hpp_
+#ifndef SANDBOX_COLOR_HPP_
+#define SANDBOX_COLOR_HPP_
 
 #include <cstdint>
 

@@ -63,8 +63,8 @@ struct ModuleBankDisplay
 
   ModuleBankDisplay() 
   {
-    colors.reserve(ModuleTypes::size);
-    for (auto info : bankInfos) { colors.push_back(info.color); }
+    colors.reserve(sndbx::engine::bankInfos.size());
+    for (auto info : sndbx::engine::bankInfos) { colors.push_back(info.color); }
   }
 };
 
@@ -179,7 +179,7 @@ namespace sndbx::app
   
   struct KeyboardPosition
   {
-    sndbx::grid::Position position;
+    sndbx::grid::Position head;
     std::vector<sndbx::grid::Position> keyPositions;
   };
 
@@ -195,7 +195,7 @@ namespace sndbx::app
     auto& positions = it->second.keyPositions;
 
     const auto lastKeyPosition = 
-      positions.empty() ? it->second.position 
+      positions.empty() ? it->second.head 
                         : positions.back();
 
     auto newKeyPosition = sndbx::grid::toPosition(lastKeyPosition.index() + 1);
@@ -256,12 +256,12 @@ namespace sndbx::app
     auto it = std::find_if(
         allKeyboardPositions.begin(),
         allKeyboardPositions.end(),
-        [pos](const auto &pair){ return pair.second.position == pos; }
+        [pos](const auto& pair){ return pair.second.head == pos; }
       );
     
     if (it == allKeyboardPositions.end()) { return false; }
 
-    auto keyboardPosition = it->second.position;
+    auto keyboardPosition = it->second.head;
     auto& keyPositions = it->second.keyPositions;
 
     std::for_each(
@@ -288,7 +288,7 @@ namespace sndbx::app
     {
       keyboard->setAddKeyCallback(addKeyboardKey);
       keyboard->setSubtractKeyCallback(subtractKeyboardKey);
-      allKeyboardPositions[keyboard->id()].position = pos;
+      allKeyboardPositions[keyboard->id()].head = pos;
     }
   }
 
@@ -297,8 +297,7 @@ namespace sndbx::app
     auto module = engine::builder.get<Module*>(pos);
     if (!module) { return false; }
 
-    patch::detachFromGraph(engine::audioGraph, module);
-    engine::audioGraph.deletePatchesWith(module);
+    patch::disconnectAll(engine::audioGraph, module);
 
     if (!engine::builder.destroy(pos)) { return false; }
   
@@ -311,15 +310,15 @@ namespace sndbx::app
 
   void createModule(grid::Position bankPos, grid::Position gridPos)
   {
-    const std::size_t typeIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.currentOffset;
+    const std::size_t bankIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.currentOffset;
 
-    if (typeIndex == engine::typeIndexOf<Keyboard>())
+    if (bankIndex == engine::bankIndexOf<Keyboard>())
     {
       createKeyboard(gridPos);
     }
     else
     {
-      engine::buildFromTypeIndex(typeIndex, gridPos, engine::builder);
+      engine::buildFromBankIndex(bankIndex, gridPos, engine::builder);
     }
 
     if (auto displayable = engine::builder.get<Displayable*>(gridPos))
@@ -331,6 +330,19 @@ namespace sndbx::app
   //========================================================================================================================
   // UI
   //========================================================================================================================
+  [[nodiscard]] std::optional<sndbx::grid::Position> getPosition(const ModuleBuilder& builder, Module* m)  
+  {
+    const auto& modules = builder.registry();
+    auto it = std::find_if(
+        modules.begin(), 
+        modules.end(),
+        [m](const auto &entry) { return entry.module.get() == m; }
+      );
+
+    if (it == modules.end()) { return std::nullopt; }
+    return it->position;
+  }
+
   void drawConnectionBetween(LEDMatrixDisplay& ledMatrix, grid::Position srcPos, grid::Position destPos)
   {
     auto moduleDisplay = engine::builder.get<Displayable*>(srcPos);
@@ -357,6 +369,7 @@ namespace sndbx::app
   void drawAllConnections(LEDMatrixDisplay& ledMatrix)
   {
     ui::clear(ledMatrix);
+
     for (auto& [position, _] : ::g_DisplayContext.moduleDisplays) 
     { 
       auto module = engine::builder.get<Module*>(position);
@@ -367,12 +380,13 @@ namespace sndbx::app
         const auto connectedModule = port.connectedModule;
         if (!connectedModule) { continue; }
 
-        if (auto destPos = engine::builder.getPosition(connectedModule))
+        if (auto destPos = getPosition(engine::builder, connectedModule))
         {
           drawConnectionBetween(ledMatrix, position, *destPos);
         }
       }
     }
+
     ::g_DisplayContext.ledsUpdated = false;
   }
 
@@ -491,28 +505,30 @@ namespace sndbx::app
 
     if (events.size() == 2) { handleDoublePress(events); }
 
-    auto module = builder.get<Module*>(position);
-    if (!module) { return; }
-    ::g_AppContext.selectedModule = module;
+    auto entry = builder.getEntry(position);
+  
+    if (!entry) { return; }
 
-    if (auto pressable = builder.get<Pressable*>(position)) 
+    ::g_AppContext.selectedModule = builder.getFromEntry<Module*>(*entry);
+
+    if (auto pressable = builder.getFromEntry<Pressable*>(*entry)) 
     { 
       pressable->onRisingEdge(); 
       ::g_DisplayContext.ledsUpdated = false;
     }
 
-    if (auto controllable = builder.get<Controllable*>(position))
+    if (auto controllable = builder.getFromEntry<Controllable*>(*entry))
     {
       ::g_AppContext.selectedControllable = controllable;
     }
 
-    if (auto displayable = builder.get<Displayable*>(position))
+    if (auto displayable = builder.getFromEntry<Displayable*>(*entry))
     {
       ::g_AppContext.selectedDisplayable = displayable;
       ::g_AppContext.state = AppContext::State::Displaying;
     }
 
-    if (auto animatable = builder.get<Animatable*>(position))
+    if (auto animatable = builder.getFromEntry<Animatable*>(*entry))
     {
       ::g_AppContext.selectedAnimatable = animatable;
       ::g_AppContext.state = AppContext::State::Displaying;
@@ -605,10 +621,13 @@ namespace sndbx::app
     }
   }
 
-  float cpuUsage()
+  float processorUsage()
   {
     float total{};
-    for (const auto& e : engine::builder.m_ModuleRegistry) { total += e.module.get()->audio().cpuUsage(); }
+    for (const auto& entry : engine::builder.registry()) 
+    { 
+      total += entry.module.get()->audio().processorUsage(); 
+    }
     return total;
   }
 
@@ -619,7 +638,6 @@ namespace sndbx::app
 
     if (input::trellis.hasEvent()) 
     {
-      Serial.println(cpuUsage());
       handleTrellisPress(*input::trellis.popEvent()); 
     }
   }

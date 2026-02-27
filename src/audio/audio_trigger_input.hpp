@@ -1,5 +1,5 @@
-#ifndef audio_trigger_input_hpp_
-#define audio_trigger_input_hpp_
+#ifndef SANDBOX_AUDIO_TRIGGER_INPUT_HPP_
+#define SANDBOX_AUDIO_TRIGGER_INPUT_HPP_
 
 #include <Arduino.h>
 #include <AudioStream.h>
@@ -31,7 +31,7 @@ public:
 
     bool sawHigh = false;
 
-    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
+    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; i++)
     {
       const float sample = block->data[i] / 32767.0f;
       if (sample >= m_Threshold) 

@@ -1,14 +1,14 @@
-#ifndef grid_hpp_
-#define grid_hpp_
+#ifndef SANDBOX_GRID_HPP_
+#define SANDBOX_GRID_HPP_
 
 #include <cstdint>
 
 namespace sndbx::grid
 {
-  static constexpr std::size_t rows = 8U;
-  static constexpr std::size_t cols = 8U;
-  static constexpr std::size_t totalCells = rows * cols;
-  static constexpr std::size_t bankStart = totalCells - cols;
+  inline constexpr std::size_t rows = 8U;
+  inline constexpr std::size_t cols = 8U;
+  inline constexpr std::size_t totalCells = rows * cols;
+  inline constexpr std::size_t bankStart = totalCells - cols;
 
   struct Position
   {

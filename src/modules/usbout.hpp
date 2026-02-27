@@ -1,5 +1,5 @@
-#ifndef usbout_hpp_
-#define usbout_hpp_
+#ifndef SANDBOX_USBOUT_HPP_
+#define SANDBOX_USBOUT_HPP_
 
 #include "dep/module.hpp"
 #include "dep/controls.hpp"
@@ -30,18 +30,18 @@ public:
   }
 
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
-  std::string_view displayName() const { return NAME; };
-  std::uint32_t displayColor() const { return COLOR; };
+  [[nodiscard]] std::string_view displayName() const override { return NAME; };
+  [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  const std::vector<std::string_view>& controlNames() const override 
+  [[nodiscard]] auto controlNames() const -> const std::vector<std::string_view>& override 
   {
     static const std::vector<std::string_view> controlNames{"volume"};
     return controlNames;
   }
 
-  const std::vector<float>& normalizedControlValues() const override
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
   { 
     static std::vector<float> values;
     values.clear();
@@ -49,16 +49,15 @@ public:
     return values;
   }
 
-  const std::vector<std::string_view>& inputNames() const override 
+  [[nodiscard]] auto inputNames() const -> const std::vector<std::string_view>& override 
   {
     static const std::vector<std::string_view> inputNames{"in"};
     return inputNames;
   }
 
-  const std::vector<std::string_view>& outputNames() const override 
+  [[nodiscard]] auto outputNames() const -> const std::vector<std::string_view>& override 
   {
-    static const std::vector<std::string_view> outputNames{"out"};
-    return outputNames;
+    return emptyVectorSV();
   }
 
 private:
@@ -107,18 +106,18 @@ public:
   }
 
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
-  [[nodiscard]] std::string_view displayName() const { return NAME; };
-  [[nodiscard]] std::uint32_t displayColor() const { return COLOR; };
+  [[nodiscard]] std::string_view displayName() const override { return NAME; };
+  [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override 
+  [[nodiscard]] auto controlNames() const -> const std::vector<std::string_view>& override 
   {
     static const std::vector<std::string_view> controlNames{"volume"};
     return controlNames;
   }
 
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
   { 
     static std::vector<float> values;
     values.clear();
@@ -126,16 +125,15 @@ public:
     return values;
   }
 
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override 
+  [[nodiscard]] auto inputNames() const -> const std::vector<std::string_view>& override 
   {
     static const std::vector<std::string_view> inputNames{"in"};
     return inputNames;
   }
 
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override 
+  [[nodiscard]] auto outputNames() const -> const std::vector<std::string_view>& override 
   {
-    static const std::vector<std::string_view> outputNames{"out"};
-    return outputNames;
+    return emptyVectorSV();
   }
 
 private:

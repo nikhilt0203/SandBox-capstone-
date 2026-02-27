@@ -1,5 +1,5 @@
-#ifndef mixer_hpp_
-#define mixer_hpp_
+#ifndef SANDBOX_MIXER_HPP_
+#define SANDBOX_MIXER_HPP_
 
 #include "dep/module.hpp"
 #include "dep/controls.hpp"
@@ -21,14 +21,24 @@ public:
 public:
   Mixer();
 
+  Mixer(std::initializer_list<float> gains);
+
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override { return m_ControlNames; }
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override { return m_InputNames; }
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override { return m_OutputNames; }
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override;
+  
+  [[nodiscard]] auto controlNames() const
+     -> const std::vector<std::string_view>& override { return m_ControlNames; }
+
+  [[nodiscard]] auto inputNames() const
+     -> const std::vector<std::string_view>& override { return m_InputNames; }
+
+  [[nodiscard]] auto outputNames() const
+     -> const std::vector<std::string_view>& override { return m_OutputNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
 
 private:
   void gainAdjust(std::size_t channel, int delta);
@@ -52,7 +62,6 @@ private:
 
   AudioMixer4* m_Mixer{};
 
-private:
   inline static const std::vector<std::string_view> m_ControlNames{"Gain 1", "Gain 2", "Gain 3", "Gain 4"};
   inline static const std::vector<std::string_view> m_InputNames{"1", "2", "3", "4"};
   inline static const std::vector<std::string_view> m_OutputNames{"out"};

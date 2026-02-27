@@ -1,5 +1,5 @@
-#ifndef type_array_hpp_
-#define type_array_hpp_
+#ifndef SANDBOX_TYPE_ARRAY_HPP_
+#define SANDBOX_TYPE_ARRAY_HPP_
 
 #include <tuple>
 

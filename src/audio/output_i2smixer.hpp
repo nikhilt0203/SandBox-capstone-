@@ -1,5 +1,5 @@
-#ifndef output_i2smixer_hpp_
-#define output_i2smixer_hpp_
+#ifndef SANDBOX_OUTPUT_I2SMIXER_HPP_
+#define SANDBOX_OUTPUT_I2SMIXER_HPP_
 
 #include <Audio.h>
 

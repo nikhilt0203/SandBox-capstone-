@@ -1,5 +1,5 @@
-#ifndef envelope_hpp_
-#define envelope_hpp_
+#ifndef SANDBOX_ENVELOPE_HPP_
+#define SANDBOX_ENVELOPE_HPP_
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
@@ -10,10 +10,10 @@
 #include "ui/color.hpp"
 
 class Envelope 
-: public Module, 
-  public Controllable,
-  public Displayable,
-  public Pressable
+  : public Module, 
+    public Controllable,
+    public Displayable,
+    public Pressable
 {
 public:
   MODULE_TYPE_INFO("envelope", "applies an envelope to the input signal", 0xFF7300);
@@ -21,19 +21,38 @@ public:
 public:
   Envelope();
 
+  Envelope(float attack, float decay, float sustain, float release)
+    : Envelope()
+  {
+    m_Attack.setValue(attack);
+    m_Decay.setValue(decay);
+    m_Sustain.setValue(sustain);
+    m_Release.setValue(release);
+
+    m_Envelope->attack(m_Attack);
+    m_Envelope->decay(m_Decay);
+    m_Envelope->sustain(m_Sustain);
+    m_Envelope->release(m_Release);
+  }
+
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
   [[nodiscard]] std::uint32_t ledColor() const override { return m_LEDColor; }
 
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override { return m_ControlNames; }
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override { return m_InputNames; }
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override { return m_OutputNames; }
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override;
+  [[nodiscard]] auto controlNames() const 
+    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+    
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames; }
 
-  
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+
   void onRisingEdge() override;
   void onFallingEdge() override;
 
@@ -44,6 +63,11 @@ private:
   void adjustRelease(int delta);
 
 private:
+  Parameter<float> m_Attack{10.0f, 0.0f, 500.0f};
+  Parameter<float> m_Decay{35.0f, 0.0f, 500.0f};
+  Parameter<float> m_Sustain{0.0f, 0.0f, 1.0f};
+  Parameter<float> m_Release{200.0f, 0.0f, 500.0f};
+
   Controls m_Controls{
     [this](int delta){ adjustAttack(delta); },
     [this](int delta){ adjustDecay(delta); },
@@ -51,15 +75,10 @@ private:
     [this](int delta){ adjustRelease(delta); }
   };
 
-  Parameter<float> m_Attack{10.0f, 0.0f, 500.0f};
-  Parameter<float> m_Decay{35.0f, 0.0f, 500.0f};
-  Parameter<float> m_Sustain{0.0f, 0.0f, 1.0f};
-  Parameter<float> m_Release{200.0f, 0.0f, 500.0f};
-
   AudioEffectEnvelope* m_Envelope;
   AudioTriggerOutput* m_TrigOut;
 
-  std::uint32_t m_LEDColor{displayColor()};
+  std::uint32_t m_LEDColor{COLOR};
 
   inline static const std::vector<std::string_view> m_ControlNames{"attack", "decay", "sustain", "release"};
   inline static const std::vector<std::string_view> m_InputNames{"in", "trg"};

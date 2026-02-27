@@ -1,34 +1,15 @@
-#ifndef builder_interface_hpp_
-#define builder_interface_hpp_
+#ifndef SANDBOX_BUILDER_INTERFACE_HPP_
+#define SANDBOX_BUILDER_INTERFACE_HPP_
 
 #include "engine/module_builder.hpp"
-#include "modules/envelope.hpp"
-#include "modules/keyboard.hpp"
-#include "modules/lfo.hpp"
-#include "modules/mixer.hpp"
-#include "modules/mult.hpp"
-#include "modules/oscillator.hpp"
-#include "modules/oscilloscope.hpp"
-#include "modules/reverb.hpp"
-#include "modules/usbout.hpp"
-#include "modules/vcf.hpp"
-#include "type_array.hpp"
-
-#include <cstddef>
+#include "engine/module_types.hpp"
+#include <cstdint>
 #include <tuple>
 #include <utility>
 #pragma once
 
-using ModuleTypes = 
-  sndbx::TypeArray<
-    Oscillator, 
-    LFO,
-    Mixer, 
-    USBOut, 
-    Envelope, 
-    VCF, 
-    Keyboard, 
-    Oscilloscope>;
+namespace sndbx::engine 
+{
 
 struct ModuleBankEntry 
 {
@@ -38,55 +19,50 @@ struct ModuleBankEntry
 };
 
 template <std::size_t... Is>
-constexpr std::array<ModuleBankEntry, ModuleTypes::size> createBankInfoArray(std::index_sequence<Is...>) 
+constexpr std::array<ModuleBankEntry, ModuleBank::size> createBankInfoArray(std::index_sequence<Is...>) 
 {
-  return {ModuleBankEntry{ModuleTypes::get<Is>::NAME,
-                          ModuleTypes::get<Is>::DESCRIPTION,
-                          ModuleTypes::get<Is>::COLOR}...};
+  return {ModuleBankEntry{ModuleBank::get<Is>::NAME,
+                          ModuleBank::get<Is>::DESCRIPTION,
+                          ModuleBank::get<Is>::COLOR}...};
 };
 
-inline static constexpr auto bankInfos =
-    createBankInfoArray(std::make_index_sequence<ModuleTypes::size>{});
+inline constexpr auto bankInfos = createBankInfoArray(std::make_index_sequence<ModuleBank::size>{});
 
-namespace sndbx::engine 
+void buildFromBankIndex(std::size_t index, grid::Position pos, ModuleBuilder& builder) 
 {
-
-template <typename T> constexpr std::size_t typeIndexOf() { return indexOf<T, ModuleTypes>(); }
-
-void buildFromTypeIndex(std::size_t index, grid::Position pos, ModuleBuilder &builder) 
-{
-  if (index >= ModuleTypes::size) { return; }
+  if (index >= bankInfos.size()) { return; }
 
   switch (index) 
   {
   case 0:
-    builder.make<ModuleTypes::get<0>>(pos);
+    builder.make<ModuleBank::get<0>>(pos);
     break;
   case 1:
-    builder.make<ModuleTypes::get<1>>(pos);
+    builder.make<ModuleBank::get<1>>(pos);
     break;
   case 2:
-    builder.make<ModuleTypes::get<2>>(pos);
+    builder.make<ModuleBank::get<2>>(pos);
     break;
   case 3:
-    builder.make<ModuleTypes::get<3>>(pos);
+    builder.make<ModuleBank::get<3>>(pos);
     break;
   case 4:
-    builder.make<ModuleTypes::get<4>>(pos);
+    builder.make<ModuleBank::get<4>>(pos);
     break;
   case 5:
-    builder.make<ModuleTypes::get<5>>(pos);
+    builder.make<ModuleBank::get<5>>(pos);
     break;
   case 6:
-    builder.make<ModuleTypes::get<6>>(pos);
+    builder.make<ModuleBank::get<6>>(pos);
     break;
   case 7:
-    builder.make<ModuleTypes::get<7>>(pos);
+    builder.make<ModuleBank::get<7>>(pos);
     break;
   default:
     break;
   }
 }
-} // namespace sndbx::engine
+
+}
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef event_hpp_
-#define event_hpp_
+#ifndef SANDBOX_EVENT_HPP_
+#define SANDBOX_EVENT_HPP_
 
 #include "grid.hpp"
 #include <optional>
@@ -12,7 +12,7 @@ namespace sndbx::event
     unsigned long time{millis()};
   };
 
-  enum class Edge
+  enum struct Edge
   {
     RISING_EDGE,
     FALLING_EDGE
@@ -24,9 +24,7 @@ namespace sndbx::event
     Edge edge;
     
     ButtonPress(std::size_t index, Edge e)
-    : index(index), 
-      edge(e) 
-    {}
+    : index(index), edge(e) {}
   };
 
   struct TrellisPress : public Event
@@ -35,9 +33,7 @@ namespace sndbx::event
     Edge edge;
     
     TrellisPress(sndbx::grid::Position pos, Edge e)
-    : position(pos), 
-      edge(e) 
-    {}
+    : position(pos), edge(e) {}
   };
 }
 

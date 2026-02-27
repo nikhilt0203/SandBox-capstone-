@@ -1,5 +1,5 @@
-#ifndef reverb_hpp_
-#define reverb_hpp_
+#ifndef SANDBOX_REVERB_HPP_
+#define SANDBOX_REVERB_HPP_
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
@@ -29,40 +29,40 @@ public:
     m_Audio.mapOutput(1, m_Reverb, 1);
   }
 
+  Reverb(float size, float damping) : Reverb()
+  {
+    m_Size.setValue(size);
+    m_Damping.setValue(damping);
+    m_Reverb->roomsize(m_Size);
+    m_Reverb->damping(m_Damping);
+  }
+
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() override { return m_Controls.size(); }
+  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
+   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
-  [[nodiscard]] const std::vector<std::string_view>& controlNames() const override 
-  {
-    static const std::vector<std::string_view> controlNames{"size", "damping"};
-    return controlNames;
-  }
 
-  [[nodiscard]] const std::vector<float>& normalizedControlValues() const override
+  [[nodiscard]] auto controlNames() const 
+    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames; }
+  
+
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
   { 
-    static std::vector<float> values;
-    values.reserve(2);
-    values.clear();
-    values.push_back(m_Size.normalized());
-    values.push_back(m_Damping.normalized());
-    return values;
+    m_ControlValues.reserve(2);
+    m_ControlValues.clear();
+    m_ControlValues.push_back(m_Size.normalized());
+    m_ControlValues.push_back(m_Damping.normalized());
+    return m_ControlValues;
   }
 
-  [[nodiscard]] const std::vector<std::string_view>& inputNames() const override 
-  {
-    static const std::vector<std::string_view> inputNames{"in", "fm"};
-    return inputNames;
-  }
-
-  [[nodiscard]] const std::vector<std::string_view>& outputNames() const override 
-  {
-    static const std::vector<std::string_view> outputNames{"out"};
-    return outputNames;
-  }
-
-  [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
 private:
   void sizeAdjust(int delta) 
@@ -83,12 +83,17 @@ protected:
   Parameter<float> m_Size{0.5f, 0.0f, 1.0f};
   Parameter<float> m_Damping{0.5f, 0.0f, 1.0f};
 
-  AudioEffectFreeverbStereo* m_Reverb;
+  AudioEffectFreeverbStereo* m_Reverb{};
 
   Controls m_Controls{
     [this](int delta){ sizeAdjust(delta); },
     [this](int delta){ dampingAdjust(delta); }
   };
+
+  inline static const std::vector<std::string_view> m_ControlNames{"coarse", "fine", "fm", "wave"};
+  inline static const std::vector<std::string_view> m_InputNames{"in"};
+  inline static const std::vector<std::string_view> m_OutputNames{"out"};
+  mutable std::vector<float> m_ControlValues{};
 };
 
 #endif
