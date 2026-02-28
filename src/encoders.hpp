@@ -25,11 +25,12 @@ public:
       auto& previousPos = m_EncoderPositions[i];
       const auto currentPos = static_cast<int>(m_Encoders[i].read());
       const auto delta = currentPos - previousPos;
-      static constexpr int minChange = 4;
+      
+      constexpr static int minChange = 4;
       
       if (abs(delta) >= minChange)
       {
-        m_TurnCallback(i, delta / minChange);
+        m_TurnCallback(i, delta > 0 ? 1 : -1);
         previousPos = currentPos;
       }
     }

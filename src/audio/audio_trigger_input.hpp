@@ -10,7 +10,7 @@ public:
   AudioTriggerInput() : AudioStream(1, m_InputQueueArray) {}
   ~AudioTriggerInput() { SAFE_RELEASE_INPUTS(); }
 
-  void threshold(float value) { m_Threshold = value; }
+  void threshold(float value) noexcept { m_Threshold = value; }
 
   void risingEdgeCallback(std::function<void()> f) { m_RisingEdgeCallback = f; }
   void fallingEdgeCallback(std::function<void()> f) { m_FallingEdgeCallback = f; }

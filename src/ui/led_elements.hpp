@@ -26,10 +26,10 @@ protected:
 class ModuleBank : public LEDUIElement
 {
 public:
-  ModuleBank(const std::vector<std::uint32_t>& colors, std::size_t begin, LEDFrame& frame)
+  ModuleBank(const std::vector<std::uint32_t>& colors, std::size_t startIndex, LEDFrame& frame)
   : LEDUIElement(frame),
     m_Colors(colors),
-    m_StartIndex(begin)
+    m_StartIndex(startIndex)
   {}
 
   void draw() const override 

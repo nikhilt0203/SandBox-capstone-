@@ -66,7 +66,7 @@ private:
   Parameter<float> m_Attack{10.0f, 0.0f, 500.0f};
   Parameter<float> m_Decay{35.0f, 0.0f, 500.0f};
   Parameter<float> m_Sustain{0.0f, 0.0f, 1.0f};
-  Parameter<float> m_Release{200.0f, 0.0f, 500.0f};
+  Parameter<float> m_Release{100.0f, 0.0f, 500.0f};
 
   Controls m_Controls{
     [this](int delta){ adjustAttack(delta); },

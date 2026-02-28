@@ -35,35 +35,26 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  [[nodiscard]] auto controlNames() const -> const std::vector<std::string_view>& override 
-  {
-    static const std::vector<std::string_view> controlNames{"volume"};
-    return controlNames;
-  }
+  [[nodiscard]] auto controlNames() const 
+    -> const std::vector<std::string_view>& override { return m_ControlNames; }
 
   [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
   { 
-    static std::vector<float> values;
-    values.clear();
-    values.push_back(m_Volume.normalized());
-    return values;
+    m_ControlValues.clear();
+    m_ControlValues.push_back(m_Volume.normalized());
+    return m_ControlValues;
   }
 
-  [[nodiscard]] auto inputNames() const -> const std::vector<std::string_view>& override 
-  {
-    static const std::vector<std::string_view> inputNames{"in"};
-    return inputNames;
-  }
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames;}
 
-  [[nodiscard]] auto outputNames() const -> const std::vector<std::string_view>& override 
-  {
-    return emptyVectorSV();
-  }
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
 
 private:
   void volumeAdjust(int delta) 
   { 
-    auto gainCurve = [](float v, int d) { return v * powf(1.10f, 1*d); };
+    auto gainCurve = [](float v, int d){ return v * powf(1.10f, 1*d); };
     m_Volume.change(gainCurve, delta); 
     m_OutputMixer->volume(m_Volume);
   }
@@ -73,9 +64,13 @@ private:
 
   Controls m_Controls{ [this](int delta){ volumeAdjust(delta); }};
 
-  AudioOutputI2SMixer* m_OutputMixer;
+  AudioOutputI2SMixer* m_OutputMixer{};
 
 private:
+  inline static const std::vector<std::string_view> m_ControlNames{"volume"};
+  inline static const std::vector<std::string_view> m_InputNames{"in"};
+  mutable std::vector<float> m_ControlValues;
+
   inline static AudioControlSGTL5000 m_AudioShield{};
 
   static void enableAudioShield()
@@ -86,6 +81,7 @@ private:
     m_AudioShield.volume(0.5);
     enabled = true;
   }
+
 };
 
 // USB OUT
@@ -111,30 +107,21 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  [[nodiscard]] auto controlNames() const -> const std::vector<std::string_view>& override 
-  {
-    static const std::vector<std::string_view> controlNames{"volume"};
-    return controlNames;
-  }
+  [[nodiscard]] auto controlNames() const 
+    -> const std::vector<std::string_view>& override { return m_ControlNames; }
 
   [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
   { 
-    static std::vector<float> values;
-    values.clear();
-    values.push_back(m_Volume.normalized());
-    return values;
+    m_ControlValues.clear();
+    m_ControlValues.push_back(m_Volume.normalized());
+    return m_ControlValues;
   }
 
-  [[nodiscard]] auto inputNames() const -> const std::vector<std::string_view>& override 
-  {
-    static const std::vector<std::string_view> inputNames{"in"};
-    return inputNames;
-  }
+  [[nodiscard]] auto inputNames() const 
+    -> const std::vector<std::string_view>& override { return m_InputNames; }
 
-  [[nodiscard]] auto outputNames() const -> const std::vector<std::string_view>& override 
-  {
-    return emptyVectorSV();
-  }
+  [[nodiscard]] auto outputNames() const 
+    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
 
 private:
   void volumeAdjust(int delta) 
@@ -150,6 +137,10 @@ private:
   Controls m_Controls{ [this](int delta){ volumeAdjust(delta); }};
 
   AudioOutputUSBMixer* m_OutputMixer{};
+
+  inline static const std::vector<std::string_view> m_ControlNames{"volume"};
+  inline static const std::vector<std::string_view> m_InputNames{"in"};
+  mutable std::vector<float> m_ControlValues;
 };
 
 #endif

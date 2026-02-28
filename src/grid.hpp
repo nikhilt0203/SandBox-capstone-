@@ -16,15 +16,15 @@ namespace sndbx::grid
     std::size_t col;
 
     [[nodiscard]] constexpr std::size_t index() const noexcept { return row * cols + col; } 
-    bool operator<(const Position& other) const { return index() < other.index(); }
-    bool operator==(const Position& other) const { return index() == other.index(); }
+    constexpr bool operator<(const Position& other) const { return index() < other.index(); }
+    constexpr bool operator==(const Position& other) const { return index() == other.index(); }
   };
 
-  [[nodiscard]] inline Position toPosition(std::size_t value) { return Position{value / cols, value % cols}; }
+  [[nodiscard]] constexpr Position toPosition(std::size_t value) { return Position{value / cols, value % cols}; }
 
-  [[nodiscard]] inline bool isBuildableArea(const sndbx::grid::Position& pos) { return pos.index() >= 0 && pos.index() < bankStart; }
+  [[nodiscard]] constexpr bool isBuildableArea(const sndbx::grid::Position& pos) { return pos.index() >= 0 && pos.index() < bankStart; }
 
-  [[nodiscard]] inline bool isBankArea(const sndbx::grid::Position& pos) { return pos.index() >= bankStart && pos.index() < totalCells; }
+  [[nodiscard]] constexpr bool isBankArea(const sndbx::grid::Position& pos) { return pos.index() >= bankStart && pos.index() < totalCells; }
 }
 
 #endif

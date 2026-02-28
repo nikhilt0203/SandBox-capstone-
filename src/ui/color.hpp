@@ -40,6 +40,17 @@ namespace sndbx::color
 
     return static_cast<std::uint32_t>((r << 16) | (g << 8) | b);
   }
+
+  [[nodiscard]] constexpr std::uint32_t blend(std::uint32_t color1, std::uint32_t color2, float ratio) noexcept
+  {
+    auto c1 = toRGB(color1);
+    auto c2 = toRGB(color2);
+    uint8_t r = c1.r * (1 - ratio) + c2.r * ratio;
+    uint8_t g = c1.g * (1 - ratio) + c2.g * ratio;
+    uint8_t b = c1.b * (1 - ratio) + c2.b * ratio; 
+
+    return RGBColor{r, g, b}.hex();
+  }
 }
 
 #endif

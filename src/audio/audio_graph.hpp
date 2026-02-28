@@ -173,7 +173,8 @@ public:
   float processorUsage() const { return AudioProcessorUsage(); } 
 
 private:
-  [[nodiscard]] std::vector<Patch>::const_iterator findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
+  [[nodiscard]] auto findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
+    -> std::vector<Patch>::const_iterator 
   {
     return std::find_if(
       m_Connections.begin(), 

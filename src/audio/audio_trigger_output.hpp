@@ -16,29 +16,18 @@ public:
     audio_block_t* outBlock = allocate();
     if (!outBlock) { return; }
 
-    if (m_On) 
+    for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
     {
-      for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
-      {
-        if (i < 20) outBlock->data[i] = 32767;
-      }
-      m_On = false;
-    }
-    else
-    {
-      for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i) 
-      {
-        outBlock->data[i] = 0;
-      }
+      outBlock->data[i] = m_On ? 32767 : 0;
     }
 
     transmit(outBlock, 0);
     release(outBlock);
   }
 
-  void on() { m_On = true; }
+  void on() noexcept { m_On = true; }
 
-  void off() { m_On = false; }
+  void off() noexcept { m_On = false; }
 
 private:
   audio_block_t* m_InputQueueArray[1];

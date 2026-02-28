@@ -5,9 +5,9 @@ namespace sndbx::patch
 
 bool connect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* dest, std::size_t destPort)
 {
-  bool success = graph.connect(static_cast<Patchable*>(src), srcPort, static_cast<Patchable*>(dest), destPort);
-
-  if (!success) { return false; }
+  if (!graph.connect(static_cast<Patchable*>(src), srcPort, static_cast<Patchable*>(dest), destPort)) { 
+    return false; 
+  }
 
   src->output(srcPort).connectedModule = dest;
   dest->input(destPort).connectedModule = src;
@@ -17,9 +17,9 @@ bool connect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* dest, 
 
 bool disconnect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* dest, std::size_t destPort)
 {
-  bool success = graph.disconnect(static_cast<Patchable*>(src), srcPort, static_cast<Patchable*>(dest), destPort);
-
-  if (!success) { return false; }
+  if (!graph.disconnect(static_cast<Patchable*>(src), srcPort, static_cast<Patchable*>(dest), destPort)) { 
+    return false; 
+  }
 
   src->output(srcPort).connectedModule = nullptr;
   dest->input(destPort).connectedModule = nullptr;
@@ -46,14 +46,18 @@ bool disconnectFirstConnection(AudioGraph& graph, Module* m1, Module* m2)
   if (auto destPort = portIndexOfModule(m2, m1->inputs()))
   {
     const auto srcPort = portIndexOfModule(m1, m2->outputs());
-    if (!srcPort) { return false; } 
+    if (!srcPort) { 
+      return false; 
+    } 
     return disconnect(graph, m2, *srcPort, m1, *destPort);
   }
 
   if (auto srcPort = portIndexOfModule(m2, m1->outputs()))
   {
     const auto destPort = portIndexOfModule(m1, m2->inputs());
-    if (!destPort) { return false; }
+    if (!destPort) { 
+      return false; 
+    }
     return disconnect(graph, m1, *srcPort, m2, *destPort);
   }
   
@@ -65,7 +69,9 @@ void disconnectOthers(AudioGraph& graph, Module* module, const std::vector<Modul
   for (const auto& port : ports)
   {
     const auto connectedModule = port.connectedModule;
-    if (connectedModule) { disconnectFirstConnection(graph, module, connectedModule); }
+    if (connectedModule) { 
+      disconnectFirstConnection(graph, module, connectedModule); 
+    }
   }
 }
 

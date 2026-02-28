@@ -84,7 +84,7 @@ public:
     return;
   }
 
-  void filterType(int type) 
+  void filterType(int type) noexcept
   { 
     switch (type) 
     {

@@ -10,6 +10,7 @@
 #include "ui/tft_display.hpp"
 #include "ui/led_matrix.hpp"
 #include "timer.hpp"
+#include "keyboard_manager.hpp"
 #include <vector>
 #include <map>
 
@@ -59,7 +60,7 @@ struct DisplayContext
 struct ModuleBankDisplay
 {
   std::vector<std::uint32_t> colors;
-  std::size_t currentOffset{0U};
+  std::size_t startIndex{0U};
 
   ModuleBankDisplay() 
   {
@@ -71,6 +72,7 @@ struct ModuleBankDisplay
 inline AppContext g_AppContext;
 inline DisplayContext g_DisplayContext;
 inline ModuleBankDisplay g_ModuleBankDisplay;
+inline KeyboardManager g_KeyboardManager;
 
 namespace sndbx::input
 {
@@ -89,13 +91,11 @@ namespace sndbx::input
 {
   void turnBank(int delta)
   {
-    if (delta < 0 && g_ModuleBankDisplay.currentOffset == 0) { return; }
+    const auto newStartIndex = 
+        (static_cast<int>(g_ModuleBankDisplay.startIndex) + delta) % 
+        static_cast<int>(g_ModuleBankDisplay.colors.size());
 
-    const auto newOffset = g_ModuleBankDisplay.currentOffset + delta;
-    if (newOffset >= g_ModuleBankDisplay.colors.size() - grid::cols) { return; }
-
-    ui::draw<ModuleBank>(display::ledMatrix, g_ModuleBankDisplay.colors, newOffset);
-    g_ModuleBankDisplay.currentOffset = newOffset;
+    g_ModuleBankDisplay.startIndex = newStartIndex;
     ::g_DisplayContext.ledsUpdated = false;
   }
 
@@ -177,108 +177,26 @@ namespace sndbx::app
     );
   }
   
-  struct KeyboardPosition
+  
+  bool addKeyboardKey(Keyboard& keyboard) 
   {
-    sndbx::grid::Position head;
-    std::vector<sndbx::grid::Position> keyPositions;
-  };
-
-  std::map<std::uint32_t, KeyboardPosition> allKeyboardPositions;
-
-  bool addKeyboardKey(Keyboard& keyboard)
-  {
-    const auto keyboardID = keyboard.id();
-
-    auto it = allKeyboardPositions.find(keyboardID);
-    if (it == allKeyboardPositions.end()) { return false; }
-
-    auto& positions = it->second.keyPositions;
-
-    const auto lastKeyPosition = 
-      positions.empty() ? it->second.head 
-                        : positions.back();
-
-    auto newKeyPosition = sndbx::grid::toPosition(lastKeyPosition.index() + 1);
-
-    if (!grid::isBuildableArea(newKeyPosition)) { return false; }
-
-    auto key = engine::builder.make<KeyboardKey>(newKeyPosition, keyboard);
-    if (!key) { return false; }
-
-    key->setAmplitude(0.04167 * positions.size());
-    positions.push_back(newKeyPosition);
-    placeModule(key, newKeyPosition);
-    return true;
+    if (auto keyData = g_KeyboardManager.addKey(keyboard, engine::builder))
+    {
+      placeModule(keyData->key, keyData->position);
+      return true;
+    }
+    return false;
   }
 
   bool deleteModule(sndbx::grid::Position pos);
-
-  bool subtractKeyboardKey(Keyboard& keyboard)
-  {
-    Serial.println("Subtracting key");
-    if (keyboard.numKeys() == 0) { return false; }
-
-    const auto keyboardID = keyboard.id();
-
-    auto it = allKeyboardPositions.find(keyboardID);
-    if (it == allKeyboardPositions.end()) { return false; }
-
-    const auto lastKeyPosition = it->second.keyPositions.back();
-
-    if (!deleteModule(lastKeyPosition)) { return false; }
-
-    allKeyboardPositions[keyboardID].keyPositions.pop_back();
-    return true;
-  }
-
-  bool isKeyboardKeyAt(grid::Position pos)
-  {
-    auto it = std::find_if(
-      allKeyboardPositions.begin(),
-      allKeyboardPositions.end(),
-      [pos](const auto& pair)
-      {
-        const auto& keyPositions = pair.second.keyPositions;
-        auto it = std::find_if(
-            keyPositions.begin(),
-            keyPositions.end(),
-            [pos](const auto &position){ return position == pos; }
-          );
-        return it != keyPositions.end();
-      }
-    );
-
-    return it != allKeyboardPositions.end();
-  }
-
-  bool deleteKeyboard(grid::Position pos)
-  {
-    auto it = std::find_if(
-        allKeyboardPositions.begin(),
-        allKeyboardPositions.end(),
-        [pos](const auto& pair){ return pair.second.head == pos; }
-      );
-    
-    if (it == allKeyboardPositions.end()) { return false; }
-
-    auto keyboardPosition = it->second.head;
-    auto& keyPositions = it->second.keyPositions;
-
-    std::for_each(
-      keyPositions.begin(), 
-      keyPositions.end(), 
-      [](const auto& pos) { deleteModule(pos); }
-    );
-
-    deleteModule(keyboardPosition);
-    allKeyboardPositions.erase(it);
-    return true;
-  }
+  bool subtractKeyboardKey(Keyboard& keyboard) { return g_KeyboardManager.subtractKey(keyboard, deleteModule); }
+  
+  void changeKeyboardScale(Keyboard::Scale scale, std::uint32_t keyboardID) { g_KeyboardManager.changeScale(scale, keyboardID); }
 
   void handleDeleteModule(grid::Position pos)
   {
-    if (deleteKeyboard(pos)) { return; }
-    if (!isKeyboardKeyAt(pos)) { deleteModule(pos); }
+    if (g_KeyboardManager.isKeyboardAt(pos)) { g_KeyboardManager.deleteKeyboard(pos, deleteModule); }
+    if (!g_KeyboardManager.isKeyAt(pos)) { deleteModule(pos); }
   }
 
   void createKeyboard(grid::Position pos)
@@ -288,7 +206,11 @@ namespace sndbx::app
     {
       keyboard->setAddKeyCallback(addKeyboardKey);
       keyboard->setSubtractKeyCallback(subtractKeyboardKey);
-      allKeyboardPositions[keyboard->id()].head = pos;
+      keyboard->setScaleChangeCallback(changeKeyboardScale);
+      g_KeyboardManager.addKeyboard(keyboard->id(), pos);
+
+      //create initial keys
+      for (std::size_t i{}; i < 8; i++) { keyboard->changeControl(0, 1); }
     }
   }
 
@@ -310,7 +232,7 @@ namespace sndbx::app
 
   void createModule(grid::Position bankPos, grid::Position gridPos)
   {
-    const std::size_t bankIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.currentOffset;
+    const std::size_t bankIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.startIndex;
 
     if (bankIndex == engine::bankIndexOf<Keyboard>())
     {
@@ -425,7 +347,7 @@ namespace sndbx::app
     return true;
   }
 
-  void clearModuleSelections(AppContext& appContext);
+   void clearModuleSelections(AppContext& appContext);
   void patchHandler(grid::Position srcPos, grid::Position destPos)
   {
     auto* srcModule = engine::builder.get<Module*>(srcPos);
@@ -588,7 +510,7 @@ namespace sndbx::app
     { 
       ledMatrix.clear();
       drawAllConnections(ledMatrix);
-      ui::draw<ModuleBank>(ledMatrix, g_ModuleBankDisplay.colors, g_ModuleBankDisplay.currentOffset);
+      ui::draw<ModuleBank>(ledMatrix, g_ModuleBankDisplay.colors, g_ModuleBankDisplay.startIndex);
     }
 
     for (auto& [position, module] : ::g_DisplayContext.moduleDisplays) 
@@ -641,21 +563,23 @@ namespace sndbx::app
       handleTrellisPress(*input::trellis.popEvent()); 
     }
   }
-
+  auto oldstate = AppContext::State::Idle;
   void updateState() 
   {
+    if (oldstate != ::g_AppContext.state) { Serial.println(static_cast<int>(::g_AppContext.state)); }
     switch (::g_AppContext.state)
     {
       case AppContext::State::Idle:
+      case AppContext::State::Patching: break;
       case AppContext::State::Creating:
       case AppContext::State::Deleting:
       case AppContext::State::Displaying:
         displaySelectedModule();
         break;
-      case AppContext::State::Patching:
       case AppContext::State::Selecting:
       default: break;
     }
+    oldstate = ::g_AppContext.state;
   }
 
   void renderDisplay()

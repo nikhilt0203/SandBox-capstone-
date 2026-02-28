@@ -62,7 +62,7 @@ protected:
 
   Parameter<float> m_Frequency{440.0f, 0.0f, 18000.0f};
   Parameter<int> m_FineTuneOffset{0, -50, 50};
-  Parameter<float> m_FMDepth{5.0f, 0.0f, 12.0f};
+  Parameter<float> m_FMDepth{8.25f, 0.0f, 12.0f};
   Parameter<std::size_t> m_WaveformIndex{0U, 0U, numWaveforms - 1};
 
   Controls m_Controls{

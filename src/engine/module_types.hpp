@@ -25,6 +25,7 @@ using ModuleBank =
     Envelope, 
     VCF, 
     Keyboard, 
+    Mult,
     Oscilloscope>;
 
 template <typename T> 
@@ -40,6 +41,7 @@ using ModuleTypes =
     VCF, 
     Keyboard, 
     Oscilloscope,
+    Mult,
     KeyboardKey>;
 
 template <typename T> 
