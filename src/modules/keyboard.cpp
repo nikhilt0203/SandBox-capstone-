@@ -21,7 +21,7 @@ auto Keyboard::normalizedControlValues() const -> const std::vector<float>&
   return m_ControlValues;
 }
 
-void Keyboard::on(float amplitude)
+void Keyboard::keyPress(float amplitude)
 {
   m_DC->amplitude(amplitude);
   m_NumKeysOn++;
@@ -29,7 +29,7 @@ void Keyboard::on(float amplitude)
 }
 
 
-void Keyboard::off()
+void Keyboard::keyRelease()
 {
   m_NumKeysOn--;
   if (m_NumKeysOn == 0) { m_TrigOut->off(); }

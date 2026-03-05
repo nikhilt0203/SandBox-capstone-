@@ -8,7 +8,7 @@ namespace sndbx
   // compile-time type array using std::tuple -
   // https://stackoverflow.com/a/62139716 Posted by Artyer
   template<typename... Types>
-  struct TypeArray
+  struct type_array
   {
     template<std::size_t N>
     using get = std::tuple_element_t<N, std::tuple<Types...>>;
@@ -18,11 +18,11 @@ namespace sndbx
 
   namespace impl
   {
-    template<typename T, typename TypeArray>
+    template<typename T, typename type_array>
     struct IndexOfImpl;
 
     template<typename T, typename... Ts>
-    struct IndexOfImpl<T, TypeArray<Ts...>>
+    struct IndexOfImpl<T, type_array<Ts...>>
     {
       // https://stackoverflow.com/a/77853226 Posted by ABu
       // find index of element
@@ -39,8 +39,8 @@ namespace sndbx
     };
   }
 
-  template<typename T, typename TypeArray>
-  [[nodiscard]] constexpr std::size_t indexOf() { return impl::IndexOfImpl<T, TypeArray>::value(); }
+  template<typename T, typename type_array>
+  [[nodiscard]] constexpr std::size_t indexOf() { return impl::IndexOfImpl<T, type_array>::value(); }
 };
 
 #endif

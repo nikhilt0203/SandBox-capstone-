@@ -22,13 +22,16 @@ public:
     std::size_t typeIndex;
     sndbx::grid::Position position;
 
-    std::unique_ptr<Module> module;
+    Module* module;
     Displayable* displayable;
     Controllable* controllable;
     Pressable* pressable;
     Animatable* animatable;
     Serializable* serializable;
   };
+
+  static constexpr std::size_t maxModules = 64;
+  using ModuleRegistry = std::array<std::optional<ModuleEntry>, maxModules>;
 
 public:
   ModuleBuilder() = default;
@@ -37,10 +40,20 @@ public:
   T* make(sndbx::grid::Position pos, Args &&...args) 
   {
     if (positionOccupied(pos)) { return nullptr; }
-    auto entry = makeEntry<T>(makeID(), pos, std::forward<Args>(args)...);
-    auto module = static_cast<T*>(entry.module.get());
-    m_ModuleRegistry.push_back(std::move(entry));
-    return module;
+
+    auto newModule = m_ModulePools.acquire<T>();
+    if (!newModule) { return nullptr; }
+
+    auto entry = makeEntry<T>(newModule, pos, std::forward<Args>(args)...);
+    auto module = static_cast<T*>(entry.module);
+
+    for (auto& slot : m_ModuleRegistry) 
+    {
+      if (slot.has_value()) { continue; } 
+      slot = entry; 
+      return module; 
+    }
+    return nullptr;
   }
 
   template <typename T> 
@@ -49,7 +62,7 @@ public:
     static_assert(std::is_pointer_v<T>);
     auto it = findWithID(id);
     if (it == m_ModuleRegistry.end()) { return nullptr; };
-    return getFromEntry<T>(*it);
+    return getFromEntry<T>(it->value());
   }
 
   template <typename T> 
@@ -58,20 +71,20 @@ public:
     static_assert(std::is_pointer_v<T>);
     auto it = findWithPosition(pos);
     if (it == m_ModuleRegistry.end()) { return nullptr; }
-    return getFromEntry<T>(*it);
+    return getFromEntry<T>(it->value());
   }
 
   [[nodiscard]] const ModuleEntry* getEntry(sndbx::grid::Position pos) const 
   {
     auto it = findWithPosition(pos);
-    if (it != m_ModuleRegistry.end()) { return &*it; }
+    if (it != m_ModuleRegistry.end()) { return &it->value(); }
     return nullptr;
   }
 
   [[nodiscard]] const ModuleEntry* getEntry(std::uint32_t id) const 
   {
     auto it = findWithID(id);
-    if (it != m_ModuleRegistry.end()) { return &*it; }
+    if (it != m_ModuleRegistry.end()) { return &it->value(); }
     return nullptr;
   }
 
@@ -87,7 +100,7 @@ public:
       std::is_same_v<T, Serializable*>,
       "Type parameter is invalid.");
 
-    if constexpr (std::is_same_v<T, Module*>) { return entry.module.get(); }
+    if constexpr (std::is_same_v<T, Module*>) { return entry.module; }
     if constexpr (std::is_same_v<T, Displayable*>) { return entry.displayable; }
     if constexpr (std::is_same_v<T, Controllable*>) { return entry.controllable; }
     if constexpr (std::is_same_v<T, Pressable*>) { return entry.pressable; }
@@ -97,9 +110,38 @@ public:
 
   [[nodiscard]] bool destroy(sndbx::grid::Position pos) 
   {
-    auto it = findWithPosition(pos);
+    using namespace sndbx::engine;
+
+    auto it = std::find_if(
+        m_ModuleRegistry.begin(), 
+        m_ModuleRegistry.end(),
+        [&pos](const auto& entry){
+          if (!entry) return false;
+          return entry->position == pos; 
+        }
+      );
+
     if (it == m_ModuleRegistry.end()) { return false; }
-    m_ModuleRegistry.erase(it);
+
+    auto& entry = *it;
+    const auto module = entry->module;
+
+    switch (entry->typeIndex)
+    {
+      case typeIndexOf<Oscillator>():   m_ModulePools.release(static_cast<Oscillator*>(module)); break;
+      case typeIndexOf<LFO>():          m_ModulePools.release(static_cast<LFO*>(module)); break;
+      case typeIndexOf<Mixer>():        m_ModulePools.release(static_cast<Mixer*>(module)); break;
+      case typeIndexOf<Keyboard>():     m_ModulePools.release(static_cast<Keyboard*>(module)); break;
+      case typeIndexOf<KeyboardKey>():  m_ModulePools.release(static_cast<KeyboardKey*>(module)); break;
+      case typeIndexOf<Oscilloscope>(): m_ModulePools.release(static_cast<Oscilloscope*>(module)); break;
+      case typeIndexOf<VCF>():          m_ModulePools.release(static_cast<VCF*>(module)); break;
+      case typeIndexOf<Envelope>():     m_ModulePools.release(static_cast<Envelope*>(module)); break;
+      case typeIndexOf<Mult>():         m_ModulePools.release(static_cast<Mult*>(module)); break;
+      case typeIndexOf<USBOut>():       m_ModulePools.release(static_cast<USBOut*>(module)); break;
+    }
+
+    entry.reset();
+
     return true;
   }
 
@@ -108,15 +150,15 @@ public:
     return findWithPosition(pos) != m_ModuleRegistry.end();
   }
 
-  [[nodiscard]] const std::vector<ModuleEntry>& registry() const { return m_ModuleRegistry; }
+  [[nodiscard]] const ModuleRegistry& registry() const { return m_ModuleRegistry; }
 
 private:
   template <typename T, typename... Args>
-  [[nodiscard]] ModuleEntry makeEntry(std::uint32_t id, sndbx::grid::Position pos, Args &&...args) const
+  [[nodiscard]] ModuleEntry makeEntry(T* module, sndbx::grid::Position pos) const
   {
     static_assert(std::is_base_of_v<Module, T>, "Entry must be derived from Module.");
 
-    std::unique_ptr<T> module = std::make_unique<T>(std::forward<Args>(args)...);
+    const auto id = makeID();
     module->setID(id);
 
     Displayable* displayable{};
@@ -125,17 +167,17 @@ private:
     Animatable* animatable{};
     Serializable* serializable{};
 
-    if constexpr (std::is_base_of_v<Displayable, T>) { displayable = module.get(); }
-    if constexpr (std::is_base_of_v<Controllable, T>) { controllable = module.get(); }
-    if constexpr (std::is_base_of_v<Pressable, T>) { pressable = module.get(); }
-    if constexpr (std::is_base_of_v<Animatable, T>) { animatable = module.get(); }
-    if constexpr (std::is_base_of_v<Serializable, T>) { serializable = module.get(); }
+    if constexpr (std::is_base_of_v<Displayable, T>) { displayable = module; }
+    if constexpr (std::is_base_of_v<Controllable, T>) { controllable = module; }
+    if constexpr (std::is_base_of_v<Pressable, T>) { pressable = module; }
+    if constexpr (std::is_base_of_v<Animatable, T>) { animatable = module; }
+    if constexpr (std::is_base_of_v<Serializable, T>) { serializable = module; }
 
     return ModuleEntry{
       id,
       sndbx::engine::typeIndexOf<T>(),
       pos,       
-      std::move(module), 
+      module, 
       displayable,       
       controllable, 
       pressable, 
@@ -144,21 +186,27 @@ private:
     };
   }
 
-  [[nodiscard]] std::vector<ModuleEntry>::const_iterator findWithID(std::uint32_t id) const 
+  [[nodiscard]] ModuleRegistry::const_iterator findWithID(std::uint32_t id) const 
   {
     return std::find_if(
         m_ModuleRegistry.begin(), 
         m_ModuleRegistry.end(),
-        [&id](const ModuleEntry &entry) { return entry.id == id; }
+        [&id](const auto& entry){
+          if (!entry) return false;
+          return entry->id == id; 
+        }
       );
   }
 
-  [[nodiscard]] std::vector<ModuleEntry>::const_iterator findWithPosition(sndbx::grid::Position pos) const 
+  [[nodiscard]] ModuleRegistry::const_iterator findWithPosition(sndbx::grid::Position pos) const 
   {
     return std::find_if(
         m_ModuleRegistry.begin(), 
         m_ModuleRegistry.end(),
-        [&pos](const ModuleEntry &entry) { return entry.position == pos; }
+        [&pos](const auto& entry){
+          if (!entry) return false;
+          return entry->position == pos; 
+        }
       );
   }
 
@@ -169,7 +217,8 @@ private:
   }
 
 private:
-  std::vector<ModuleEntry> m_ModuleRegistry{};
+  inline static ModuleRegistry m_ModuleRegistry{};
+  inline static sndbx::engine::ModulePools m_ModulePools;
 };
 
 namespace engine

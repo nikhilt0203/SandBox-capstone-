@@ -11,10 +11,10 @@ class Mult
     public Displayable
 {
 public:
-  MODULE_TYPE_INFO("mult", "split 1 input to 8 outputs", 0x346575);
+  MODULE_TYPE_INFO("mult", "split 1 input to 5 outputs", 0x70043C);
 
 public:
-  Mult() : Module(1, 8)
+  Mult() : Module(1, 5)
   {
     m_Audio.addDevice<AudioPassThrough>();
     const auto device = m_Audio.device<AudioPassThrough>();

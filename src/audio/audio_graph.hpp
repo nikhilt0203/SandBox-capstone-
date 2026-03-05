@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <optional>
 
 //=====================================================
 // Holds AudioStream objects and an I/O map
@@ -18,7 +19,8 @@ public:
     std::size_t port;
   };
 
-  using PortMap = std::map<std::size_t, AudioStreamPort>;
+  static constexpr std::size_t maxPorts = 5;
+  using PortMap = std::array<std::optional<AudioStreamPort>, maxPorts>;
   
 public:
   AudioComponent() = default;
@@ -49,8 +51,8 @@ public:
     m_OutputMap[index] = AudioStreamPort{device, devicePort}; 
   }
 
-  [[nodiscard]] AudioStreamPort getInputMapping(std::size_t index) const { return m_InputMap.at(index); }
-  [[nodiscard]] AudioStreamPort getOutputMapping(std::size_t index) const { return m_OutputMap.at(index); }
+  [[nodiscard]] AudioStreamPort getInputMapping(std::size_t index) const { return *m_InputMap[index]; }
+  [[nodiscard]] AudioStreamPort getOutputMapping(std::size_t index) const { return *m_OutputMap[index]; }
 
   [[nodiscard]] const PortMap& inputMap() const { return m_InputMap; }
   [[nodiscard]] const PortMap& outputMap() const { return m_OutputMap; }
@@ -64,8 +66,8 @@ public:
 
 private:
   std::vector<std::unique_ptr<AudioStream>> m_AudioDevices;
-  PortMap m_InputMap;
-  PortMap m_OutputMap;
+  PortMap m_InputMap{};
+  PortMap m_OutputMap{};
 };
 
 class Patchable
@@ -187,9 +189,9 @@ private:
       });
   }
 
-  [[nodiscard]] bool portExists(const AudioComponent::PortMap& portMap, std::size_t port) const
+  [[nodiscard]] bool portExists(const AudioComponent::PortMap& portMap, std::size_t port) const noexcept 
   {
-    return portMap.find(port) != portMap.end();
+    return portMap[port].has_value();
   }
 
 private:

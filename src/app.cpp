@@ -13,6 +13,8 @@
 #include "keyboard_manager.hpp"
 #include <vector>
 #include <map>
+#include <new>
+#include <Arduino.h>
 
 namespace sndbx::engine
 {
@@ -51,7 +53,7 @@ struct AppContext
 
 struct DisplayContext
 {
-  std::map<sndbx::grid::Position, Displayable*> moduleDisplays{};
+  std::array<Displayable*, sndbx::grid::totalCells> moduleDisplays{};
   Displayable* lastDisplayed{};
   bool ledsUpdated{false};
   bool displayUpdated{false};
@@ -133,7 +135,7 @@ namespace sndbx::app
 
   void placeModule(Displayable* module, grid::Position pos)
   {
-    ::g_DisplayContext.moduleDisplays[pos] = module;
+    ::g_DisplayContext.moduleDisplays[pos.index()] = module;
     display::ledMatrix.drawPixel(pos, module->ledColor());
     ::g_DisplayContext.ledsUpdated = false;
   }
@@ -223,8 +225,8 @@ namespace sndbx::app
 
     if (!engine::builder.destroy(pos)) { return false; }
   
-    auto& moduleDisplays = ::g_DisplayContext.moduleDisplays;
-    if (moduleDisplays.find(pos) != moduleDisplays.end()) { moduleDisplays.erase(pos); }
+    auto& moduleDisplay = ::g_DisplayContext.moduleDisplays;
+    moduleDisplay.at(pos.index()) = nullptr;
 
     ::g_DisplayContext.ledsUpdated = false;
     return true;
@@ -254,15 +256,13 @@ namespace sndbx::app
   //========================================================================================================================
   [[nodiscard]] std::optional<sndbx::grid::Position> getPosition(const ModuleBuilder& builder, Module* m)  
   {
-    const auto& modules = builder.registry();
-    auto it = std::find_if(
-        modules.begin(), 
-        modules.end(),
-        [m](const auto &entry) { return entry.module.get() == m; }
-      );
+    for (const auto& entry : builder.registry())
+    {
+      if (!entry) { continue; }
+      if (entry->module == m) { return entry->position; }
+    }
 
-    if (it == modules.end()) { return std::nullopt; }
-    return it->position;
+    return std::nullopt;
   }
 
   void drawConnectionBetween(LEDMatrixDisplay& ledMatrix, grid::Position srcPos, grid::Position destPos)
@@ -292,8 +292,10 @@ namespace sndbx::app
   {
     ui::clear(ledMatrix);
 
-    for (auto& [position, _] : ::g_DisplayContext.moduleDisplays) 
-    { 
+    for (std::size_t i{}; i < ::g_DisplayContext.moduleDisplays.size(); i++) 
+    {
+      const auto position = grid::toPosition(i);
+
       auto module = engine::builder.get<Module*>(position);
       if (!module) { continue; }
 
@@ -513,9 +515,21 @@ namespace sndbx::app
       ui::draw<ModuleBank>(ledMatrix, g_ModuleBankDisplay.colors, g_ModuleBankDisplay.startIndex);
     }
 
-    for (auto& [position, module] : ::g_DisplayContext.moduleDisplays) 
+    const auto& moduleDisplays = ::g_DisplayContext.moduleDisplays;
+    for (std::size_t i{}; i < moduleDisplays.size(); i++) 
     { 
-      ledMatrix.drawPixel(position, module->ledColor());
+      auto module = moduleDisplays[i];
+      if (!module) { continue; }
+
+      auto moduleColor = module->ledColor();
+      const auto& selected = ::g_AppContext.selectedDisplayable;
+
+      if (selected && *selected == module)
+      {
+        moduleColor = sndbx::color::blend(moduleColor, 0xDDDDFF, 0.1);
+      }
+
+      ledMatrix.drawPixel(grid::toPosition(i), moduleColor);
     }
 
     ledMatrix.renderFrame();
@@ -548,7 +562,8 @@ namespace sndbx::app
     float total{};
     for (const auto& entry : engine::builder.registry()) 
     { 
-      total += entry.module.get()->audio().processorUsage(); 
+      if (!entry) { continue; }
+      total += entry->module->audio().processorUsage(); 
     }
     return total;
   }

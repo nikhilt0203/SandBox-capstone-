@@ -151,8 +151,6 @@ public:
   static constexpr int radius = 25;
   static constexpr int width = radius * 2 + 1;
 
-  static constexpr int LABEL_SIZE = 1;
-
 public:
   Knob(std::uint16_t x, 
        std::uint16_t y, 
@@ -187,9 +185,10 @@ public:
     m_Frame.fillCircle(indicatorX, indicatorY, indicatorRadius, indicatorColor);
 
     //Knob label
+   constexpr static int labelSize = 1;
     int16_t textX, textY;
     std::uint16_t textWidth, textHeight;
-    m_Frame.setTextSize(LABEL_SIZE);
+    m_Frame.setTextSize(labelSize);
     m_Frame.getTextBounds(m_Label.data(), 0, m_Y, &textX, &textY, &textWidth, &textHeight);
 
     constexpr static int offsetX = 2;
@@ -210,8 +209,8 @@ public:
 class PortsDisplay : public ScreenElement
 {
 public:
-  static constexpr int SQUARE_WIDTH = 26;
-  static constexpr int SQUARE_RADIUS = 6;
+  static constexpr int squareWidth = 26;
+  static constexpr int squareRadius = 6;
 
   static constexpr int SPACING_PX = 7;
 
@@ -224,7 +223,7 @@ public:
                const std::vector<std::string_view>& labels, 
                const std::vector<std::uint32_t>& colors, 
                GFXcanvas16& frame)
-  : ScreenElement(x, y, 0, SQUARE_WIDTH, frame), 
+  : ScreenElement(x, y, 0, squareWidth, frame), 
     m_Labels(labels),
     m_Colors(colors)
   {
@@ -232,7 +231,7 @@ public:
     const std::size_t numPorts = m_Labels.size();
     
     m_Width = (numPorts == 0) ? 
-      0 : SQUARE_WIDTH * numPorts + SPACING_PX * (numPorts - 1);
+      0 : squareWidth * numPorts + SPACING_PX * (numPorts - 1);
   }
 
   void draw() const override
@@ -243,15 +242,15 @@ public:
 
     for (std::size_t i{}; i < std::min(m_Labels.size(), m_Colors.size()); i++)
     {
-      int x = m_X + i * (SQUARE_WIDTH + SPACING_PX);
+      int x = m_X + i * (squareWidth + SPACING_PX);
       const auto color = m_Colors.at(i);
-      uint32_t textColor = 0;
+      std::uint32_t textColor{};
 
-      m_Frame.drawRoundRect(x, m_Y, SQUARE_WIDTH, SQUARE_WIDTH, SQUARE_RADIUS - 1, ILI9341_DARKGREY);
+      m_Frame.drawRoundRect(x, m_Y, squareWidth, squareWidth, squareRadius - 1, ILI9341_DARKGREY);
 
       if (color != 0)
       {
-        m_Frame.fillRoundRect(x + 1, m_Y + 1, SQUARE_WIDTH - 2, SQUARE_WIDTH - 2, SQUARE_RADIUS, sndbx::color::to565(m_Colors.at(i)));
+        m_Frame.fillRoundRect(x + 1, m_Y + 1, squareWidth - 2, squareWidth - 2, squareRadius, sndbx::color::to565(m_Colors.at(i)));
       }
       else
       {
@@ -259,8 +258,8 @@ public:
       }
 
       Text portLabel(0, 0, m_Labels.at(i).data(), textColor, 1, m_Frame);
-      portLabel.centerX(x, SQUARE_WIDTH);
-      portLabel.centerY(m_Y, SQUARE_WIDTH);
+      portLabel.centerX(x, squareWidth);
+      portLabel.centerY(m_Y, squareWidth);
       portLabel.draw();
     }
   }
@@ -330,8 +329,10 @@ private:
 private:
   Text m_Name;
   std::uint16_t m_Color;
+
   const std::vector<std::string_view>& m_ControlLabels;
   const std::vector<float>& m_ControlVals;
+
   PortsDisplay m_Inputs;
   PortsDisplay m_Outputs;
 };
@@ -429,10 +430,13 @@ public:
 
   static constexpr size_t SAMPLE_INCREMENT = 8;
 
+  static constexpr std::size_t bufferSize = 1024;
+  using SampleBuffer = std::array<float, bufferSize>;
+
 public:
-  WaveformDisplayFrame(std::array<float, 1024> sampleArray, GFXcanvas16& frame)
+  WaveformDisplayFrame(const SampleBuffer& sampleBuffer, GFXcanvas16& frame)
   : ScreenElement(frame), 
-    m_SampleArray(sampleArray)
+    m_SampleBuffer(sampleBuffer)
   {}
 
   void draw() const override
@@ -449,10 +453,10 @@ public:
     int prevX = 0;
     int prevY = 0;
 
-    for (size_t i{}; i < m_SampleArray.size(); i += SAMPLE_INCREMENT)
+    for (size_t i{}; i < m_SampleBuffer.size(); i += SAMPLE_INCREMENT)
     {
-      const float sampleValue = m_SampleArray.at(i);
-      const float percentDrawn = static_cast<float>(i) / (m_SampleArray.size() - 1);
+      const float sampleValue = m_SampleBuffer[i];
+      const float percentDrawn = static_cast<float>(i) / (m_SampleBuffer.size() - 1);
 
       const int x = (WINDOW_X + 1) + static_cast<int>(percentDrawn * (WINDOW_WIDTH - 1));
       const int y = (WINDOW_HEIGHT / 2) - (WINDOW_HEIGHT / 2) * (sampleValue * WAVEFORM_SCALE) + WINDOW_Y;
@@ -464,9 +468,7 @@ public:
         continue;
       }
 
-      if (prevX == x && prevY == y) { 
-        continue; 
-      }
+      if (prevX == x && prevY == y) { continue; }
 
       color = (sampleValue >= 1.0f || sampleValue <= -1.0f) ? WAVEFORM_CLIPPING_COLOR : WAVEFORM_COLOR;
 
@@ -477,7 +479,7 @@ public:
   }
 
 private:
-  std::array<float, 1024> m_SampleArray;
+  const std::array<float, 1024>& m_SampleBuffer;
 };
 
 #endif

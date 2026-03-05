@@ -3,11 +3,12 @@
 
 #include <vector>
 #include <functional>
+#include "core/fixed_vector.hpp"
 
 class Controls
 {
 private:
-  std::vector<std::function<void(int)>> m_ControlFuncs;
+  sndbx::fixed_vector<std::function<void(int)>, 4> m_ControlFuncs;
 
 public:
   template<typename... Fs>

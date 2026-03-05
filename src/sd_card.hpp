@@ -4,6 +4,9 @@
 #include "SD.h"
 #include <string_view>
 #include <filesystem>
+#include "core/fixed_string.hpp"
+#include "core/fixed_vector.hpp"
+
 
 namespace sndbx::sdcard
 {
@@ -43,10 +46,10 @@ namespace sndbx::sdcard
     return true;
   }
 
-  [[nodiscard]] const auto fileContents(std::filesystem::path path) -> std::vector<std::string>
+  [[nodiscard]] const auto fileContents(std::filesystem::path path) -> sndbx::vector_128U<sndbx::string50_t>
   {
     auto filePath = path.c_str();
-    std::vector<std::string> contents;
+    sndbx::vector_128U<sndbx::string50_t> contents;
 
     if (!SD.exists(filePath))
     {
@@ -77,10 +80,10 @@ namespace sndbx::sdcard
     return contents;
   }
 
-  [[nodiscard]] const auto directoryContents(std::filesystem::path path) -> std::vector<std::string>
+  [[nodiscard]] const auto directoryContents(std::filesystem::path path) -> sndbx::vector_128U<sndbx::string16_t>
   {
     auto directoryPath = path.c_str();
-    std::vector<std::string> contents;
+    sndbx::vector_128U<sndbx::string16_t> contents;
 
     if (!SD.exists(directoryPath))
     {
