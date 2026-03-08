@@ -26,14 +26,14 @@ const ScaleIntervalPattern& scaleIntervalPattern(Keyboard::Scale scale)
   return scaleIntervalPatterns[0];
 }
 
-auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) ->  std::optional<KeyboardKeyData>
+auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) -> std::optional<KeyboardKeyData>
 {
   auto keyboardData = getKeyboardData(keyboard.id());
   if (!keyboardData) { return std::nullopt; }
 
   auto& keys = keyboardData->keys;
 
-  const auto lastKeyPosition = keys.empty() 
+  const auto lastKeyPosition = keys.is_empty() 
                               ? keyboardData->headPosition 
                               : keys.back().position;
 
@@ -41,8 +41,9 @@ auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) ->  std
 
   if (!sndbx::grid::isBuildableArea(newKeyPosition)) { return std::nullopt; }
 
-  auto newKey = builder.make<KeyboardKey>(newKeyPosition);
-  if (!newKey) { return std::nullopt; }
+  auto result = builder.make<KeyboardKey>(newKeyPosition);
+  if (!result) { return std::nullopt; }
+  auto newKey = result.value;
 
   newKey->setParent(&keyboard);
 
@@ -138,7 +139,7 @@ float KeyboardManager::nextKeyAmplitude(Keyboard::Scale scale, const KeyboardDat
   const auto& scaleData = scaleIntervalPattern(scale);
 
   const auto& keys = keyboard->keys;
-  if (keys.empty()) { return 0.0f; }
+  if (keys.is_empty()) { return 0.0f; }
 
   const auto lastKey = keys.back().key;
   const auto noteIndex = (keys.size() - 1) % scaleData.length;

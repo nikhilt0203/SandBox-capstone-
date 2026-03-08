@@ -8,7 +8,7 @@
 class Controls
 {
 private:
-  sndbx::fixed_vector<std::function<void(int)>, 4> m_ControlFuncs;
+  sndbx::vector_4U<std::function<void(int)>> m_ControlFuncs;
 
 public:
   template<typename... Fs>

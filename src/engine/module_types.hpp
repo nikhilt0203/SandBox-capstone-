@@ -11,11 +11,37 @@
 #include "modules/reverb.hpp"
 #include "modules/usbout.hpp"
 #include "modules/vcf.hpp"
-#include "object_pool.hpp"
-#include "type_array.hpp"
+
+#include "core/object_pool.hpp"
+#include "core/type_array.hpp"
 
 namespace sndbx::engine
 {
+
+using ModuleBank = 
+  sndbx::type_array<
+    Oscillator, 
+    LFO,
+    Mixer, 
+    USBOut, 
+    Envelope, 
+    VCF, 
+    Keyboard, 
+    Mult,
+    Oscilloscope>;
+
+using ModuleTypes = 
+  sndbx::type_array<
+    Oscillator, 
+    LFO,
+    Mixer, 
+    USBOut, 
+    Envelope, 
+    VCF, 
+    Keyboard, 
+    Oscilloscope,
+    Mult,
+    KeyboardKey>;
 
 template<typename T> struct PoolSize { static constexpr auto max = 16U; };
 #define MAX_COUNT(type, count) template<> struct PoolSize<type> { static constexpr std::size_t max = count; }
@@ -31,43 +57,12 @@ MAX_COUNT(Mult, 16);
 MAX_COUNT(Oscilloscope, 8);
 MAX_COUNT(KeyboardKey, 55);
 
-using ModuleBank = 
-  sndbx::type_array<
-    Oscillator, 
-    LFO,
-    Mixer, 
-    USBOut, 
-    Envelope, 
-    VCF, 
-    Keyboard, 
-    Mult,
-    Oscilloscope>;
-
-template <typename T> 
-constexpr std::size_t bankIndexOf() { return indexOf<T, ModuleBank>(); }
-
-using ModuleTypes = 
-  sndbx::type_array<
-    Oscillator, 
-    LFO,
-    Mixer, 
-    USBOut, 
-    Envelope, 
-    VCF, 
-    Keyboard, 
-    Oscilloscope,
-    Mult,
-    KeyboardKey>;
-
-template <typename T> 
-constexpr std::size_t typeIndexOf() { return indexOf<T, ModuleTypes>(); }
-
 struct ModulePools
 {
   template<typename T>
   auto& pool()
   {
-    static object_pool<T, PoolSize<T>::max> pool;
+    static sndbx::object_pool<T, PoolSize<T>::max> pool;
     return pool;
   }
 
@@ -77,6 +72,13 @@ struct ModulePools
   template<typename T>
   void release(T* obj) { pool<T>().release(obj); }
 };
+
+template <typename T> 
+constexpr std::size_t typeIndexOf() { return indexOf<T, ModuleTypes>(); }
+template <typename T> 
+constexpr std::size_t bankIndexOf() { return indexOf<T, ModuleBank>(); }
+
+constexpr std::size_t numModules() { return ModuleTypes::size; }
 
 }
 

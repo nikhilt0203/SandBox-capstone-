@@ -36,9 +36,8 @@ Oscillator::Oscillator(float frequency, int fineTuneOffset, float fmDepth, std::
   m_Oscillator->frequencyModulation(m_FMDepth);
 }
 
-auto Oscillator::normalizedControlValues() const -> const std::vector<float>&
+auto Oscillator::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 { 
-  m_ControlValues.reserve(4); 
   m_ControlValues.clear();
   m_ControlValues.push_back(std::log((std::log(m_Frequency) / std::log(1.08f))));
   m_ControlValues.push_back(std::log(m_FineTuneOffset.normalized()));

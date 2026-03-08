@@ -26,7 +26,7 @@ protected:
 class ModuleBank : public LEDUIElement
 {
 public:
-  ModuleBank(const std::vector<std::uint32_t>& colors, std::size_t startIndex, LEDFrame& frame)
+  ModuleBank(const sndbx::vector_32U<std::uint32_t>& colors, std::size_t startIndex, LEDFrame& frame)
   : LEDUIElement(frame),
     m_Colors(colors),
     m_StartIndex(startIndex)
@@ -47,7 +47,7 @@ public:
   }
 
 private:
-  const std::vector<std::uint32_t>& m_Colors;
+  const sndbx::vector_32U<std::uint32_t>& m_Colors;
   const std::size_t m_StartIndex;
 };
 

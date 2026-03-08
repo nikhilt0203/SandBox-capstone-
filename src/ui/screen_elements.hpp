@@ -5,6 +5,7 @@
 #include "ui/tft_display.hpp"
 #include <string_view>
 #include "ui/color.hpp"
+#include "core/fixed_vector.hpp"
 
 
 //===============================================================================================
@@ -220,8 +221,8 @@ public:
 public:
   PortsDisplay(uint16_t x, 
                uint16_t y, 
-               const std::vector<std::string_view>& labels, 
-               const std::vector<std::uint32_t>& colors, 
+               const sndbx::vector_8U<std::string_view>& labels, 
+               const sndbx::vector_8U<std::uint32_t>& colors, 
                GFXcanvas16& frame)
   : ScreenElement(x, y, 0, squareWidth, frame), 
     m_Labels(labels),
@@ -265,8 +266,8 @@ public:
   }
 
 public:
-  const std::vector<std::string_view>& m_Labels;
-  const std::vector<std::uint32_t>& m_Colors;
+  const sndbx::vector_8U<std::string_view>& m_Labels;
+  const sndbx::vector_8U<std::uint32_t>& m_Colors;
 };
 
 #include <string>
@@ -277,12 +278,12 @@ static constexpr std::uint8_t nameSize = 2;
 public:
   ModuleDisplay(std::string_view name,
                 std::uint32_t color,
-                const std::vector<std::string_view>& controlLabels,
-                const std::vector<float>& controlVals,
-                const std::vector<std::string_view>& inputNames,
-                const std::vector<std::uint32_t>& inputPortColors,
-                const std::vector<std::string_view>& outputNames,
-                const std::vector<std::uint32_t>& outputPortColors,
+                const sndbx::vector_4U<std::string_view>& controlLabels,
+                const sndbx::vector_4U<float>& controlVals,
+                const sndbx::vector_8U<std::string_view>& inputNames,
+                const sndbx::vector_8U<std::uint32_t>& inputPortColors,
+                const sndbx::vector_8U<std::string_view>& outputNames,
+                const sndbx::vector_8U<std::uint32_t>& outputPortColors,
                 GFXcanvas16& frame)
 
   : ScreenElement(frame),
@@ -325,13 +326,13 @@ private:
       else { m_Frame.drawCircle(x, knobsY, Knob::radius * 0.85, ILI9341_DARKGREY); }
     }
   }
-
+  
 private:
   Text m_Name;
   std::uint16_t m_Color;
 
-  const std::vector<std::string_view>& m_ControlLabels;
-  const std::vector<float>& m_ControlVals;
+  const sndbx::vector_4U<std::string_view>& m_ControlLabels;
+  const sndbx::vector_4U<float>& m_ControlVals;
 
   PortsDisplay m_Inputs;
   PortsDisplay m_Outputs;

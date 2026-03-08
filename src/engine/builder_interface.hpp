@@ -28,40 +28,7 @@ constexpr std::array<ModuleBankEntry, ModuleBank::size> createBankInfoArray(std:
 
 inline constexpr auto bankInfos = createBankInfoArray(std::make_index_sequence<ModuleBank::size>{});
 
-void buildFromBankIndex(std::size_t index, grid::Position pos, ModuleBuilder& builder) 
-{
-  if (index >= bankInfos.size()) { return; }
-
-  switch (index) 
-  {
-  case 0:
-    builder.make<ModuleBank::get<0>>(pos);
-    break;
-  case 1:
-    builder.make<ModuleBank::get<1>>(pos);
-    break;
-  case 2:
-    builder.make<ModuleBank::get<2>>(pos);
-    break;
-  case 3:
-    builder.make<ModuleBank::get<3>>(pos);
-    break;
-  case 4:
-    builder.make<ModuleBank::get<4>>(pos);
-    break;
-  case 5:
-    builder.make<ModuleBank::get<5>>(pos);
-    break;
-  case 6:
-    builder.make<ModuleBank::get<6>>(pos);
-    break;
-  case 7:
-    builder.make<ModuleBank::get<7>>(pos);
-    break;
-  default:
-    break;
-  }
-}
+sndbx::Error createModuleFromBankIndex(std::size_t bankIndex, grid::Position pos, ModuleBuilder& builder);
 
 }
 

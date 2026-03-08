@@ -18,8 +18,8 @@ void TFT::renderFrame()
   auto* previousBuffer = m_DoubleFrameBuffer[1];
   auto* currentBuffer = m_DoubleFrameBuffer[0];
 
-  auto* previousFrameData = currentBuffer->getBuffer();
-  auto* currentFrameData = previousBuffer->getBuffer();
+  auto* previousFrameData = previousBuffer->getBuffer();
+  auto* currentFrameData = currentBuffer->getBuffer();
 
   constexpr static auto rowSizeBytes = sizeof(std::uint16_t) * TFT::width;
 
@@ -38,7 +38,9 @@ void TFT::renderFrame()
     }
   }
 
-  std::swap(currentBuffer, previousBuffer);
+  auto* tmp = m_DoubleFrameBuffer[0];
+  m_DoubleFrameBuffer[0] = m_DoubleFrameBuffer[1];
+  m_DoubleFrameBuffer[1] = tmp;
 
   m_FrameAvailable = false;
 }

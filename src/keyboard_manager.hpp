@@ -17,8 +17,9 @@ public:
   {
     std::uint32_t id;
     sndbx::grid::Position headPosition;
-    std::vector<KeyboardKeyData> keys{};
+    sndbx::vector_32U<KeyboardKeyData> keys{};
 
+    KeyboardData() : id{}, headPosition{} {}
     KeyboardData(std::uint32_t id, sndbx::grid::Position position)
     : id(id), headPosition(position) {}
   };
@@ -26,7 +27,7 @@ public:
   using ModuleDeleteFunc = bool(*)(sndbx::grid::Position);
 
 public:
-  KeyboardManager() { m_Keyboards.reserve(maxKeyboards); }
+  KeyboardManager() = default;
 
   void addKeyboard(std::uint32_t id, sndbx::grid::Position pos) { m_Keyboards.emplace_back(id, pos); }
   bool deleteKeyboard(sndbx::grid::Position pos, ModuleDeleteFunc deleter);
@@ -45,7 +46,7 @@ private:
 
 private:
   static constexpr std::size_t maxKeyboards = 5;
-  std::vector<KeyboardData> m_Keyboards{};
+  sndbx::fixed_vector<KeyboardData, maxKeyboards> m_Keyboards;
 };
 
 

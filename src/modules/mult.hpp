@@ -11,10 +11,10 @@ class Mult
     public Displayable
 {
 public:
-  MODULE_TYPE_INFO("mult", "split 1 input to 5 outputs", 0x70043C);
+  MODULE_TYPE_INFO("mult", "split 1 input to 6 outputs", 0x70043C);
 
 public:
-  Mult() : Module(1, 5)
+  Mult() : Module(1, 8)
   {
     m_Audio.addDevice<AudioPassThrough>();
     const auto device = m_Audio.device<AudioPassThrough>();
@@ -25,22 +25,15 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
-
-  [[nodiscard]] auto normalizedControlValues() const 
-    -> const std::vector<float>& override { return emptyVectorFloat(); }
-
   [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
   [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
 private:
-  inline static const std::vector<std::string_view> m_InputNames{"in"};
-  inline static const std::vector<std::string_view> m_OutputNames{"1", "2", "3", "4", "5", "6", "7", "8"};
-  mutable std::vector<float> m_ControlValues{};
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"in"};
+  inline static const sndbx::vector_8U<std::string_view> m_OutputNames{"1", "2", "3", "4", "5", "6", "7", "8"};
 };
 
 #endif

@@ -6,6 +6,9 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <cassert>
+#include "core/object_pool.hpp"
+#include "core/fixed_vector.hpp"
 
 //=====================================================
 // Holds AudioStream objects and an I/O map
@@ -19,7 +22,7 @@ public:
     std::size_t port;
   };
 
-  static constexpr std::size_t maxPorts = 5;
+  static constexpr std::size_t maxPorts = 8;
   using PortMap = std::array<std::optional<AudioStreamPort>, maxPorts>;
   
 public:
@@ -65,7 +68,7 @@ public:
   }
 
 private:
-  std::vector<std::unique_ptr<AudioStream>> m_AudioDevices;
+  sndbx::vector_8U<std::unique_ptr<AudioStream>> m_AudioDevices;
   PortMap m_InputMap{};
   PortMap m_OutputMap{};
 };
@@ -88,24 +91,46 @@ class AudioGraph
 public:
   struct Patch
   {
-    std::unique_ptr<AudioConnection> m_Connection;
-    Patchable* m_Source;
-    std::size_t m_SourcePort;
-    Patchable* m_Destination;
-    std::size_t m_DestinationPort;
+    Patchable* source{};
+    std::size_t sourcePort{};
+    Patchable* destination{};
+    std::size_t destinationPort{};
+    AudioConnection m_Connection;
 
-    Patch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort)
-    : m_Connection(std::make_unique<AudioConnection>(
-        *(src->audio().getOutputMapping(srcPort).device), 
-          src->audio().getOutputMapping(srcPort).port, 
-        *(dest->audio().getInputMapping(destPort).device), 
-          dest->audio().getInputMapping(destPort).port
-      )),
-      m_Source(src), 
-      m_SourcePort(srcPort), 
-      m_Destination(dest), 
-      m_DestinationPort(destPort) 
-    {}
+    Patch() = default;
+
+    void connect(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) 
+    {
+      auto srcOut = src->audio().getOutputMapping(srcPort);
+      auto destIn = dest->audio().getInputMapping(destPort);
+
+      m_Connection.connect(
+        *(srcOut.device), 
+        srcOut.port, 
+        *(destIn.device), 
+        destIn.port
+      );
+
+      source = src;
+      sourcePort = srcPort;
+      destination = dest;
+      destinationPort = destPort;
+    }
+
+    void disconnect() 
+    {
+      m_Connection.disconnect();
+      source = nullptr;
+      destination = nullptr;
+    }
+
+    [[nodiscard]] bool isSame(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
+    {  
+      return source == src && 
+             sourcePort == srcPort && 
+             destination == dest && 
+             destinationPort == destPort;
+    }
   };
 
 public:
@@ -120,9 +145,17 @@ public:
 
     if (patchExists(src, srcPort, dest, destPort)) { return false; }
 
-    __disable_irq();
-    m_Connections.emplace_back(src, srcPort, dest, destPort);
-    __enable_irq();
+    auto patch = m_PatchPool.acquire();
+    if (!patch) { return false; }
+
+    if (!m_Patches.push_back(patch))
+    {
+      m_PatchPool.release(patch);
+      return false;
+    }
+
+    patch->connect(src, srcPort, dest, destPort);
+    Serial.println(m_Patches.size());
     return true;
   }
 
@@ -131,71 +164,84 @@ public:
     if (src == dest) { return false; }
 
     auto it = findPatch(src, srcPort, dest, destPort);
+    if (it == m_Patches.end()) { return false; }
+
+    auto patch = *it;
+
+    patch->disconnect();
     
-    if (it == m_Connections.end()) { return false; }
-    
-    __disable_irq();
-    m_Connections.erase(it);
-    __enable_irq();
+    m_PatchPool.release(patch);
+    m_Patches.erase(it);
+    Serial.println(m_Patches.size());
     return true;
   }
 
-  bool deletePatchesWith(Patchable* node)
+  void deletePatchesWith(Patchable* node)
   {
-    if (!node) { return false; }
+    if (!node) { return; }
 
-    auto it = std::find_if(
-      m_Connections.begin(), 
-      m_Connections.end(),
-      [node](const Patch& patch){
-        return patch.m_Destination == node ||
-               patch.m_Source == node;
-      });
-    
-    if (it == m_Connections.end()) { return false; }
-    
-    __disable_irq();
-    m_Connections.erase(it);
-    __enable_irq();
-    return true;
+    auto removePatch = 
+      [this, node](Patch* patch) {
+        if (patch->destination == node || patch->source == node)
+        {
+          patch->disconnect();
+          m_PatchPool.release(patch);
+          return true;
+        }
+        return false;
+      };
+
+    m_Patches.erase(std::remove_if(m_Patches.begin(), m_Patches.end(), removePatch));
   }
 
   [[nodiscard]] bool patchExists(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
   {
-    return findPatch(src, srcPort, dest, destPort) != m_Connections.end();
+    return findPatch(src, srcPort, dest, destPort) != m_Patches.end();
   }
 
   void clear() 
   { 
-    __disable_irq();
-    m_Connections.clear(); 
-    __enable_irq();
+    for (auto patch : m_Patches)
+    {
+      patch->disconnect();
+      m_PatchPool.release(patch);
+    }
+    m_Patches.clear();
   }
 
   float processorUsage() const { return AudioProcessorUsage(); } 
 
 private:
-  [[nodiscard]] auto findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
-    -> std::vector<Patch>::const_iterator 
+  [[nodiscard]] Patch* const* findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const
   {
     return std::find_if(
-      m_Connections.begin(), 
-      m_Connections.end(),
-      [src, srcPort, dest, destPort](const Patch& patch){
-        return patch.m_Source == src && 
-               patch.m_SourcePort == srcPort && 
-               patch.m_Destination == dest && 
-               patch.m_DestinationPort == destPort;
+      m_Patches.begin(), 
+      m_Patches.end(),
+      [src, srcPort, dest, destPort](const Patch* patch){
+        return patch->isSame(src, srcPort, dest, destPort);
+      });
+  }
+
+  [[nodiscard]] Patch** findPatch(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort)
+  {
+    return std::find_if(
+      m_Patches.begin(), 
+      m_Patches.end(),
+      [src, srcPort, dest, destPort](const Patch* patch){
+        return patch->isSame(src, srcPort, dest, destPort);
       });
   }
 
   [[nodiscard]] bool portExists(const AudioComponent::PortMap& portMap, std::size_t port) const noexcept 
   {
+    if (port >= portMap.size()) { return false; }
     return portMap[port].has_value();
   }
 
 private:
-  std::vector<Patch> m_Connections{};
+  static constexpr std::size_t maxPatches = 64;
+  sndbx::object_pool<Patch, maxPatches> m_PatchPool;
+  sndbx::fixed_vector<Patch*, maxPatches> m_Patches;
   inline static AudioOutputI2S i2s{}; //needed to start audio interrupts
 };
 

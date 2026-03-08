@@ -24,9 +24,8 @@ Envelope::Envelope() : Module(2, 2)
   m_Audio.mapOutput(1, m_TrigOut, 0);
 }
 
-auto Envelope::normalizedControlValues() const -> const std::vector<float>&
+auto Envelope::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 { 
-  m_ControlValues.reserve(4);
   m_ControlValues.clear();
   m_ControlValues.push_back(m_Attack.normalized());
   m_ControlValues.push_back(m_Decay.normalized());

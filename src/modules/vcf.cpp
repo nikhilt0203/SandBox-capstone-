@@ -28,9 +28,8 @@ VCF::VCF(float cutoff, float resonance, float fmDepth, int filterType)
   m_Filter->filterType(m_FilterType);
 }
 
-auto VCF::normalizedControlValues() const -> const std::vector<float>&
+auto VCF::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 { 
-  m_ControlValues.reserve(4);
   m_ControlValues.clear();
   m_ControlValues.push_back(m_CutoffFrequency.normalized());
   m_ControlValues.push_back(m_Resonance.normalized());

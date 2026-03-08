@@ -1,4 +1,10 @@
+#ifndef SANDBOX_OBJECT_POOL_HPP_
+#define SANDBOX_OBJECT_POOL_HPP_
+
 #include <array>
+
+namespace sndbx 
+{
 
 template<typename T, std::size_t N>
 struct object_pool
@@ -36,3 +42,7 @@ struct object_pool
     }
   }
 };
+
+}
+
+#endif

@@ -20,9 +20,8 @@ Mixer::Mixer(std::initializer_list<float> gains) : Mixer()
   }
 }
 
-auto Mixer::normalizedControlValues() const -> const std::vector<float> & 
+auto Mixer::normalizedControlValues() const -> const sndbx::vector_4U<float>& 
 {
-  m_NormalizedControlValues.reserve(4);
   m_NormalizedControlValues.clear();
 
   for (auto gain : m_ChannelGains) { m_NormalizedControlValues.push_back(gain.normalized()); }

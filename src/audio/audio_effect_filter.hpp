@@ -6,7 +6,7 @@
 class AudioFilter : public AudioFilterStateVariable
 {
 public:
-  enum struct Type
+  enum class Type
   {
     LOWPASS,
     HIGHPASS,

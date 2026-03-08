@@ -43,15 +43,15 @@ public:
   [[nodiscard]] std::uint32_t ledColor() const override { return m_LEDColor; }
 
   [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
     
   [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
   [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
   void onRisingEdge() override;
   void onFallingEdge() override;
@@ -80,10 +80,10 @@ private:
 
   std::uint32_t m_LEDColor{COLOR};
 
-  inline static const std::vector<std::string_view> m_ControlNames{"attack", "decay", "sustain", "release"};
-  inline static const std::vector<std::string_view> m_InputNames{"in", "trg"};
-  inline static const std::vector<std::string_view> m_OutputNames{"out", "trg"};
-  mutable std::vector<float> m_ControlValues{};
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"in", "trg"};
+  inline static const sndbx::vector_8U<std::string_view> m_OutputNames{"out", "trg"};
+  inline static const sndbx::vector_4U<std::string_view> m_ControlNames{"attack", "decay", "sustain", "release"};
+  mutable sndbx::vector_4U<float> m_ControlValues{};
 };
 
 #endif

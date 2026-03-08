@@ -10,22 +10,20 @@
 
 namespace sndbx::serialization
 {
-  [[nodiscard]] inline std::vector<std::string> split(std::string s, std::string delimiter) 
+  [[nodiscard]] inline sndbx::vector_32U<sndbx::string16_t> split(std::string_view s, std::string_view delimiter) 
   {
     std::size_t startIndex = 0;
     std::size_t endIndex = 0;
-    const std::size_t delimiterLen= delimiter.length();
-    std::string token;
-    std::vector<std::string> tokens;
+
+    const std::size_t delimiterLen = delimiter.length();
+    sndbx::vector_32U<sndbx::string16_t> tokens;
 
     while ((endIndex = s.find(delimiter, startIndex)) != std::string::npos) 
     {
-      tokens.push_back(s.substr(startIndex, endIndex - startIndex));
+      tokens.emplace_back(s.substr(startIndex, endIndex - startIndex));
       startIndex = endIndex + delimiterLen;
-      tokens.push_back(token);
     }
 
-    tokens.push_back(s.substr(startIndex));
     return tokens;
   }
 

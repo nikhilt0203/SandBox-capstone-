@@ -24,7 +24,7 @@ namespace sndbx::engine
 
 struct AppContext
 {
-  enum struct State
+  enum class State
   {
     Idle,
     Selecting,
@@ -34,7 +34,7 @@ struct AppContext
     Displaying
   };
 
-  enum struct Mode
+  enum class Mode
   {
     Edit,
     View
@@ -43,10 +43,10 @@ struct AppContext
   Mode mode{Mode::Edit};
   State state{State::Idle};
 
-  std::optional<Module*> selectedModule{};
-  std::optional<Displayable*> selectedDisplayable{};
-  std::optional<Controllable*> selectedControllable{};
-  std::optional<Animatable*> selectedAnimatable{};
+  Module* selectedModule{};
+  Displayable* selectedDisplayable{};
+  Controllable* selectedControllable{};
+  Animatable* selectedAnimatable{};
 
   std::vector<sndbx::event::TrellisPress> trellisEvents{};
 };
@@ -61,12 +61,11 @@ struct DisplayContext
 
 struct ModuleBankDisplay
 {
-  std::vector<std::uint32_t> colors;
+  sndbx::vector_32U<std::uint32_t> colors;
   std::size_t startIndex{0U};
 
   ModuleBankDisplay() 
   {
-    colors.reserve(sndbx::engine::bankInfos.size());
     for (auto info : sndbx::engine::bankInfos) { colors.push_back(info.color); }
   }
 };
@@ -115,9 +114,9 @@ namespace sndbx::input
       }
     }
     
-    if (auto& selectedModule = ::g_AppContext.selectedControllable) 
+    if (auto selectedModule = ::g_AppContext.selectedControllable) 
     { 
-      selectedModule.value()->changeControl(encoderNum, delta);
+      selectedModule->changeControl(encoderNum, delta);
       ::g_DisplayContext.displayUpdated = false;
       ::g_DisplayContext.ledsUpdated = false;
     }
@@ -140,10 +139,9 @@ namespace sndbx::app
     ::g_DisplayContext.ledsUpdated = false;
   }
 
-  [[nodiscard]] std::vector<std::uint32_t> connectedModuleColors(const std::vector<Module::Port>& ports, ModuleBuilder& builder)
+  [[nodiscard]] sndbx::vector_8U<std::uint32_t> connectedModuleColors(const Module::PortArray& ports, ModuleBuilder& builder)
   {
-    std::vector<std::uint32_t> portColors;
-    portColors.reserve(ports.size());
+    sndbx::vector_8U<std::uint32_t> portColors;
 
     for (const auto& port : ports)
     {
@@ -155,7 +153,7 @@ namespace sndbx::app
 
       const auto connectedID = port.connectedModule->id();
 
-      if (Displayable* connectedModule = builder.get<Displayable*>(connectedID))
+      if (auto connectedModule = builder.get<Displayable*>(connectedID))
       {
         portColors.push_back(connectedModule->displayColor());
       }
@@ -201,19 +199,17 @@ namespace sndbx::app
     if (!g_KeyboardManager.isKeyAt(pos)) { deleteModule(pos); }
   }
 
-  void createKeyboard(grid::Position pos)
+  void initKeyboard(Keyboard* keyboard, grid::Position pos)
   {
-    auto keyboard = engine::builder.make<Keyboard>(pos);
-    if (keyboard) 
-    {
-      keyboard->setAddKeyCallback(addKeyboardKey);
-      keyboard->setSubtractKeyCallback(subtractKeyboardKey);
-      keyboard->setScaleChangeCallback(changeKeyboardScale);
-      g_KeyboardManager.addKeyboard(keyboard->id(), pos);
+    if (!keyboard) { return; }
+    
+    keyboard->setAddKeyCallback(addKeyboardKey);
+    keyboard->setSubtractKeyCallback(subtractKeyboardKey);
+    keyboard->setScaleChangeCallback(changeKeyboardScale);
+    g_KeyboardManager.addKeyboard(keyboard->id(), pos);
 
-      //create initial keys
-      for (std::size_t i{}; i < 8; i++) { keyboard->changeControl(0, 1); }
-    }
+    //create initial keys
+    for (std::size_t i{}; i < 8; i++) { keyboard->changeControl(0, 1); }
   }
 
   bool deleteModule(grid::Position pos)
@@ -232,22 +228,37 @@ namespace sndbx::app
     return true;
   }
 
+  void printError(Error error)
+  {
+    switch (error)
+    {
+      case Error::BUILDER_INVALID_POS: Serial.println("Builder: Invalid position"); break; 
+      case Error::BUILDER_POOL_EXHAUSTED: Serial.println("Builder: Module max reached"); break; 
+      case Error::BUILDER_REGISTRY_FULL: Serial.println("Builder: registry full"); break;
+      default: Serial.println("No error");
+    }
+  }
+
   void createModule(grid::Position bankPos, grid::Position gridPos)
   {
-    const std::size_t bankIndex = bankPos.index() - grid::bankStart + g_ModuleBankDisplay.startIndex;
+    const std::size_t bankIndex = (bankPos.index() - grid::bankStart + g_ModuleBankDisplay.startIndex)
+      % g_ModuleBankDisplay.colors.size();
 
-    if (bankIndex == engine::bankIndexOf<Keyboard>())
-    {
-      createKeyboard(gridPos);
+
+    if (bankIndex == engine::bankIndexOf<Keyboard>()) 
+    { 
+      const auto result = engine::builder.make<Keyboard>(gridPos);
+      if (!result) { printError(result.error); }
+      else { initKeyboard(result.value, gridPos); }
     }
     else
     {
-      engine::buildFromBankIndex(bankIndex, gridPos, engine::builder);
+      printError(engine::createModuleFromBankIndex(bankIndex, gridPos, engine::builder));
     }
-
-    if (auto displayable = engine::builder.get<Displayable*>(gridPos))
+    
+    if (auto moduleDisplay = engine::builder.get<Displayable*>(gridPos))
     {
-      placeModule(displayable, gridPos);
+      placeModule(moduleDisplay, gridPos);
     }
   }
 
@@ -258,8 +269,7 @@ namespace sndbx::app
   {
     for (const auto& entry : builder.registry())
     {
-      if (!entry) { continue; }
-      if (entry->module == m) { return entry->position; }
+      if (entry.module == m) { return entry.position; }
     }
 
     return std::nullopt;
@@ -349,7 +359,7 @@ namespace sndbx::app
     return true;
   }
 
-   void clearModuleSelections(AppContext& appContext);
+  void clearModuleSelections(AppContext& appContext);
   void patchHandler(grid::Position srcPos, grid::Position destPos)
   {
     auto* srcModule = engine::builder.get<Module*>(srcPos);
@@ -365,6 +375,7 @@ namespace sndbx::app
 
     if (patchChanged) 
     { 
+      Serial.println("SUCCESS");
       clearModuleSelections(::g_AppContext);
       ::g_AppContext.state = AppContext::State::Patching;
       drawAllConnections(display::ledMatrix); 
@@ -378,10 +389,10 @@ namespace sndbx::app
 
   void clearModuleSelections(AppContext& appContext)
   {
-    appContext.selectedModule.reset();
-    appContext.selectedDisplayable.reset();
-    appContext.selectedControllable.reset();
-    appContext.selectedAnimatable.reset();
+    appContext.selectedModule = nullptr;
+    appContext.selectedDisplayable = nullptr;
+    appContext.selectedControllable = nullptr;
+    appContext.selectedAnimatable = nullptr;
   }
 
   void handleDoublePress(std::vector<event::TrellisPress>& events)
@@ -524,7 +535,7 @@ namespace sndbx::app
       auto moduleColor = module->ledColor();
       const auto& selected = ::g_AppContext.selectedDisplayable;
 
-      if (selected && *selected == module)
+      if (selected == module)
       {
         moduleColor = sndbx::color::blend(moduleColor, 0xDDDDFF, 0.1);
       }
@@ -540,17 +551,17 @@ namespace sndbx::app
   {
     if (auto animatable = ::g_AppContext.selectedAnimatable)
     {
-      (*animatable)->drawNext(display::screen.currentFrame());
+      animatable->drawNext(display::screen.currentFrame());
       display::screen.setFrameAvailable(true);
       return;
     }
 
     if (auto selected = ::g_AppContext.selectedDisplayable)
     {
-      Displayable* cur = *selected;
+      Displayable* cur = selected;
       if (cur != ::g_DisplayContext.lastDisplayed || !::g_DisplayContext.displayUpdated)
       {
-        displayModule(cur, *(::g_AppContext.selectedModule));
+        displayModule(cur, ::g_AppContext.selectedModule);
         ::g_DisplayContext.lastDisplayed = cur;
         ::g_DisplayContext.displayUpdated = true;
       }
@@ -562,8 +573,7 @@ namespace sndbx::app
     float total{};
     for (const auto& entry : engine::builder.registry()) 
     { 
-      if (!entry) { continue; }
-      total += entry->module->audio().processorUsage(); 
+      total += entry.module->audio().processorUsage(); 
     }
     return total;
   }

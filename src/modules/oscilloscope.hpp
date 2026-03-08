@@ -31,24 +31,18 @@ public:
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
   [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
   [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return m_OutputNames; }
-
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
-
-  [[nodiscard]] auto normalizedControlValues() const 
-    -> const std::vector<float>& override { return emptyVectorFloat(); }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
   void drawNext(GFXcanvas16& frame) const override { WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw(); }
 
 private: 
   AudioBuffer* m_AudioBuffer{};
 
-  inline static const std::vector<std::string_view> m_InputNames{"in"};
-  inline static const std::vector<std::string_view> m_OutputNames{"out"};
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"in"};
+  inline static const sndbx::vector_8U<std::string_view> m_OutputNames{"out"};
 };
 
 #endif

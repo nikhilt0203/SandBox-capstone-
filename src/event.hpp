@@ -12,7 +12,7 @@ namespace sndbx::event
     unsigned long time{millis()};
   };
 
-  enum struct Edge
+  enum class Edge
   {
     RISING_EDGE,
     FALLING_EDGE

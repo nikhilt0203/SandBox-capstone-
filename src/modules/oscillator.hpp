@@ -30,16 +30,16 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return m_Waveforms.at(m_WaveformIndex).name; }
   [[nodiscard]] std::uint32_t displayColor() const override { return m_Waveforms.at(m_WaveformIndex).color; }
 
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
-
   [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
   [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+  [[nodiscard]] auto controlNames() const 
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
   [[nodiscard]] std::string toString() const override
   {
@@ -83,10 +83,10 @@ protected:
   static const std::array<Waveform, numWaveforms> m_Waveforms;
 
 private:
-  inline static const std::vector<std::string_view> m_ControlNames{"coarse", "fine", "fm", "wave"};
-  inline static const std::vector<std::string_view> m_InputNames{"fm", "wv"};
-  inline static const std::vector<std::string_view> m_OutputNames{"out"};
-  mutable std::vector<float> m_ControlValues{};
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"fm", "wv"};
+  inline static const sndbx::vector_8U<std::string_view> m_OutputNames{"out"};
+  inline static const sndbx::vector_4U<std::string_view> m_ControlNames{"coarse", "fine", "fm", "wave"};
+  mutable sndbx::vector_4U<float> m_ControlValues{};
 };
 
 #endif

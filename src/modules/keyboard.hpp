@@ -15,7 +15,7 @@ class Keyboard
 public:
   MODULE_TYPE_INFO("keyboard", "", 0x367591);
 
-  enum struct Scale
+  enum class Scale
   {
     Major,
     Minor,
@@ -37,22 +37,19 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
 
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
-
   [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return m_OutputNames; }
+    -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
-  [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
+  [[nodiscard]] auto controlNames() const 
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
   [[nodiscard]] std::size_t numKeys() const { return m_NumKeys; }
   [[nodiscard]] Scale scale();
 
-  void keyPress(float amplitude);
-  void keyRelease();
+  void onKeyPress(float amplitude);
+  void onKeyRelease();
 
   void setAddKeyCallback(LengthChangeCallback cb) { m_AddKeyCallback = cb; }
   void setSubtractKeyCallback(LengthChangeCallback cb) { m_SubtractKeyCallback = cb; }
@@ -80,9 +77,9 @@ private:
 
   std::size_t m_NumKeysOn{};
 
-  inline static std::vector<std::string_view> m_OutputNames{"cv", "trg"};
-  inline static std::vector<std::string_view> m_ControlNames{"length", "scale"};
-  mutable std::vector<float> m_ControlValues{};
+  inline static sndbx::vector_8U<std::string_view> m_OutputNames{"cv", "trg"};
+  inline static sndbx::vector_4U<std::string_view> m_ControlNames{"length", "scale"};
+  mutable sndbx::vector_4U<float> m_ControlValues{};
 };
 
 
@@ -108,23 +105,17 @@ public:
   [[nodiscard]] std::uint32_t ledColor() const override { return m_LEDColor; }
 
   [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
 
-  [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
-
-  [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
-
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
   [[nodiscard]] float amplitude() const { return m_Amplitude; }
   void setAmplitude(float amplitude);
 
   void setParent(Keyboard* parent) { m_Parent = parent; }
 
-  void onRisingEdge() { m_Parent->keyPress(m_Amplitude); }
-  void onFallingEdge() { m_Parent->keyRelease(); }
+  void onRisingEdge() { m_Parent->onKeyPress(m_Amplitude); }
+  void onFallingEdge() { m_Parent->onKeyRelease(); }
 
 private:
   void adjustAmplitude(int delta);
@@ -139,8 +130,8 @@ private:
 
   std::uint32_t m_LEDColor{COLOR};
 
-  inline static std::vector<std::string_view> m_ControlNames{"value"};
-  mutable std::vector<float> m_ControlValues{};
+  inline static sndbx::vector_4U<std::string_view> m_ControlNames{"value"};
+  mutable sndbx::vector_4U<float> m_ControlValues{};
 };
 
 #endif

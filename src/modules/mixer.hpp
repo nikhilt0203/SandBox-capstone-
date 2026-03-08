@@ -30,15 +30,15 @@ public:
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
   
   [[nodiscard]] auto controlNames() const
-     -> const std::vector<std::string_view>& override { return m_ControlNames; }
+     -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
 
   [[nodiscard]] auto inputNames() const
-     -> const std::vector<std::string_view>& override { return m_InputNames; }
+     -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
   [[nodiscard]] auto outputNames() const
-     -> const std::vector<std::string_view>& override { return m_OutputNames; }
+     -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override;
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
 private:
   void gainAdjust(std::size_t channel, int delta);
@@ -62,10 +62,10 @@ private:
 
   AudioMixer4* m_Mixer{};
 
-  inline static const std::vector<std::string_view> m_ControlNames{"Gain 1", "Gain 2", "Gain 3", "Gain 4"};
-  inline static const std::vector<std::string_view> m_InputNames{"1", "2", "3", "4"};
-  inline static const std::vector<std::string_view> m_OutputNames{"out"};
-  mutable std::vector<float> m_NormalizedControlValues{};
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"1", "2", "3", "4"};
+  inline static const sndbx::vector_8U<std::string_view> m_OutputNames{"out"};
+  inline static const sndbx::vector_4U<std::string_view> m_ControlNames{"Gain 1", "Gain 2", "Gain 3", "Gain 4"};
+  mutable sndbx::vector_4U<float> m_NormalizedControlValues{};
 };
 
 #endif

@@ -35,21 +35,18 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+  [[nodiscard]] auto inputNames() const 
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames;}
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
+  [[nodiscard]] auto controlNames() const 
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override
   { 
     m_ControlValues.clear();
     m_ControlValues.push_back(m_Volume.normalized());
     return m_ControlValues;
   }
-
-  [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames;}
-
-  [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
 
 private:
   void volumeAdjust(int delta) 
@@ -67,9 +64,9 @@ private:
   AudioOutputI2SMixer* m_OutputMixer{};
 
 private:
-  inline static const std::vector<std::string_view> m_ControlNames{"volume"};
-  inline static const std::vector<std::string_view> m_InputNames{"in"};
-  mutable std::vector<float> m_ControlValues;
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"in"};
+  inline static const sndbx::vector_4U<std::string_view> m_ControlNames{"volume"};
+  mutable sndbx::vector_4U<float> m_ControlValues;
 
   inline static AudioControlSGTL5000 m_AudioShield{};
 
@@ -107,21 +104,18 @@ public:
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
 
-  [[nodiscard]] auto controlNames() const 
-    -> const std::vector<std::string_view>& override { return m_ControlNames; }
+  [[nodiscard]] auto inputNames() const 
+    -> const sndbx::vector_8U<std::string_view>& override { return m_InputNames; }
 
-  [[nodiscard]] auto normalizedControlValues() const -> const std::vector<float>& override
+  [[nodiscard]] auto controlNames() const 
+    -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
+
+  [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override
   { 
     m_ControlValues.clear();
     m_ControlValues.push_back(m_Volume.normalized());
     return m_ControlValues;
   }
-
-  [[nodiscard]] auto inputNames() const 
-    -> const std::vector<std::string_view>& override { return m_InputNames; }
-
-  [[nodiscard]] auto outputNames() const 
-    -> const std::vector<std::string_view>& override { return emptyVectorSV(); }
 
 private:
   void volumeAdjust(int delta) 
@@ -138,9 +132,9 @@ private:
 
   AudioOutputUSBMixer* m_OutputMixer{};
 
-  inline static const std::vector<std::string_view> m_ControlNames{"volume"};
-  inline static const std::vector<std::string_view> m_InputNames{"in"};
-  mutable std::vector<float> m_ControlValues;
+  inline static const sndbx::vector_8U<std::string_view> m_InputNames{"in"};
+  inline static const sndbx::vector_4U<std::string_view> m_ControlNames{"volume"};
+  mutable sndbx::vector_4U<float> m_ControlValues;
 };
 
 #endif

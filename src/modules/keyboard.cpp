@@ -12,16 +12,15 @@ Keyboard::Keyboard() : Module(0, 2)
   m_Audio.mapOutput(1, m_TrigOut, 0);
 }
 
-auto Keyboard::normalizedControlValues() const -> const std::vector<float>&
+auto Keyboard::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 {
-  m_ControlValues.reserve(2);
   m_ControlValues.clear();
   m_ControlValues.push_back(m_NumKeys.normalized());
   m_ControlValues.push_back(m_Scale.normalized());
   return m_ControlValues;
 }
 
-void Keyboard::keyPress(float amplitude)
+void Keyboard::onKeyPress(float amplitude)
 {
   m_DC->amplitude(amplitude);
   m_NumKeysOn++;
@@ -29,7 +28,7 @@ void Keyboard::keyPress(float amplitude)
 }
 
 
-void Keyboard::keyRelease()
+void Keyboard::onKeyRelease()
 {
   m_NumKeysOn--;
   if (m_NumKeysOn == 0) { m_TrigOut->off(); }
@@ -73,7 +72,7 @@ void Keyboard::scaleAdjust(int delta)
   m_ScaleChangeCallback(getScale(m_Scale), id());
 }
 
-auto KeyboardKey::normalizedControlValues() const -> const std::vector<float>&
+auto KeyboardKey::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 {
   m_ControlValues.clear();
   m_ControlValues.push_back(m_Amplitude);

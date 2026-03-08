@@ -27,7 +27,7 @@ bool disconnect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* des
   return true;
 }
 
-[[nodiscard]] std::optional<std::size_t> portIndexOfModule(Module* query, const std::vector<Module::Port>& ports)
+[[nodiscard]] std::optional<std::size_t> portIndexOfModule(Module* query, const Module::PortArray& ports)
 {
   std::optional<std::size_t> port{};
   for (std::size_t i{}; i < ports.size(); i++)
@@ -64,7 +64,7 @@ bool disconnectFirstConnection(AudioGraph& graph, Module* m1, Module* m2)
   return false;
 }
 
-void disconnectOthers(AudioGraph& graph, Module* module, const std::vector<Module::Port>& ports)
+void disconnectOthers(AudioGraph& graph, Module* module, const Module::PortArray& ports)
 {
   for (const auto& port : ports)
   {
@@ -81,7 +81,7 @@ void disconnectAll(AudioGraph& graph, Module* module)
   disconnectOthers(graph, module, module->outputs());
 }
 
-std::optional<std::size_t> firstAvailablePort(const std::vector<Module::Port>& ports)
+std::optional<std::size_t> firstAvailablePort(const Module::PortArray& ports)
 {
   std::optional<std::size_t> openPort{};
   for (std::size_t i{}; i < ports.size(); i++)

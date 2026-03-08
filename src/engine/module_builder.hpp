@@ -5,13 +5,10 @@
 #include "modules/dep/module.hpp"
 #include "modules/dep/module_interfaces.hpp"
 #include "engine/module_types.hpp"
+#include "core/error_result.hpp"
 
 #include <array>
-#include <map>
-#include <memory>
-#include <optional>
 #include <type_traits>
-#include <vector>
 
 class ModuleBuilder 
 {
@@ -30,63 +27,84 @@ public:
     Serializable* serializable;
   };
 
-  static constexpr std::size_t maxModules = 64;
-  using ModuleRegistry = std::array<std::optional<ModuleEntry>, maxModules>;
+  static constexpr std::size_t maxModules = 56;
+  using ModuleRegistry = sndbx::fixed_vector<ModuleEntry, maxModules>;
+  using ModuleReleaseTable = std::array<void(*)(Module*), sndbx::engine::numModules()>;
 
 public:
   ModuleBuilder() = default;
 
+  /**
+   * @brief Creates a module at the specified position.
+   *      
+   * Pulls a module of type T from the preallocated pool and creates a registry entry.
+   * 
+   * @tparam T  Module type
+   * @param pos Position to create at
+   * @param args Forwarded constructor args
+   * 
+   * @return sndbx::Result<T*> 
+   * 
+   * @retval T* pointer to the new module
+   * @retval sndbx::Error::BUILDER_INVALID_POS 
+   * @retval sndbx::Error::BUILDER_POOL_EXHAUSTED 
+   * @retval sndbx::Error::BUILDER_REGISTRY_FULL 
+   */
   template <typename T, typename... Args>
-  T* make(sndbx::grid::Position pos, Args &&...args) 
+  [[nodiscard]] sndbx::Result<T*> make(sndbx::grid::Position pos, Args &&...args) 
   {
-    if (positionOccupied(pos)) { return nullptr; }
+    if (find(pos) != m_ModuleRegistry.end()) { return {sndbx::Error::BUILDER_INVALID_POS}; }
 
-    auto newModule = m_ModulePools.acquire<T>();
-    if (!newModule) { return nullptr; }
+    const auto newModule = m_ModulePools.acquire<T>();
+    if (!newModule) { return {sndbx::Error::BUILDER_POOL_EXHAUSTED}; }
 
-    auto entry = makeEntry<T>(newModule, pos, std::forward<Args>(args)...);
-    auto module = static_cast<T*>(entry.module);
+    const auto entry = makeEntry<T>(newModule, pos, std::forward<Args>(args)...);
+    const auto module = static_cast<T*>(entry.module);
 
-    for (auto& slot : m_ModuleRegistry) 
+    if (m_ModuleRegistry.push_back(entry)) { return { module }; }
+    else
     {
-      if (slot.has_value()) { continue; } 
-      slot = entry; 
-      return module; 
+      m_ModulePools.release(module);
+      return {sndbx::Error::BUILDER_REGISTRY_FULL};
     }
-    return nullptr;
   }
 
+  /**
+   * @brief Deletes the module at the given position.
+   * 
+   * @param pos Position of module to delete
+   * @return true (deletion was successful)
+   * @return false 
+   */
+  [[nodiscard]] bool destroy(sndbx::grid::Position pos);
+
+  /**
+   * @brief 
+   * 
+   * @tparam T 
+   * @param id 
+   * @return T 
+   */
   template <typename T> 
   [[nodiscard]] T get(std::uint32_t id) const 
   {
     static_assert(std::is_pointer_v<T>);
-    auto it = findWithID(id);
-    if (it == m_ModuleRegistry.end()) { return nullptr; };
-    return getFromEntry<T>(it->value());
+    auto it = find(id);
+    if (it == m_ModuleRegistry.end()) { return nullptr; }
+    return getFromEntry<T>(*it);
   }
 
   template <typename T> 
   [[nodiscard]] T get(sndbx::grid::Position pos) const 
   {
     static_assert(std::is_pointer_v<T>);
-    auto it = findWithPosition(pos);
+    auto it = find(pos);
     if (it == m_ModuleRegistry.end()) { return nullptr; }
-    return getFromEntry<T>(it->value());
+    return getFromEntry<T>(*it);
   }
 
-  [[nodiscard]] const ModuleEntry* getEntry(sndbx::grid::Position pos) const 
-  {
-    auto it = findWithPosition(pos);
-    if (it != m_ModuleRegistry.end()) { return &it->value(); }
-    return nullptr;
-  }
-
-  [[nodiscard]] const ModuleEntry* getEntry(std::uint32_t id) const 
-  {
-    auto it = findWithID(id);
-    if (it != m_ModuleRegistry.end()) { return &it->value(); }
-    return nullptr;
-  }
+  [[nodiscard]] const ModuleEntry* getEntry(sndbx::grid::Position pos) const;
+  [[nodiscard]] const ModuleEntry* getEntry(std::uint32_t id) const;
 
   template <typename T> 
   [[nodiscard]] T getFromEntry(const ModuleEntry& entry) const 
@@ -100,54 +118,12 @@ public:
       std::is_same_v<T, Serializable*>,
       "Type parameter is invalid.");
 
-    if constexpr (std::is_same_v<T, Module*>) { return entry.module; }
-    if constexpr (std::is_same_v<T, Displayable*>) { return entry.displayable; }
-    if constexpr (std::is_same_v<T, Controllable*>) { return entry.controllable; }
-    if constexpr (std::is_same_v<T, Pressable*>) { return entry.pressable; }
-    if constexpr (std::is_same_v<T, Animatable*>) { return entry.animatable; }
-    if constexpr (std::is_same_v<T, Serializable*>) { return entry.serializable; }
-  }
-
-  [[nodiscard]] bool destroy(sndbx::grid::Position pos) 
-  {
-    using namespace sndbx::engine;
-
-    auto it = std::find_if(
-        m_ModuleRegistry.begin(), 
-        m_ModuleRegistry.end(),
-        [&pos](const auto& entry){
-          if (!entry) return false;
-          return entry->position == pos; 
-        }
-      );
-
-    if (it == m_ModuleRegistry.end()) { return false; }
-
-    auto& entry = *it;
-    const auto module = entry->module;
-
-    switch (entry->typeIndex)
-    {
-      case typeIndexOf<Oscillator>():   m_ModulePools.release(static_cast<Oscillator*>(module)); break;
-      case typeIndexOf<LFO>():          m_ModulePools.release(static_cast<LFO*>(module)); break;
-      case typeIndexOf<Mixer>():        m_ModulePools.release(static_cast<Mixer*>(module)); break;
-      case typeIndexOf<Keyboard>():     m_ModulePools.release(static_cast<Keyboard*>(module)); break;
-      case typeIndexOf<KeyboardKey>():  m_ModulePools.release(static_cast<KeyboardKey*>(module)); break;
-      case typeIndexOf<Oscilloscope>(): m_ModulePools.release(static_cast<Oscilloscope*>(module)); break;
-      case typeIndexOf<VCF>():          m_ModulePools.release(static_cast<VCF*>(module)); break;
-      case typeIndexOf<Envelope>():     m_ModulePools.release(static_cast<Envelope*>(module)); break;
-      case typeIndexOf<Mult>():         m_ModulePools.release(static_cast<Mult*>(module)); break;
-      case typeIndexOf<USBOut>():       m_ModulePools.release(static_cast<USBOut*>(module)); break;
-    }
-
-    entry.reset();
-
-    return true;
-  }
-
-  [[nodiscard]] bool positionOccupied(sndbx::grid::Position pos) const 
-  {
-    return findWithPosition(pos) != m_ModuleRegistry.end();
+    if constexpr (std::is_same_v<T, Module*>)            { return entry.module; }
+    else if constexpr (std::is_same_v<T, Displayable*>)  { return entry.displayable; }
+    else if constexpr (std::is_same_v<T, Controllable*>) { return entry.controllable; }
+    else if constexpr (std::is_same_v<T, Pressable*>)    { return entry.pressable; }
+    else if constexpr (std::is_same_v<T, Animatable*>)   { return entry.animatable; }
+    else if constexpr (std::is_same_v<T, Serializable*>) { return entry.serializable; }
   }
 
   [[nodiscard]] const ModuleRegistry& registry() const { return m_ModuleRegistry; }
@@ -167,10 +143,10 @@ private:
     Animatable* animatable{};
     Serializable* serializable{};
 
-    if constexpr (std::is_base_of_v<Displayable, T>) { displayable = module; }
+    if constexpr (std::is_base_of_v<Displayable, T>)  { displayable = module; }
     if constexpr (std::is_base_of_v<Controllable, T>) { controllable = module; }
-    if constexpr (std::is_base_of_v<Pressable, T>) { pressable = module; }
-    if constexpr (std::is_base_of_v<Animatable, T>) { animatable = module; }
+    if constexpr (std::is_base_of_v<Pressable, T>)    { pressable = module; }
+    if constexpr (std::is_base_of_v<Animatable, T>)   { animatable = module; }
     if constexpr (std::is_base_of_v<Serializable, T>) { serializable = module; }
 
     return ModuleEntry{
@@ -186,44 +162,28 @@ private:
     };
   }
 
-  [[nodiscard]] ModuleRegistry::const_iterator findWithID(std::uint32_t id) const 
-  {
-    return std::find_if(
-        m_ModuleRegistry.begin(), 
-        m_ModuleRegistry.end(),
-        [&id](const auto& entry){
-          if (!entry) return false;
-          return entry->id == id; 
-        }
-      );
-  }
+  [[nodiscard]] ModuleRegistry::const_iterator find(std::uint32_t id) const;
+  [[nodiscard]] ModuleRegistry::const_iterator find(sndbx::grid::Position pos) const;
 
-  [[nodiscard]] ModuleRegistry::const_iterator findWithPosition(sndbx::grid::Position pos) const 
-  {
-    return std::find_if(
-        m_ModuleRegistry.begin(), 
-        m_ModuleRegistry.end(),
-        [&pos](const auto& entry){
-          if (!entry) return false;
-          return entry->position == pos; 
-        }
-      );
-  }
+  [[nodiscard]] std::uint32_t makeID() const;
 
-  [[nodiscard]] std::uint32_t makeID() const 
+private:
+  template<typename T>
+  static void releaseModule(Module* m) { m_ModulePools.release(static_cast<T*>(m)); }
+
+  template <std::size_t... Is>
+  static constexpr ModuleReleaseTable createReleaseTable(std::index_sequence<Is...>) 
   {
-    static std::uint32_t lastID = 0;
-    return lastID++;
+    return { &releaseModule<sndbx::engine::ModuleTypes::get<Is>>... };
   }
 
 private:
-  inline static ModuleRegistry m_ModuleRegistry{};
-  inline static sndbx::engine::ModulePools m_ModulePools;
+  ModuleRegistry m_ModuleRegistry{};
+  static sndbx::engine::ModulePools m_ModulePools;
+  static const ModuleReleaseTable m_ModuleReleaseFuncs;
 };
 
-namespace engine
-{
- 
-}
+inline const ModuleBuilder::ModuleReleaseTable ModuleBuilder::m_ModuleReleaseFuncs 
+  = createReleaseTable(std::make_index_sequence<sndbx::engine::numModules()>{});
 
 #endif

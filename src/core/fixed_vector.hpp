@@ -1,7 +1,13 @@
-#include <array>
-#include <stdexcept>
-#include <initializer_list>
+#ifndef SANDBOX_FIXED_VECTOR_HPP_
+#define SANDBOX_FIXED_VECTOR_HPP_
 
+#include <array>
+#include <initializer_list>
+#include <type_traits>
+#include <cstring>
+
+// Array wrapper to get vector-like behavior with no reallocations (capacity is fixed)
+// constexpr capable
 namespace sndbx 
 {
 
@@ -9,14 +15,16 @@ template<typename T, std::size_t N>
 class fixed_vector
 {
 public:
-  constexpr fixed_vector() = default;
+  using iterator = T*;
+  using const_iterator = const T*;  
+
+  fixed_vector() = default;
 
   constexpr fixed_vector(std::initializer_list<T> elements)
   {
     m_Size = elements.size();
-    if (m_Size > N) { return; }
     std::size_t index{};
-    for (auto& e : elements) { m_Elements[index++] = e; }
+    for (auto& e : elements) { m_Elements[index++] = e; } //throws if index >= N
   }
 
   constexpr bool push_back(T element)
@@ -36,27 +44,44 @@ public:
     return true;
   }
 
-  constexpr void pop_back() { if (!is_empty()) { m_Size--; } }
+  constexpr T* erase(T* pos)
+  {
+    std::size_t eraseIdx = pos - begin();
+    if (eraseIdx >= m_Size) { return end(); }
 
-  [[nodiscard]] constexpr bool is_empty() const { return m_Size == 0; }
-  [[nodiscard]] constexpr bool is_full() const { return m_Size >= capacity(); }
+    if constexpr (std::is_trivially_copyable_v<T>)
+    {
+      std::memmove(&m_Elements[eraseIdx], 
+        &m_Elements[eraseIdx + 1], 
+        ((m_Size - 1) - eraseIdx) * sizeof(T));
+    }
+    else
+    {
+      for (std::size_t i{eraseIdx}; i < m_Size - 1; ++i)
+      {
+        m_Elements[i] = std::move(m_Elements[i + 1]);
+      }
+    }
+
+    m_Size--;
+    return begin() + eraseIdx;
+  }
+
+  constexpr void pop_back() noexcept { if (!is_empty()) m_Size--; }
 
   constexpr void clear() { m_Size = 0; }
 
-  [[nodiscard]] constexpr const T& operator[](std::size_t index) const { return m_Elements[index]; }
-  [[nodiscard]] constexpr T& operator[](std::size_t index) { return m_Elements[index]; }
+  [[nodiscard]] constexpr bool is_empty() const noexcept { return m_Size == 0; }
+  [[nodiscard]] constexpr bool is_full() const noexcept { return m_Size >= capacity(); }
 
-  [[nodiscard]] const T& at(std::size_t index) const
-  {
-    if (index >= m_Size) { throw std::out_of_range("Index out of range."); }
-    return m_Elements[index];
-  }
+  [[nodiscard]] const T& at(std::size_t index) const { return m_Elements.at(index); }
+  [[nodiscard]] T& at(std::size_t index) { return m_Elements.at(index); }
 
-  [[nodiscard]] T& at(std::size_t index)
-  {
-    if (index >= m_Size) { throw std::out_of_range("Index out of range."); }
-    return m_Elements[index];
-  }
+  [[nodiscard]] constexpr const T& operator[](std::size_t index) const noexcept { return m_Elements[index]; }
+  [[nodiscard]] constexpr T& operator[](std::size_t index) noexcept { return m_Elements[index]; }
+
+  [[nodiscard]] constexpr const T& back() const noexcept { return m_Elements[m_Size - 1]; }
+  [[nodiscard]] constexpr T& back(std::size_t index) noexcept { return m_Elements[m_Size - 1]; }
 
   [[nodiscard]] constexpr std::size_t size() const { return m_Size; }
   [[nodiscard]] constexpr std::size_t capacity() const { return N; }
@@ -68,7 +93,7 @@ public:
 
 private:
   std::size_t m_Size{};
-  std::array<T, N> m_Elements{};
+  std::array<T, N> m_Elements;
 };
 
 template<typename T>
@@ -89,3 +114,5 @@ using vector_64U = fixed_vector<T, 64>;
 template<typename T>
 using vector_128U = fixed_vector<T, 128>;
 }
+
+#endif
