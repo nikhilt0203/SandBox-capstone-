@@ -48,7 +48,7 @@ struct AppContext
   Controllable* selectedControllable{};
   Animatable* selectedAnimatable{};
 
-  std::vector<sndbx::event::TrellisPress> trellisEvents{};
+  sndbx::vector_4U<sndbx::event::TrellisPress> trellisEvents{};
 };
 
 struct DisplayContext
@@ -66,7 +66,10 @@ struct ModuleBankDisplay
 
   ModuleBankDisplay() 
   {
-    for (auto info : sndbx::engine::bankInfos) { colors.push_back(info.color); }
+    for (const auto& info : sndbx::engine::bankInfos) 
+    {
+      colors.push_back(info.color); 
+    }
   }
 };
 
@@ -104,14 +107,10 @@ namespace sndbx::input
   {
     const auto& buttonPresses = ::g_AppContext.trellisEvents;
 
-    if (!buttonPresses.empty()) 
+    if (!buttonPresses.is_empty() && grid::isBankArea(buttonPresses.at(0).position)) 
     { 
-      if (grid::isBankArea(buttonPresses.at(0).position)) 
-      { 
-        turnBank(delta);
-        ::g_DisplayContext.ledsUpdated = false;
-        return;
-      }
+      turnBank(delta);
+      return;
     }
     
     if (auto selectedModule = ::g_AppContext.selectedControllable) 
@@ -130,6 +129,7 @@ namespace sndbx::app
     Serial.begin(115200);
     ui::clear(display::ledMatrix);
     ui::clearAndDraw<SplashScreen>(display::screen);
+    //ui::clearAndDraw<ErrorDisplay>(display::screen, "cannot place module here.");
   }
 
   void placeModule(Displayable* module, grid::Position pos)
@@ -153,7 +153,7 @@ namespace sndbx::app
 
       const auto connectedID = port.connectedModule->id();
 
-      if (auto connectedModule = builder.get<Displayable*>(connectedID))
+      if (auto connectedModule = builder.get<Displayable>(connectedID))
       {
         portColors.push_back(connectedModule->displayColor());
       }
@@ -214,7 +214,7 @@ namespace sndbx::app
 
   bool deleteModule(grid::Position pos)
   {
-    auto module = engine::builder.get<Module*>(pos);
+    auto module = engine::builder.get<Module>(pos);
     if (!module) { return false; }
 
     patch::disconnectAll(engine::audioGraph, module);
@@ -228,13 +228,20 @@ namespace sndbx::app
     return true;
   }
 
-  void printError(Error error)
+  void displayError(Error error)
   {
     switch (error)
     {
-      case Error::BUILDER_INVALID_POS: Serial.println("Builder: Invalid position"); break; 
-      case Error::BUILDER_POOL_EXHAUSTED: Serial.println("Builder: Module max reached"); break; 
-      case Error::BUILDER_REGISTRY_FULL: Serial.println("Builder: registry full"); break;
+      case Error::BUILDER_INVALID_POS:
+        ui::clearAndDraw<ErrorDisplay>(display::screen, "can't place module here");
+        break;
+      case Error::BUILDER_POOL_EXHAUSTED:
+        ui::clearAndDraw<ErrorDisplay>(display::screen, 
+          "can't create more modules \n         of this type");
+        break;
+      case Error::BUILDER_REGISTRY_FULL: 
+        ui::clearAndDraw<ErrorDisplay>(display::screen, "can't create more modules");
+        break;
       default: Serial.println("No error");
     }
   }
@@ -244,21 +251,32 @@ namespace sndbx::app
     const std::size_t bankIndex = (bankPos.index() - grid::bankStart + g_ModuleBankDisplay.startIndex)
       % g_ModuleBankDisplay.colors.size();
 
+    Serial.println(bankIndex);
 
     if (bankIndex == engine::bankIndexOf<Keyboard>()) 
     { 
       const auto result = engine::builder.make<Keyboard>(gridPos);
-      if (!result) { printError(result.error); }
+      if (!result) { displayError(result.error); }
       else { initKeyboard(result.value, gridPos); }
     }
     else
     {
-      printError(engine::createModuleFromBankIndex(bankIndex, gridPos, engine::builder));
+      displayError(engine::createModuleFromBankIndex(bankIndex, gridPos, engine::builder));
     }
     
-    if (auto moduleDisplay = engine::builder.get<Displayable*>(gridPos))
+    const auto entry = engine::builder.getEntry(gridPos);
+    if (!entry) { return; }
+
+    ::g_AppContext.selectedModule       = engine::builder.getFromEntry<Module>(*entry);
+    ::g_AppContext.selectedControllable = engine::builder.getFromEntry<Controllable>(*entry);
+    ::g_AppContext.selectedAnimatable   = engine::builder.getFromEntry<Animatable>(*entry);
+
+    if (auto moduleDisplay = engine::builder.getFromEntry<Displayable>(*entry))
     {
       placeModule(moduleDisplay, gridPos);
+      ::g_AppContext.selectedDisplayable = moduleDisplay;
+      ::g_AppContext.state = AppContext::State::Displaying;
+      ::g_DisplayContext.displayUpdated = false;
     }
   }
 
@@ -277,8 +295,12 @@ namespace sndbx::app
 
   void drawConnectionBetween(LEDMatrixDisplay& ledMatrix, grid::Position srcPos, grid::Position destPos)
   {
-    auto moduleDisplay = engine::builder.get<Displayable*>(srcPos);
-    std::uint32_t wireColor = moduleDisplay ? sndbx::color::changeBrightness(moduleDisplay->ledColor(), 0.1) : 0x404040;
+    auto moduleDisplay = engine::builder.get<Displayable>(srcPos);
+
+    std::uint32_t wireColor = 
+      moduleDisplay 
+      ? sndbx::color::changeBrightness(moduleDisplay->ledColor(), 0.1) 
+      : 0x404040;
 
     auto currentRow = srcPos.row;
     auto currentCol = srcPos.col;
@@ -306,7 +328,7 @@ namespace sndbx::app
     {
       const auto position = grid::toPosition(i);
 
-      auto module = engine::builder.get<Module*>(position);
+      auto module = engine::builder.get<Module>(position);
       if (!module) { continue; }
 
       for (const auto& port : module->outputs())
@@ -333,7 +355,7 @@ namespace sndbx::app
     return sndbx::patch::disconnectFirstConnection(engine::audioGraph, src, dest);
   }
 
-  bool handleConnect(Module* src, grid::Position srcPos, Module* dest, grid::Position destPos)
+  bool handleConnect(Module* src, Displayable* srcDisplay, Module* dest, Displayable* destDisplay)
   {
     const auto output = sndbx::patch::firstAvailablePort(src->outputs());
     const auto input = sndbx::patch::firstAvailablePort(dest->inputs());
@@ -342,8 +364,6 @@ namespace sndbx::app
     bool connectSuccess = sndbx::patch::connect(engine::audioGraph, src, *output, dest, *input);
     if (!connectSuccess) { return false; }
 
-    auto srcDisplay = engine::builder.get<Displayable*>(srcPos);
-    auto destDisplay = engine::builder.get<Displayable*>(destPos);
     if (!srcDisplay || !destDisplay) { return connectSuccess; }
 
     ui::clearAndDraw<PatchDisplayPage>(
@@ -362,24 +382,28 @@ namespace sndbx::app
   void clearModuleSelections(AppContext& appContext);
   void patchHandler(grid::Position srcPos, grid::Position destPos)
   {
-    auto* srcModule = engine::builder.get<Module*>(srcPos);
-    if (!srcModule) { return; }
+    const auto srcEntry = engine::builder.getEntry(srcPos);
+    if (!srcEntry) { return; }
 
-    auto* destModule = engine::builder.get<Module*>(destPos);
-    if (!destModule) { return; }
+    const auto destEntry = engine::builder.getEntry(destPos);
+    if (!destEntry) { return; }
 
-    bool patchChanged = 
+    const auto srcModule   = engine::builder.getFromEntry<Module>(*srcEntry);
+    const auto destModule  = engine::builder.getFromEntry<Module>(*destEntry);
+    const auto srcDisplay  = engine::builder.getFromEntry<Displayable>(*srcEntry);
+    const auto destDisplay = engine::builder.getFromEntry<Displayable>(*destEntry);
+
+     bool patchChanged = 
       sndbx::patch::connectionExists(srcModule, destModule) 
       ? handleDisconnect(srcModule, destModule)
-      : handleConnect(srcModule, srcPos, destModule, destPos);
+      : handleConnect(srcModule, srcDisplay, destModule, destDisplay);
 
     if (patchChanged) 
     { 
-      Serial.println("SUCCESS");
       clearModuleSelections(::g_AppContext);
+      Serial.println("setting to patching");
       ::g_AppContext.state = AppContext::State::Patching;
-      drawAllConnections(display::ledMatrix); 
-      ::g_DisplayContext.displayUpdated = false;
+      drawAllConnections(display::ledMatrix);
     }
   }
 
@@ -395,14 +419,14 @@ namespace sndbx::app
     appContext.selectedAnimatable = nullptr;
   }
 
-  void handleDoublePress(std::vector<event::TrellisPress>& events)
+  void handleDoublePress(sndbx::vector_4U<event::TrellisPress>& events)
   {
     const auto& firstEvent = events.at(0);
     const auto& secondEvent = events.at(1);
     const auto& firstPos = firstEvent.position;
     const auto& secondPos = secondEvent.position;
 
-    auto clearFirst = [](auto& events){ if (!events.empty()) events.erase(events.begin()); };
+    auto clearFirst = [](auto& events){ if (!events.is_empty()) events.erase(events.begin()); };
 
     if (firstPos == secondPos) 
     { 
@@ -433,37 +457,36 @@ namespace sndbx::app
     }
   }
 
-  void handleGridPress(const event::TrellisPress& event, std::vector<event::TrellisPress>& events)
+  void handleGridPress(const event::TrellisPress& event, sndbx::vector_4U<event::TrellisPress>& events)
   {
-    auto& builder = engine::builder;
-    auto& position = event.position;
+    const auto& builder = engine::builder;
+    const auto& position = event.position;
 
-    if (events.size() == 2) { handleDoublePress(events); }
+    if (events.size() == 2) { return handleDoublePress(events); }
 
-    auto entry = builder.getEntry(position);
+    const auto entry = builder.getEntry(position);
   
     if (!entry) { return; }
 
-    ::g_AppContext.selectedModule = builder.getFromEntry<Module*>(*entry);
+    clearModuleSelections(::g_AppContext);
 
-    if (auto pressable = builder.getFromEntry<Pressable*>(*entry)) 
+    ::g_AppContext.selectedModule = builder.getFromEntry<Module>(*entry);
+    ::g_AppContext.selectedControllable = builder.getFromEntry<Controllable>(*entry);
+
+    if (auto pressable = builder.getFromEntry<Pressable>(*entry)) 
     { 
       pressable->onRisingEdge(); 
       ::g_DisplayContext.ledsUpdated = false;
     }
 
-    if (auto controllable = builder.getFromEntry<Controllable*>(*entry))
-    {
-      ::g_AppContext.selectedControllable = controllable;
-    }
-
-    if (auto displayable = builder.getFromEntry<Displayable*>(*entry))
+    if (auto displayable = builder.getFromEntry<Displayable>(*entry))
     {
       ::g_AppContext.selectedDisplayable = displayable;
       ::g_AppContext.state = AppContext::State::Displaying;
+      ::g_DisplayContext.displayUpdated = false;
     }
 
-    if (auto animatable = builder.getFromEntry<Animatable*>(*entry))
+    if (auto animatable = builder.getFromEntry<Animatable>(*entry))
     {
       ::g_AppContext.selectedAnimatable = animatable;
       ::g_AppContext.state = AppContext::State::Displaying;
@@ -478,7 +501,7 @@ namespace sndbx::app
 
   void handleTrellisFallingEdge(const event::TrellisPress& event)
   {
-    if (auto pressableModule = engine::builder.get<Pressable*>(event.position))
+    if (auto pressableModule = engine::builder.get<Pressable>(event.position))
     {
       pressableModule->onFallingEdge();
       ::g_DisplayContext.ledsUpdated = false;
@@ -501,7 +524,7 @@ namespace sndbx::app
   void handleTrellisPress(const event::TrellisPress& event)
   {
     static Timer holdTimer;
-    constexpr static auto holdThresholdMs = 1500;
+    constexpr static auto holdThresholdMs = 1000;
 
     const auto edge = event.edge;
 
@@ -556,13 +579,11 @@ namespace sndbx::app
       return;
     }
 
-    if (auto selected = ::g_AppContext.selectedDisplayable)
+    if (!::g_DisplayContext.displayUpdated)
     {
-      Displayable* cur = selected;
-      if (cur != ::g_DisplayContext.lastDisplayed || !::g_DisplayContext.displayUpdated)
+      if (auto selected = ::g_AppContext.selectedDisplayable)
       {
-        displayModule(cur, ::g_AppContext.selectedModule);
-        ::g_DisplayContext.lastDisplayed = cur;
+        displayModule(selected, ::g_AppContext.selectedModule);
         ::g_DisplayContext.displayUpdated = true;
       }
     }

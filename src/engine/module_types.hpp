@@ -55,7 +55,7 @@ MAX_COUNT(VCF, 16);
 MAX_COUNT(Keyboard, 5);
 MAX_COUNT(Mult, 16);
 MAX_COUNT(Oscilloscope, 8);
-MAX_COUNT(KeyboardKey, 55);
+MAX_COUNT(KeyboardKey, 54); //max keys 32, highest possible total possible is 2 keyboards (len 32 + len 22)
 
 struct ModulePools
 {
@@ -78,7 +78,7 @@ constexpr std::size_t typeIndexOf() { return indexOf<T, ModuleTypes>(); }
 template <typename T> 
 constexpr std::size_t bankIndexOf() { return indexOf<T, ModuleBank>(); }
 
-constexpr std::size_t numModules() { return ModuleTypes::size; }
+constexpr std::size_t numModuleTypes() { return ModuleTypes::size; }
 
 }
 

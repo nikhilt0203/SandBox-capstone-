@@ -24,29 +24,30 @@ public:
   {
     m_Size = elements.size();
     std::size_t index{};
-    for (auto& e : elements) { m_Elements[index++] = e; } //throws if index >= N
+    for (auto& e : elements) { m_Elements.at(index++) = e; }
   }
 
-  constexpr bool push_back(T element)
+  constexpr bool push_back(const T& element)
   {
-    if (m_Size == capacity()) { return false; }
-    m_Elements[m_Size] = element;
-    m_Size++;
+    if (m_Size >= N) { return false; }
+    m_Elements[m_Size++] = element;
     return true;
   }
 
   template<typename ...Args>
   constexpr bool emplace_back(Args&&... args)
   {
-    if (m_Size == capacity()) { return false; }
-    m_Elements[m_Size] = T(std::forward<Args>(args)...);
-    m_Size++;
+    if (m_Size >= N) { return false; }
+    m_Elements[m_Size++] = T(std::forward<Args>(args)...);
     return true;
   }
 
   constexpr T* erase(T* pos)
   {
+    if (pos < begin() || pos >= end()) { return end(); }
+
     std::size_t eraseIdx = pos - begin();
+  
     if (eraseIdx >= m_Size) { return end(); }
 
     if constexpr (std::is_trivially_copyable_v<T>)
@@ -81,7 +82,7 @@ public:
   [[nodiscard]] constexpr T& operator[](std::size_t index) noexcept { return m_Elements[index]; }
 
   [[nodiscard]] constexpr const T& back() const noexcept { return m_Elements[m_Size - 1]; }
-  [[nodiscard]] constexpr T& back(std::size_t index) noexcept { return m_Elements[m_Size - 1]; }
+  [[nodiscard]] constexpr T& back() noexcept { return m_Elements[m_Size - 1]; }
 
   [[nodiscard]] constexpr std::size_t size() const { return m_Size; }
   [[nodiscard]] constexpr std::size_t capacity() const { return N; }

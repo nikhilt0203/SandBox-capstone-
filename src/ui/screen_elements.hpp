@@ -34,10 +34,10 @@ public:
 
   virtual void draw() const = 0;
 
-  virtual std::uint16_t x() const { return m_X; }
-  virtual std::uint16_t y() const { return m_Y; }
-  virtual std::uint16_t width() const { return m_Width; }
-  virtual std::uint16_t height() const { return m_Height; }
+  [[nodiscard]] virtual std::uint16_t x() const { return m_X; }
+  [[nodiscard]] virtual std::uint16_t y() const { return m_Y; }
+  [[nodiscard]] virtual std::uint16_t width() const { return m_Width; }
+  [[nodiscard]] virtual std::uint16_t height() const { return m_Height; }
 
   virtual void setX(std::uint16_t x) { m_X = x; }
   virtual void setY(std::uint16_t y) { m_Y = y; }
@@ -58,6 +58,20 @@ public:
     m_Frame.drawCircle(m_X, m_Y, 3, ILI9341_WHITE);
   }
 
+  [[nodiscard]] static std::uint16_t centeredX(std::uint16_t width,
+                                               std::uint16_t parentX, 
+                                               std::uint16_t parentWidth) 
+  { 
+    return parentX + (parentWidth - width) / 2; 
+  }
+
+  [[nodiscard]] static std::uint16_t centeredY(std::uint16_t height, 
+                                               std::uint16_t parentY, 
+                                               std::uint16_t parentHeight) 
+  { 
+    return parentY + (parentHeight - height) / 2; 
+  }
+
 protected:
   GFXcanvas16& m_Frame;
   std::uint16_t m_X, m_Y, m_Width, m_Height;
@@ -69,7 +83,12 @@ protected:
 class Text : public ScreenElement
 {
 public:
-  Text(std::uint16_t x, std::uint16_t y, std::string_view text, std::uint32_t color, std::uint8_t fontSize, GFXcanvas16& frame)
+  Text(std::uint16_t x, 
+       std::uint16_t y, 
+       std::string_view text, 
+       std::uint32_t color, 
+       std::uint8_t fontSize,
+      GFXcanvas16& frame)
   : ScreenElement(x, y, 0, 0, frame),
     m_Text(text),
     m_Color(sndbx::color::to565(color)),
@@ -89,6 +108,21 @@ public:
     m_Frame.println(m_Text.data()); 
   }
 
+  static void print(std::uint16_t x, 
+                    std::uint16_t y,  
+                    std::string_view text,  
+                    std::uint32_t color, 
+                    std::uint8_t fontSize,
+                    GFXcanvas16& frame)
+  {
+    frame.setTextColor(sndbx::color::to565(color));
+    frame.setTextSize(fontSize);
+    frame.setCursor(x, y);
+    frame.println(text.data()); 
+  }
+
+  [[nodiscard]] std::uint16_t color() const { return m_Color; }
+
 private:
   std::uint16_t getMaxTextHeight()
   {
@@ -103,9 +137,31 @@ private:
   std::string_view m_Text;
   std::uint16_t m_Color;
   std::uint8_t m_FontSize;
-
 };
 
+//===============================================================================================
+// Error text display
+//===============================================================================================
+
+class ErrorDisplay : public ScreenElement
+{
+public:
+  ErrorDisplay(std::string_view text, GFXcanvas16& frame)
+  : ScreenElement(frame),
+    m_Text(0, 120, text, 0xFFFFFF, 1, frame)
+  {
+    m_Text.centerX();
+  }
+
+  void draw() const override 
+  { 
+    Text::print(115, 80, "error", 0xFF0000, 2, m_Frame);
+    m_Text.draw();
+  }
+
+private:
+  Text m_Text;
+};
 //===============================================================================================
 // 565 color bitmap
 //===============================================================================================
@@ -186,7 +242,8 @@ public:
     m_Frame.fillCircle(indicatorX, indicatorY, indicatorRadius, indicatorColor);
 
     //Knob label
-   constexpr static int labelSize = 1;
+    constexpr static int labelSize = 1;
+
     int16_t textX, textY;
     std::uint16_t textWidth, textHeight;
     m_Frame.setTextSize(labelSize);
@@ -219,8 +276,8 @@ public:
   static constexpr int TEXT_X_OFFSET = 1;
 
 public:
-  PortsDisplay(uint16_t x, 
-               uint16_t y, 
+  PortsDisplay(std::uint16_t x, 
+               std::uint16_t y, 
                const sndbx::vector_8U<std::string_view>& labels, 
                const sndbx::vector_8U<std::uint32_t>& colors, 
                GFXcanvas16& frame)
@@ -301,10 +358,10 @@ public:
   {
     m_Frame.drawRoundRect(m_Name.x() - 2, m_Name.y() - 2, m_Name.width() + 4, m_Name.height() + 2, 3, m_Color);
     m_Name.draw();
-    Text(10, 26, "->", 0x606060, 1, m_Frame).draw();
-    Text(10, 113, "<-", 0x606060, 1, m_Frame).draw();
     m_Inputs.draw();
     m_Outputs.draw();
+    Text::print(10, 26, "->", 0x606060, 1, m_Frame);
+    Text::print(10, 113, "<-", 0x606060, 1, m_Frame);
     drawKnobs();
   }
 
@@ -373,6 +430,23 @@ private:
   Text m_DescriptionText;
 };
 
+inline void drawDownArrow(std::uint16_t startX, 
+                          std::uint16_t startY, 
+                          std::uint16_t endX, 
+                          std::uint16_t endY,
+                          std::uint16_t color565,
+                          GFXcanvas16& frame)
+{
+  frame.drawFastVLine(startX, startY, endY - startY, color565);
+  frame.drawFastVLine(startX + 1, startY, endY - startY, color565);
+  frame.drawFastVLine(startX - 1, startY, endY - startY, color565);
+
+  frame.setTextSize(1);
+  frame.setTextColor(color565);
+  frame.setCursor(endX - 7, endY - 2);
+  frame.print("V");
+}
+
 class PatchDisplayPage : public ScreenElement
 {
 public:
@@ -386,12 +460,15 @@ public:
     GFXcanvas16& frame)
   : ScreenElement(frame), 
     m_SrcNameText(m_X, 50, srcName, srcColor, 2, frame),
-    m_DestNameText(m_X, 100, destName, destColor, 2, frame),
-    m_SrcPortText(10, m_SrcNameText.y(), srcPortName, 0x606060, 1, frame),
-    m_DestPortText(10, m_DestNameText.y(), destPortName, 0x606060, 1, frame)
+    m_DestNameText(m_X, 150, destName, destColor, 2, frame),
+    m_SrcPortText(15, m_Y, srcPortName, srcColor, 1, frame),
+    m_DestPortText(15, m_Y, destPortName, destColor, 1, frame)
   {
     m_SrcNameText.centerX();
     m_DestNameText.centerX();
+    m_SrcPortText.centerY(m_SrcNameText);
+    m_DestPortText.centerX(m_SrcPortText);
+    m_DestPortText.centerY(m_DestNameText);
   }
  
   void draw() const override 
@@ -400,6 +477,36 @@ public:
     m_DestNameText.draw();
     m_SrcPortText.draw();
     m_DestPortText.draw();
+
+    constexpr static auto squareWidth = 26;
+
+    const auto srcPortX = m_SrcPortText.x();
+    const auto srcPortY = m_SrcPortText.y();
+    const auto srcPortWidth = m_SrcPortText.width();
+    const auto srcPortHeight= m_SrcPortText.height();
+
+    const auto destPortX = m_DestPortText.x();
+    const auto destPortY = m_DestPortText.y();
+    const auto destPortWidth = m_DestPortText.width();
+    const auto destPortHeight= m_DestPortText.height();
+
+    const auto srcRectX = ScreenElement::centeredX(squareWidth, srcPortX, srcPortWidth);
+    const auto srcRectY = ScreenElement::centeredY(squareWidth, srcPortY, srcPortHeight);
+    const auto destRectX = ScreenElement::centeredX(squareWidth, destPortX, destPortWidth);
+    const auto destRectY = ScreenElement::centeredY(squareWidth, destPortY, destPortHeight);
+
+    const auto srcColor = m_SrcNameText.color();
+    const auto destColor = m_DestNameText.color();
+
+    m_Frame.drawRoundRect(srcRectX, srcRectY, squareWidth, squareWidth, 5, srcColor);
+    m_Frame.drawRoundRect(destRectX, destRectY, squareWidth, squareWidth, 5, destColor);
+
+    const auto arrowStartX = srcPortX + (srcPortWidth / 2);
+    const auto arrowStartY = srcPortY + srcPortHeight + 5;
+    const auto arrowEndX = destPortX + (destPortWidth / 2);
+    const auto arrowEndY = destPortY - 5;
+
+    drawDownArrow(arrowStartX, arrowStartY, arrowEndX, arrowEndY, srcColor, m_Frame);
   }
 
 private:
@@ -420,9 +527,6 @@ public:
   static constexpr int WINDOW_Y = TFT::height * (1 - BORDER_SCALE) / 2 + 7;
   static constexpr int WINDOW_WIDTH = TFT::width * BORDER_SCALE;
   static constexpr int WINDOW_HEIGHT = TFT::height * BORDER_SCALE;
-
-  static constexpr int LOCK_X = 18;
-  static constexpr int LOCK_Y = 18;
 
   static constexpr uint16_t WAVEFORM_COLOR = ILI9341_GREEN;
   static constexpr uint16_t WAVEFORM_CLIPPING_COLOR = ILI9341_RED;
@@ -454,13 +558,14 @@ public:
     int prevX = 0;
     int prevY = 0;
 
-    for (size_t i{}; i < m_SampleBuffer.size(); i += SAMPLE_INCREMENT)
+    constexpr static auto downsample = 8U;
+    for (std::size_t i{}; i < m_SampleBuffer.size(); i += downsample)
     {
-      const float sampleValue = m_SampleBuffer[i];
-      const float percentDrawn = static_cast<float>(i) / (m_SampleBuffer.size() - 1);
+      const auto sampleValue = m_SampleBuffer[i];
+      const auto percentDrawn = static_cast<float>(i) / (m_SampleBuffer.size() - 1);
 
-      const int x = (WINDOW_X + 1) + static_cast<int>(percentDrawn * (WINDOW_WIDTH - 1));
-      const int y = (WINDOW_HEIGHT / 2) - (WINDOW_HEIGHT / 2) * (sampleValue * WAVEFORM_SCALE) + WINDOW_Y;
+      const auto x = (WINDOW_X + 1) + static_cast<int>(percentDrawn * (WINDOW_WIDTH - 1));
+      const auto y = (WINDOW_HEIGHT / 2) - (WINDOW_HEIGHT / 2) * (sampleValue * WAVEFORM_SCALE) + WINDOW_Y;
 
       if (i == 0)
       {
@@ -471,7 +576,10 @@ public:
 
       if (prevX == x && prevY == y) { continue; }
 
-      color = (sampleValue >= 1.0f || sampleValue <= -1.0f) ? WAVEFORM_CLIPPING_COLOR : WAVEFORM_COLOR;
+      color = 
+        (sampleValue >= 1.0f || sampleValue <= -1.0f) 
+        ? WAVEFORM_CLIPPING_COLOR 
+        : WAVEFORM_COLOR;
 
       m_Frame.drawLine(prevX, prevY, x, y, color);
       prevX = x;

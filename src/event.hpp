@@ -32,6 +32,8 @@ namespace sndbx::event
     sndbx::grid::Position position;
     Edge edge;
     
+    TrellisPress() = default;
+    
     TrellisPress(sndbx::grid::Position pos, Edge e)
     : position(pos), edge(e) {}
   };

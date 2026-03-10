@@ -29,7 +29,7 @@ void TFT::renderFrame()
     const auto currentRow = currentFrameData + rowOffset;
     const auto previousRow = previousFrameData + rowOffset;
 
-    auto rowDiff = std::memcmp(currentRow, previousRow, rowSizeBytes);
+    const auto rowDiff = std::memcmp(currentRow, previousRow, rowSizeBytes);
 
     if (rowDiff) 
     { 

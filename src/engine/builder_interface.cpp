@@ -14,6 +14,7 @@ sndbx::Error sndbx::engine::createModuleFromBankIndex(std::size_t bankIndex, gri
     MODULE_TYPE(5);
     MODULE_TYPE(6);
     MODULE_TYPE(7);
+    MODULE_TYPE(8);
     default: return Error::NONE;
   }
 }

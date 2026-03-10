@@ -13,6 +13,8 @@ namespace sndbx::patch
   void disconnectAll(AudioGraph& graph, Module* module);
 
   [[nodiscard]] std::optional<std::size_t> firstAvailablePort(const Module::PortArray& ports);
+
+  //[[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> connectedPorts(Module* m1, Module* m2);
   
   [[nodiscard]] bool connectionExists(Module* m1, Module* m2);
 }

@@ -2,6 +2,7 @@
 #define SANDBOX_OBJECT_POOL_HPP_
 
 #include <array>
+#include <type_traits>
 
 namespace sndbx 
 {
@@ -15,11 +16,11 @@ struct object_pool
     bool active{};
   };
 
-  std::array<entry, N> entries;
+  std::array<entry, N> objects;
 
   T* acquire()
   {
-    for (auto& entry : entries)
+    for (auto& entry : objects)
     {
       if (!entry.active) 
       {
@@ -32,7 +33,7 @@ struct object_pool
 
   void release(T* obj)
   {
-    for (auto& entry : entries)
+    for (auto& entry : objects)
     {
       if (&(entry.object) == obj) 
       {

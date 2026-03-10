@@ -1,4 +1,3 @@
-#pragma once
 #include "trellis.hpp"
 #include "grid.hpp"
 
@@ -23,31 +22,31 @@ Trellis::Trellis()
 
 std::optional<sndbx::event::TrellisPress> Trellis::popEvent() 
 { 
-  if (m_KeyEventQueue.empty()) { return std::nullopt; }
-
-  auto event = m_KeyEventQueue.front();
-  m_KeyEventQueue.pop();
+  if (m_KeyEventQueue.is_empty()) { return std::nullopt; }
+  auto event = m_KeyEventQueue.back();
+  m_KeyEventQueue.pop_back();
   return event; 
 }
   
 std::optional<sndbx::event::TrellisPress> const Trellis::readEvent() 
 { 
-  if (m_KeyEventQueue.empty()) { return std::nullopt; }
-  return m_KeyEventQueue.front(); 
+  if (m_KeyEventQueue.is_empty()) { return std::nullopt; }
+  return m_KeyEventQueue.back(); 
 }
   
 void Trellis::handleEvent(keyEvent evt)
 {
   auto keyPress = evt.bit;
 
-  auto edge = keyPress.EDGE == SEESAW_KEYPAD_EDGE_RISING 
-              ? sndbx::event::Edge::RISING_EDGE
-              : sndbx::event::Edge::FALLING_EDGE;
+  auto edge = 
+    keyPress.EDGE == SEESAW_KEYPAD_EDGE_RISING 
+    ? sndbx::event::Edge::RISING_EDGE
+    : sndbx::event::Edge::FALLING_EDGE;
 
   auto position = sndbx::grid::Position{
     static_cast<std::size_t>(keyPress.NUM / sndbx::grid::rows),
     static_cast<std::size_t>(keyPress.NUM % sndbx::grid::cols)
   };
 
-  m_KeyEventQueue.emplace(position, edge);
+  m_KeyEventQueue.emplace_back(position, edge);
 }

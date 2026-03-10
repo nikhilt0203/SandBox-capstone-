@@ -1,6 +1,8 @@
 #ifndef SANDBOX_ERROR_RESULT_HPP_
 #define SANDBOX_ERROR_RESULT_HPP_
 
+#include <cassert>
+
 namespace sndbx
 {
   enum class Error
@@ -19,8 +21,9 @@ namespace sndbx
     Error error;
     T value{};
 
-    Result(T value) : error(Error::NONE), value(value) {}
-    Result(Error error) : error(error) {}
+    constexpr Result(T value) : error(Error::NONE), value(value) {}
+
+    constexpr Result(Error error) : error(error) {}
 
     constexpr operator bool() const { return error == Error::NONE; }
   };

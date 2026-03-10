@@ -155,7 +155,6 @@ public:
     }
 
     patch->connect(src, srcPort, dest, destPort);
-    Serial.println(m_Patches.size());
     return true;
   }
 
@@ -169,29 +168,9 @@ public:
     auto patch = *it;
 
     patch->disconnect();
-    
     m_PatchPool.release(patch);
     m_Patches.erase(it);
-    Serial.println(m_Patches.size());
     return true;
-  }
-
-  void deletePatchesWith(Patchable* node)
-  {
-    if (!node) { return; }
-
-    auto removePatch = 
-      [this, node](Patch* patch) {
-        if (patch->destination == node || patch->source == node)
-        {
-          patch->disconnect();
-          m_PatchPool.release(patch);
-          return true;
-        }
-        return false;
-      };
-
-    m_Patches.erase(std::remove_if(m_Patches.begin(), m_Patches.end(), removePatch));
   }
 
   [[nodiscard]] bool patchExists(Patchable* src, std::size_t srcPort, Patchable* dest, std::size_t destPort) const

@@ -35,10 +35,10 @@ public:
   [[nodiscard]] std::optional<KeyboardKeyData> addKey(Keyboard& keyboard, ModuleBuilder& builder);
   [[nodiscard]] bool subtractKey(Keyboard& keyboard, ModuleDeleteFunc deleter);
 
-  void changeScale(Keyboard::Scale scale, std::uint32_t keyboardID);
-
   [[nodiscard]] bool isKeyAt(sndbx::grid::Position pos) const noexcept;
   [[nodiscard]] bool isKeyboardAt(sndbx::grid::Position pos) const noexcept;
+
+  void changeScale(Keyboard::Scale scale, std::uint32_t keyboardID);
 
 private:
   [[nodiscard]] float nextKeyAmplitude(Keyboard::Scale scale, const KeyboardData* keyboard) const;
@@ -48,6 +48,5 @@ private:
   static constexpr std::size_t maxKeyboards = 5;
   sndbx::fixed_vector<KeyboardData, maxKeyboards> m_Keyboards;
 };
-
 
 #endif

@@ -3,6 +3,7 @@
 constexpr float SEMITONE = 1.0f / 100.0f;
 
 using Intervals = std::array<std::uint8_t, 7>;
+
 struct ScaleIntervalPattern
 {
   Keyboard::Scale scale;
@@ -38,21 +39,18 @@ auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) -> std:
                               : keys.back().position;
 
   const auto newKeyPosition = sndbx::grid::toPosition(lastKeyPosition.index() + 1);
-
   if (!sndbx::grid::isBuildableArea(newKeyPosition)) { return std::nullopt; }
 
-  auto result = builder.make<KeyboardKey>(newKeyPosition);
+  const auto result = builder.make<KeyboardKey>(newKeyPosition);
   if (!result) { return std::nullopt; }
   auto newKey = result.value;
 
-  newKey->setParent(&keyboard);
-
   const auto amplitude = nextKeyAmplitude(keyboard.scale(), keyboardData);
+  newKey->setParent(&keyboard);
   newKey->setAmplitude(amplitude);
 
   const KeyboardKeyData newKeyData{newKey, newKeyPosition};
   keys.push_back(newKeyData);
-
   return newKeyData;
 }
 
@@ -83,10 +81,12 @@ void KeyboardManager::changeScale(Keyboard::Scale scale, std::uint32_t keyboardI
 
   for (std::size_t i{1}; i < keys.size(); i++)
   {
-    auto& previousKey = keys.at(i - 1).key;
+    const auto previousIndex = i - 1;
+
+    auto& previousKey = keys.at(previousIndex).key;
     auto& currentKey = keys[i].key;
 
-    const auto noteIndex = (i - 1) % scaleData.length;
+    const auto noteIndex = previousIndex % scaleData.length;
     const auto interval = SEMITONE * scaleData.intervals[noteIndex];
     const auto amplitude = previousKey->amplitude() + interval;
 
@@ -120,16 +120,16 @@ bool KeyboardManager::deleteKeyboard(sndbx::grid::Position pos, ModuleDeleteFunc
   auto it = std::find_if(
       m_Keyboards.begin(),
       m_Keyboards.end(),
-      [pos](const auto& k){ return k.headPosition == pos; }
+      [pos](const auto& kbd){ return kbd.headPosition == pos; }
     );
   
   if (it == m_Keyboards.end()) { return false; }
 
   auto& keyboard = *it;
-
-  deleter(keyboard.headPosition);
+  
   for (const auto& key : keyboard.keys) { deleter(key.position); }
 
+  deleter(keyboard.headPosition);
   m_Keyboards.erase(it);
   return true;
 }
@@ -143,14 +143,15 @@ float KeyboardManager::nextKeyAmplitude(Keyboard::Scale scale, const KeyboardDat
 
   const auto lastKey = keys.back().key;
   const auto noteIndex = (keys.size() - 1) % scaleData.length;
+
   return lastKey->amplitude() + (SEMITONE * scaleData.intervals[noteIndex]);
 }
 
 KeyboardManager::KeyboardData* KeyboardManager::getKeyboardData(std::uint32_t id)
 {
-  for (auto& keyboard : m_Keyboards) 
+  for (auto& data : m_Keyboards) 
   { 
-    if (keyboard.id == id) { return &keyboard; }
+    if (data.id == id) { return &data; }
   }
   return nullptr;
 }
