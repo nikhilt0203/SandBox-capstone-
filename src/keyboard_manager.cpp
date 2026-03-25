@@ -18,7 +18,7 @@ constexpr ScaleIntervalPattern minorPentatonic{ Keyboard::Scale::Major, 5, Inter
 
 constexpr std::array<ScaleIntervalPattern, 4> scaleIntervalPatterns{ major, minor, majorPentatonic, minorPentatonic };
 
-const ScaleIntervalPattern& scaleIntervalPattern(Keyboard::Scale scale)
+[[nodiscard]] const ScaleIntervalPattern& scaleIntervalPattern(Keyboard::Scale scale)
 {
   for (const auto& intervals : scaleIntervalPatterns)
   {
@@ -27,9 +27,34 @@ const ScaleIntervalPattern& scaleIntervalPattern(Keyboard::Scale scale)
   return scaleIntervalPatterns[0];
 }
 
-auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) -> std::optional<KeyboardKeyData>
+[[nodiscard]] float nextKeyAmplitude(Keyboard::Scale scale, const KeyboardManager::KeyboardData* keyboard)
 {
-  auto keyboardData = getKeyboardData(keyboard.id());
+  const auto& scaleData = scaleIntervalPattern(scale);
+
+  const auto& keys = keyboard->keys;
+  if (keys.is_empty()) { return 0.0f; }
+
+  const auto lastKey = keys.back().key;
+  const auto noteIndex = (keys.size() - 1) % scaleData.length;
+
+  return lastKey->amplitude() + (SEMITONE * scaleData.intervals[noteIndex]);
+}
+
+[[nodiscard]] auto getKeyboardData(
+    sndbx::fixed_vector<KeyboardManager::KeyboardData, KeyboardManager::maxKeyboards>& keyboards, 
+    std::uint32_t id)
+ -> KeyboardManager::KeyboardData* 
+{
+  for (auto& data : keyboards) 
+  { 
+    if (data.id == id) { return &data; }
+  }
+  return nullptr;
+}
+
+auto KeyboardManager::addKey(Keyboard& keyboard, ModuleBuilder& builder) -> std::optional<KeyboardKeyData> 
+{
+  auto keyboardData = getKeyboardData(m_Keyboards, keyboard.id());
   if (!keyboardData) { return std::nullopt; }
 
   auto& keys = keyboardData->keys;
@@ -58,7 +83,7 @@ bool KeyboardManager::subtractKey(Keyboard& keyboard, ModuleDeleteFunc deleter)
 {
   if (keyboard.numKeys() == 0) { return false; }
 
-  auto keyboardData = getKeyboardData(keyboard.id());
+  auto keyboardData = getKeyboardData(m_Keyboards, keyboard.id());
   if (!keyboardData) { return false; }
 
   auto& keys = keyboardData->keys;
@@ -72,14 +97,14 @@ bool KeyboardManager::subtractKey(Keyboard& keyboard, ModuleDeleteFunc deleter)
 
 void KeyboardManager::changeScale(Keyboard::Scale scale, std::uint32_t keyboardID)
 {
-  auto keyboardData = getKeyboardData(keyboardID);
+  auto keyboardData = getKeyboardData(m_Keyboards, keyboardID);
   if (!keyboardData) { return; }
 
   auto& keys = keyboardData->keys;
 
   const auto& scaleData = scaleIntervalPattern(scale);
 
-  for (std::size_t i{1}; i < keys.size(); i++)
+  for (std::size_t i{1}; i < keys.size(); ++i)
   {
     const auto previousIndex = i - 1;
 
@@ -117,41 +142,20 @@ bool KeyboardManager::isKeyboardAt(sndbx::grid::Position pos) const noexcept
 
 bool KeyboardManager::deleteKeyboard(sndbx::grid::Position pos, ModuleDeleteFunc deleter)
 {
+  auto& keyboards = m_Keyboards;
   auto it = std::find_if(
-      m_Keyboards.begin(),
-      m_Keyboards.end(),
-      [pos](const auto& kbd){ return kbd.headPosition == pos; }
+      keyboards.begin(),
+      keyboards.end(),
+      [pos](const auto& keyboard){ return keyboard.headPosition == pos; }
     );
   
-  if (it == m_Keyboards.end()) { return false; }
+  if (it == keyboards.end()) { return false; }
 
   auto& keyboard = *it;
   
   for (const auto& key : keyboard.keys) { deleter(key.position); }
 
   deleter(keyboard.headPosition);
-  m_Keyboards.erase(it);
+  keyboards.erase(it);
   return true;
-}
-
-float KeyboardManager::nextKeyAmplitude(Keyboard::Scale scale, const KeyboardData* keyboard) const
-{
-  const auto& scaleData = scaleIntervalPattern(scale);
-
-  const auto& keys = keyboard->keys;
-  if (keys.is_empty()) { return 0.0f; }
-
-  const auto lastKey = keys.back().key;
-  const auto noteIndex = (keys.size() - 1) % scaleData.length;
-
-  return lastKey->amplitude() + (SEMITONE * scaleData.intervals[noteIndex]);
-}
-
-KeyboardManager::KeyboardData* KeyboardManager::getKeyboardData(std::uint32_t id)
-{
-  for (auto& data : m_Keyboards) 
-  { 
-    if (data.id == id) { return &data; }
-  }
-  return nullptr;
 }

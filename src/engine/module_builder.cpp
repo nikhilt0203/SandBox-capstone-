@@ -56,9 +56,9 @@ auto ModuleBuilder::find(sndbx::grid::Position pos) const
   );
 }
 
-std::uint32_t ModuleBuilder::makeID() const 
+std::uint32_t ModuleBuilder::makeModuleID() const 
 {
-  static std::uint32_t lastID = 0;
+  static std::uint32_t lastID{};
   return lastID++;
 }
 

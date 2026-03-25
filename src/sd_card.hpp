@@ -1,12 +1,10 @@
 #ifndef SANDBOX_SD_CARD_HPP_
 #define SANDBOX_SD_CARD_HPP_
 
-#include "SD.h"
+#include <SD.h>
 #include <string_view>
-#include <filesystem>
 #include "core/fixed_string.hpp"
 #include "core/fixed_vector.hpp"
-
 
 namespace sndbx::sdcard
 {
@@ -19,11 +17,21 @@ namespace sndbx::sdcard
     }
   }
 
-  bool writeLine(std::string_view line, std::filesystem::path path)
+  bool remove(std::string_view path) 
   {
-    auto filePath = path.c_str();
+    const auto filePath = path.data();
+    if (!SD.exists(filePath))
+    {
+      Serial.print("File does not exist: ");
+      Serial.println(filePath);
+      return false;
+    }
+    return SD.remove(filePath); 
+  }
 
-    SD.remove(filePath);
+  bool writeLine(std::string_view line, std::string_view path = "/")
+  {
+    const auto filePath = path.data();
     File fileOut = SD.open(filePath, FILE_WRITE);
 
     if (!fileOut) 
@@ -40,16 +48,15 @@ namespace sndbx::sdcard
     }
 
     fileOut.println(line.data());
-
     fileOut.flush();
     fileOut.close();
     return true;
   }
 
-  [[nodiscard]] const auto fileContents(std::filesystem::path path) -> sndbx::vector_128U<sndbx::string50_t>
+  [[nodiscard]] const auto fileContents(std::string_view path) -> sndbx::vector_128U<sndbx::string64_t>
   {
-    auto filePath = path.c_str();
-    sndbx::vector_128U<sndbx::string50_t> contents;
+    const auto filePath = path.data();
+    sndbx::vector_128U<sndbx::string64_t> contents;
 
     if (!SD.exists(filePath))
     {
@@ -77,32 +84,33 @@ namespace sndbx::sdcard
     }
 
     fileIn.close();
+    Serial.printf("num contents: %d", contents.size());
     return contents;
   }
 
-  [[nodiscard]] const auto directoryContents(std::filesystem::path path) -> sndbx::vector_128U<sndbx::string16_t>
-  {
-    auto directoryPath = path.c_str();
-    sndbx::vector_128U<sndbx::string16_t> contents;
+  // [[nodiscard]] const auto directoryContents(std::filesystem::path path) -> sndbx::vector_128U<sndbx::string16_t>
+  // {
+  //   auto directoryPath = path.c_str();
+  //   sndbx::vector_128U<sndbx::string16_t> contents;
 
-    if (!SD.exists(directoryPath))
-    {
-      Serial.print("File does not exist: ");
-      Serial.println(directoryPath);
-      return contents;
-    }
+  //   if (!SD.exists(directoryPath))
+  //   {
+  //     Serial.print("File does not exist: ");
+  //     Serial.println(directoryPath);
+  //     return contents;
+  //   }
 
-    File directory = SD.open(directoryPath, FILE_READ);
-    File file = directory.openNextFile();
+  //   File directory = SD.open(directoryPath, FILE_READ);
+  //   File file = directory.openNextFile();
 
-    while (file) 
-    {
-      contents.emplace_back(file.name());
-      file = directory.openNextFile();
-    }
+  //   while (file) 
+  //   {
+  //     contents.emplace_back(file.name());
+  //     file = directory.openNextFile();
+  //   }
 
-    return contents;
-  }
+  //   return contents;
+  // }
 }
 
 #endif

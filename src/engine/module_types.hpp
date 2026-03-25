@@ -70,7 +70,11 @@ struct ModulePools
   T* acquire() { return pool<T>().acquire(); }
 
   template<typename T>
-  void release(T* obj) { pool<T>().release(obj); }
+  void release(T* obj) 
+  { 
+    if constexpr (std::is_base_of_v<Controllable, T>) { obj->resetControls(); }
+    pool<T>().release(obj); 
+  }
 };
 
 template <typename T> 

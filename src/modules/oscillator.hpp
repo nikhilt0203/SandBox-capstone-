@@ -14,8 +14,7 @@
 class Oscillator 
   : public Module, 
     public Controllable,
-    public Displayable,
-    public Serializable
+    public Displayable
 {
 public:
   MODULE_TYPE_INFO("oscillator", "outputs a continuous waveform", 0x00FF00);
@@ -24,8 +23,9 @@ public:
   Oscillator();
   Oscillator(float frequency, int fineTuneOffset, float fmDepth, std::size_t waveform);
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override;
+  void resetControls() override;
+  [[nodiscard]] std::size_t numControls() const override { return 4U; }
 
   [[nodiscard]] std::string_view displayName() const override { return m_Waveforms.at(m_WaveformIndex).name; }
   [[nodiscard]] std::uint32_t displayColor() const override { return m_Waveforms.at(m_WaveformIndex).color; }
@@ -40,37 +40,21 @@ public:
     -> const sndbx::vector_4U<std::string_view>& override { return m_ControlNames; }
 
   [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
-
-  [[nodiscard]] std::string toString() const override
-  {
-    return sndbx::serialization::formatModule(id(), 
-      {std::to_string(m_Frequency),
-       std::to_string(m_FineTuneOffset),
-       std::to_string(m_FMDepth),
-       std::to_string(m_WaveformIndex)
-      });
-  }
   
 private:
   void frequencyAdjustCoarse(int delta);
   void frequencyAdjustFine(int delta);
   void fmDepthAdjust(int delta);
   void waveformAdjust(int delta);
+  void initSynthWaveform();
 
 protected:
   AudioSynthWaveformModulated* m_Oscillator{};
 
-  Parameter<float> m_Frequency{440.0f, 0.0f, 18000.0f};
-  Parameter<int> m_FineTuneOffset{0, -50, 50};
-  Parameter<float> m_FMDepth{8.25f, 0.0f, 12.0f};
-  Parameter<std::size_t> m_WaveformIndex{0U, 0U, numWaveforms - 1};
-
-  Controls m_Controls{
-    [this](int delta){ frequencyAdjustCoarse(delta); },
-    [this](int delta){ frequencyAdjustFine(delta); },
-    [this](int delta){ fmDepthAdjust(delta); },
-    [this](int delta){ waveformAdjust(delta); }
-  };
+  ModuleParameter<float> m_Frequency{440.0f, 0.0f, 18000.0f};
+  ModuleParameter<int> m_FineTuneOffset{0, -50, 50};
+  ModuleParameter<float> m_FMDepth{8.25f, 0.0f, 12.0f};
+  ModuleParameter<std::size_t> m_WaveformIndex{0U, 0U, numWaveforms - 1};
 
   struct Waveform
   {

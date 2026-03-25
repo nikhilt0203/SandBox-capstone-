@@ -4,10 +4,11 @@ Mixer::Mixer() : Module(4, 1)
 {
   m_Audio.addDevice<AudioMixer4>();
   m_Mixer = m_Audio.device<AudioMixer4>();
+  setGains();
 
   m_Audio.mapOutput(0, m_Mixer, 0);
 
-  for (std::size_t i{}; i < numInputs(); i++) { m_Audio.mapInput(i, m_Mixer, i); }
+  for (std::size_t i{}; i < numInputs(); ++i) { m_Audio.mapInput(i, m_Mixer, i); }
 }
 
 Mixer::Mixer(std::initializer_list<float> gains) : Mixer()
@@ -16,8 +17,23 @@ Mixer::Mixer(std::initializer_list<float> gains) : Mixer()
   for (const auto gain : gains)
   {
     if (i < numChannels) { m_ChannelGains.at(i).setValue(gain); }
-    i++;
+    ++i;
   }
+  setGains();
+}
+
+void Mixer::setGains()
+{
+  for (std::size_t i{}; i < numChannels; ++i)
+  {
+    m_Mixer->gain(i, m_ChannelGains[i]);
+  }
+}
+
+void Mixer::resetControls()
+{
+  for (auto& gain : m_ChannelGains) { gain.reset(); }
+  setGains();
 }
 
 auto Mixer::normalizedControlValues() const -> const sndbx::vector_4U<float>& 

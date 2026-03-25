@@ -2,7 +2,6 @@
 #define SANDBOX_MIXER_HPP_
 
 #include "dep/module.hpp"
-#include "dep/controls.hpp"
 #include "dep/module_interfaces.hpp"
 #include "dep/parameter.hpp"
 
@@ -23,8 +22,8 @@ public:
 
   Mixer(std::initializer_list<float> gains);
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override { gainAdjust(index, delta); }
+  void resetControls() override;
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
@@ -42,15 +41,16 @@ public:
 
 private:
   void gainAdjust(std::size_t channel, int delta);
+  void setGains();
 
 private:
   static constexpr std::size_t numChannels = 4U;
 
-  std::array<Parameter<float>, numChannels> m_ChannelGains{ 
-    Parameter<float>{1.0f, 0.0f, 5.0f}, 
-    Parameter<float>{1.0f, 0.0f, 5.0f}, 
-    Parameter<float>{1.0f, 0.0f, 5.0f}, 
-    Parameter<float>{1.0f, 0.0f, 5.0f} 
+  std::array<ModuleParameter<float>, numChannels> m_ChannelGains{ 
+    ModuleParameter<float>{1.0f, 0.0f, 5.0f}, 
+    ModuleParameter<float>{1.0f, 0.0f, 5.0f}, 
+    ModuleParameter<float>{1.0f, 0.0f, 5.0f}, 
+    ModuleParameter<float>{1.0f, 0.0f, 5.0f} 
   };
 
   Controls m_Controls{

@@ -17,7 +17,7 @@ public:
   template<std::size_t ArrSize, typename = std::enable_if_t<ArrSize - 1 <= N>>
   constexpr fixed_string(const char (&s)[ArrSize]) noexcept 
   {
-    for (std::size_t i{}; i < ArrSize; i++) { m_Buffer[i] = s[i]; }
+    for (std::size_t i{}; i < ArrSize; ++i) { m_Buffer[i] = s[i]; }
     m_Size = ArrSize - 1;
   }
 
@@ -74,6 +74,52 @@ using string8_t = fixed_string<8>;
 using string16_t = fixed_string<16>;
 using string32_t = fixed_string<32>;
 using string64_t = fixed_string<64>;
+
+template<typename T>
+inline void parseNumber(const char*& ptr, T& value)
+{
+  value = 0;
+
+  if (*ptr < '0' || *ptr > '9')
+    return;
+
+  while (*ptr >= '0' && *ptr <= '9')
+  {
+    value = value * 10 + (*ptr - '0');
+    ++ptr;
+  }
+}
+
+inline void parseFloat(const char*& ptr, float& value)
+{  
+  value = 0.0f;
+  float sign = 1.0f;
+
+  if (*ptr == '-') 
+  { 
+    sign = -1.0f; 
+    ++ptr; 
+  }
+
+  while (*ptr >= '0' && *ptr <= '9')
+  {
+    value = value * 10.0f + (*ptr - '0');
+    ++ptr;
+  }
+
+  if (*ptr == '.')
+  {
+    ++ptr;
+    float factor = 0.1f;
+    while (*ptr >= '0' && *ptr <= '9')
+    {
+      value += (*ptr - '0') * factor;
+      factor *= 0.1f;
+      ++ptr;
+    }
+  }
+  value *= sign;
+}
 
 }
 

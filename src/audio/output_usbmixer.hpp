@@ -19,7 +19,7 @@ public:
     const float scale = m_OutputScale;
     if (left || right)
     {
-      for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; i++)
+      for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
       {
         if (left) left->data[i] *= scale;
         if (right) right->data[i] *= scale;

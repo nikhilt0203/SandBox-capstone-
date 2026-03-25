@@ -4,10 +4,7 @@ VCF::VCF() : Module(2, 1)
 {
   m_Audio.addDevice<AudioFilter>();
   m_Filter = m_Audio.device<AudioFilter>();
-
-  m_Filter->frequency(m_CutoffFrequency);
-  m_Filter->resonance(m_Resonance);
-  m_Filter->octaveControl(m_FMDepth);
+  initFilter();
 
   m_Audio.mapInput(0, m_Filter, 0);
   m_Audio.mapInput(1, m_Filter, 1);
@@ -21,11 +18,36 @@ VCF::VCF(float cutoff, float resonance, float fmDepth, int filterType)
   m_Resonance.setValue(resonance);
   m_FMDepth.setValue(fmDepth);
   m_FilterType.setValue(filterType);
+  initFilter();
+}
 
+void VCF::initFilter()
+{
   m_Filter->frequency(m_CutoffFrequency);
   m_Filter->resonance(m_Resonance);
   m_Filter->octaveControl(m_FMDepth);
   m_Filter->filterType(m_FilterType);
+}
+
+void VCF::changeControl(std::size_t index, int delta) 
+{
+  switch (index)
+  {
+    case 0: cutoffAdjust(delta); break;
+    case 1: resonanceAdjust(delta); break;
+    case 2: fmDepthAdjust(delta); break;
+    case 3: filterTypeAdjust(delta); break;
+    default: return;
+  }
+}
+
+void VCF::resetControls()
+{
+  m_CutoffFrequency.reset();
+  m_Resonance.reset();
+  m_FMDepth.reset();
+  m_FilterType.reset();
+  initFilter();
 }
 
 auto VCF::normalizedControlValues() const -> const sndbx::vector_4U<float>&

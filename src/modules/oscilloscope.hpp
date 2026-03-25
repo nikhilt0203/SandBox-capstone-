@@ -4,7 +4,7 @@
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
 #include "dep/controls.hpp"
-#include "audio/audio_buffer_input.hpp"
+#include "audio/audio_shared_buffer.hpp"
 #include "ui/screen_elements.hpp"
 
 class Oscilloscope 
@@ -36,7 +36,11 @@ public:
   [[nodiscard]] auto outputNames() const 
     -> const sndbx::vector_8U<std::string_view>& override { return m_OutputNames; }
 
-  void drawNext(GFXcanvas16& frame) const override { WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw(); }
+  void drawNext(GFXcanvas16& frame) const override 
+  { 
+    m_AudioBuffer->setBufferWriteResponsibility();
+    if (m_AudioBuffer->isFull()) { WaveformDisplayFrame{m_AudioBuffer->flush(), frame}.draw(); }
+  }
 
 private: 
   AudioBuffer* m_AudioBuffer{};

@@ -20,11 +20,20 @@ namespace sndbx::event
 
   struct ButtonPress : public Event
   {
-    std::size_t index;
+    std::uint8_t index;
     Edge edge;
     
-    ButtonPress(std::size_t index, Edge e)
+    ButtonPress(std::uint8_t index, Edge e)
     : index(index), edge(e) {}
+  };
+
+  struct EncoderTurn : public Event
+  {
+    std::uint8_t encoderNum;
+    int delta;
+    
+    EncoderTurn(std::uint8_t encoderNum, int delta)
+    : encoderNum(encoderNum), delta(delta) {}
   };
 
   struct TrellisPress : public Event

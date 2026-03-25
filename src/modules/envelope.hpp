@@ -36,6 +36,7 @@ public:
   }
 
   void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
+  void resetControls() override;
   [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }
@@ -61,12 +62,13 @@ private:
   void adjustDecay(int delta);
   void adjustSustain(int delta);
   void adjustRelease(int delta);
+  void initEnvelope();
 
 private:
-  Parameter<float> m_Attack{10.0f, 0.0f, 500.0f};
-  Parameter<float> m_Decay{35.0f, 0.0f, 500.0f};
-  Parameter<float> m_Sustain{0.0f, 0.0f, 1.0f};
-  Parameter<float> m_Release{100.0f, 0.0f, 500.0f};
+  ModuleParameter<float> m_Attack{10.0f, 0.0f, 500.0f};
+  ModuleParameter<float> m_Decay{35.0f, 0.0f, 500.0f};
+  ModuleParameter<float> m_Sustain{0.0f, 0.0f, 1.0f};
+  ModuleParameter<float> m_Release{100.0f, 0.0f, 500.0f};
 
   Controls m_Controls{
     [this](int delta){ adjustAttack(delta); },

@@ -24,8 +24,9 @@ class Controllable
 public:
   virtual ~Controllable() = default;
 
-  virtual void changeControl(std::size_t index, int delta) = 0;
   [[nodiscard]] virtual std::size_t numControls() const = 0;
+  virtual void changeControl(std::size_t index, int delta) = 0;
+  virtual void resetControls() {}
 };
 
 template<typename T, std::size_t N>

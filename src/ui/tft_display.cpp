@@ -23,7 +23,7 @@ void TFT::renderFrame()
 
   constexpr static auto rowSizeBytes = sizeof(std::uint16_t) * TFT::width;
 
-  for (std::size_t row{}; row < TFT::height; row++)
+  for (std::size_t row{}; row < TFT::height; ++row)
   {
     const auto rowOffset = TFT::width * row;
     const auto currentRow = currentFrameData + rowOffset;

@@ -3,7 +3,6 @@
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
-#include "dep/controls.hpp"
 #include "dep/parameter.hpp"
 #include "audio/audio_trigger_output.hpp"
 
@@ -31,8 +30,8 @@ public:
 public:
   Keyboard();
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override;
+  void resetControls() override;
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
@@ -60,13 +59,8 @@ private:
   void scaleAdjust(int delta);
 
 private:
-  Parameter<std::size_t> m_NumKeys{0U, 0U, 32U};
-  Parameter<std::uint8_t> m_Scale{0U, 0U, 4U};
-
-  Controls m_Controls{ 
-    [this](int delta){ lengthAdjust(delta); },
-    [this](int delta){ scaleAdjust(delta); }
-  };
+  ModuleParameter<std::size_t> m_NumKeys{0U, 0U, 32U};
+  ModuleParameter<std::uint8_t> m_Scale{0U, 0U, 4U};
 
   LengthChangeCallback m_AddKeyCallback;
   LengthChangeCallback m_SubtractKeyCallback;
@@ -90,15 +84,13 @@ class KeyboardKey
     public Controllable
 {
 public:
-  MODULE_TYPE_INFO("key", "", 0x3675DE);
+  MODULE_TYPE_INFO("key", "", 0x2222FF);
 
 public:
-  KeyboardKey() 
-  : Module(0, 0)
-  {}
+  KeyboardKey() : Module(0, 0) {}
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override { if (index == 0) { adjustAmplitude(delta); } }
+  void resetControls() override { m_Amplitude.reset(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; }
@@ -110,8 +102,8 @@ public:
   [[nodiscard]] auto normalizedControlValues() const -> const sndbx::vector_4U<float>& override;
 
   [[nodiscard]] float amplitude() const { return m_Amplitude; }
-  void setAmplitude(float amplitude);
 
+  void setAmplitude(float amplitude);
   void setParent(Keyboard* parent) { m_Parent = parent; }
 
   void onRisingEdge() { m_Parent->onKeyPress(m_Amplitude); }
@@ -122,9 +114,7 @@ private:
   void updateColor();
 
 private:
-  Parameter<float> m_Amplitude{0.0f, 0.0f, 1.0f};
-
-  Controls m_Controls{ [this](int delta){ adjustAmplitude(delta); } };
+  ModuleParameter<float> m_Amplitude{0.0f, 0.0f, 1.0f};
 
   Keyboard* m_Parent{};
 

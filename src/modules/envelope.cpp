@@ -7,13 +7,10 @@ Envelope::Envelope() : Module(2, 2)
   m_Audio.addDevice<AudioTriggerOutput>();
 
   m_Envelope = m_Audio.device<AudioEffectEnvelope>();
-  auto trigIn = m_Audio.device<AudioTriggerInput>(1);
+  auto* trigIn = m_Audio.device<AudioTriggerInput>(1);
   m_TrigOut = m_Audio.device<AudioTriggerOutput>(2);
 
-  m_Envelope->attack(m_Attack);
-  m_Envelope->decay(m_Decay);
-  m_Envelope->sustain(m_Sustain);
-  m_Envelope->release(m_Release);
+  initEnvelope();
 
   trigIn->risingEdgeCallback([this](){ onRisingEdge(); });
   trigIn->fallingEdgeCallback([this](){ onFallingEdge(); });
@@ -22,6 +19,35 @@ Envelope::Envelope() : Module(2, 2)
   m_Audio.mapInput(1, trigIn, 0);
   m_Audio.mapOutput(0, m_Envelope, 0);
   m_Audio.mapOutput(1, m_TrigOut, 0);
+}
+
+void Envelope::initEnvelope()
+{
+  m_Envelope->attack(m_Attack);
+  m_Envelope->decay(m_Decay);
+  m_Envelope->sustain(m_Sustain);
+  m_Envelope->release(m_Release);
+}
+
+void Envelope::changeControl(std::size_t index, int delta) 
+{
+  switch (index)
+  {
+    case 0: adjustAttack(delta); break;
+    case 1: adjustDecay(delta); break;
+    case 2: adjustSustain(delta); break;
+    case 3: adjustRelease(delta); break;
+    default: return;
+  }
+}
+
+void Envelope::resetControls()
+{
+  m_Attack.reset();
+  m_Decay.reset();
+  m_Sustain.reset();
+  m_Release.reset();
+  initEnvelope();
 }
 
 auto Envelope::normalizedControlValues() const -> const sndbx::vector_4U<float>&

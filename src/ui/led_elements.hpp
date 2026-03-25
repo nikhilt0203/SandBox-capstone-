@@ -37,9 +37,9 @@ public:
     constexpr static auto bankRow = sndbx::grid::bankStart / sndbx::grid::rows;
 
     const auto numColors = m_Colors.size();
-    const auto max = std::min(numColors, sndbx::grid::cols);
+    const auto max = std::min<std::uint8_t>(numColors, sndbx::grid::cols);
     
-    for (std::size_t col{}; col < max; col++)
+    for (std::size_t col{}; col < max; ++col)
     {
       const auto wrappedIndex = (m_StartIndex + col) % numColors;
       m_Frame.drawPixel(bankRow, col, m_Colors.at(wrappedIndex));

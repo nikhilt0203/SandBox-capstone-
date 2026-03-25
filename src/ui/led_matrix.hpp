@@ -43,7 +43,7 @@ public:
     auto& previousFrame = *m_DoubleFrameBuffer[1];
     const auto& currentFrame = *m_DoubleFrameBuffer[0];
 
-    for (std::size_t px{}; px < LEDFrame::size; px++)
+    for (std::size_t px{}; px < LEDFrame::size; ++px)
     {
       const auto currentPixel = currentFrame.at(px);
       if (currentPixel == previousFrame.at(px)) { continue; }

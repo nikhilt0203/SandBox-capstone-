@@ -25,8 +25,8 @@ public:
 public:
   Module(std::size_t inputs, std::size_t outputs)
   {
-    for (std::size_t i{}; i < inputs; i++) { m_Inputs.emplace_back(i); }
-    for (std::size_t i{}; i < outputs; i++) { m_Outputs.emplace_back(i); }
+    for (std::size_t i{}; i < inputs; ++i) { m_Inputs.emplace_back(i); }
+    for (std::size_t i{}; i < outputs; ++i) { m_Outputs.emplace_back(i); }
   }
 
   virtual ~Module() = default;

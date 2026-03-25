@@ -11,7 +11,7 @@ Trellis::Trellis()
     return;
   }
 
-  for (std::size_t i{}; i < numKeys; i++)
+  for (std::size_t i{}; i < numKeys; ++i)
   {
     m_MultiTrellis.activateKey(i, SEESAW_KEYPAD_EDGE_RISING, true);
     m_MultiTrellis.activateKey(i, SEESAW_KEYPAD_EDGE_FALLING, true);
@@ -44,8 +44,8 @@ void Trellis::handleEvent(keyEvent evt)
     : sndbx::event::Edge::FALLING_EDGE;
 
   auto position = sndbx::grid::Position{
-    static_cast<std::size_t>(keyPress.NUM / sndbx::grid::rows),
-    static_cast<std::size_t>(keyPress.NUM % sndbx::grid::cols)
+    static_cast<std::uint8_t>(keyPress.NUM / sndbx::grid::rows),
+    static_cast<std::uint8_t>(keyPress.NUM % sndbx::grid::cols)
   };
 
   m_KeyEventQueue.emplace_back(position, edge);

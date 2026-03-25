@@ -3,7 +3,6 @@
 
 #include "dep/module.hpp"
 #include "dep/module_interfaces.hpp"
-#include "dep/controls.hpp"
 #include "audio/audio_pass_through.hpp"
 
 class Mult 
@@ -19,7 +18,7 @@ public:
     m_Audio.addDevice<AudioPassThrough>();
     const auto device = m_Audio.device<AudioPassThrough>();
     m_Audio.mapInput(0, device, 0);
-    for (std::size_t i{}; i < numOutputs(); i++) { m_Audio.mapOutput(i, device, 0); }
+    for (std::size_t i{}; i < numOutputs(); ++i) { m_Audio.mapOutput(i, device, 0); }
   }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; }

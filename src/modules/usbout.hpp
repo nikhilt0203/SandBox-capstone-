@@ -29,8 +29,8 @@ public:
     m_Audio.mapInput(0, m_OutputMixer, 0);
   }
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override { if (index == 0) { volumeAdjust(delta); } }
+  void resetControls() { m_Volume.reset(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
@@ -57,9 +57,7 @@ private:
   }
 
 private:
-  Parameter<float> m_Volume{0.5f, 0.0f, 2.0f};
-
-  Controls m_Controls{ [this](int delta){ volumeAdjust(delta); }};
+  ModuleParameter<float> m_Volume{0.5f, 0.0f, 2.0f};
 
   AudioOutputI2SMixer* m_OutputMixer{};
 
@@ -98,8 +96,8 @@ public:
     m_Audio.mapInput(0, m_OutputMixer, 0);
   }
 
-  void changeControl(std::size_t index, int delta) override { m_Controls.change(index, delta); }
-  [[nodiscard]] std::size_t numControls() const override { return m_Controls.size(); }
+  void changeControl(std::size_t index, int delta) override { if (index == 0) { volumeAdjust(delta); } }
+  void resetControls() { m_Volume.reset(); }
 
   [[nodiscard]] std::string_view displayName() const override { return NAME; };
   [[nodiscard]] std::uint32_t displayColor() const override { return COLOR; };
@@ -126,9 +124,7 @@ private:
   }
 
 private:
-  Parameter<float> m_Volume{1.0f, 0.0f, 2.0f};
-
-  Controls m_Controls{ [this](int delta){ volumeAdjust(delta); }};
+  ModuleParameter<float> m_Volume{1.0f, 0.0f, 2.0f};
 
   AudioOutputUSBMixer* m_OutputMixer{};
 

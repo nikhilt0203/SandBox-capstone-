@@ -25,6 +25,7 @@ public:
   };
 
   using ModuleDeleteFunc = bool(*)(sndbx::grid::Position);
+  static constexpr std::size_t maxKeyboards = 5;
 
 public:
   KeyboardManager() = default;
@@ -32,7 +33,7 @@ public:
   void addKeyboard(std::uint32_t id, sndbx::grid::Position pos) { m_Keyboards.emplace_back(id, pos); }
   bool deleteKeyboard(sndbx::grid::Position pos, ModuleDeleteFunc deleter);
 
-  [[nodiscard]] std::optional<KeyboardKeyData> addKey(Keyboard& keyboard, ModuleBuilder& builder);
+  [[nodiscard]] auto addKey(Keyboard& keyboard, ModuleBuilder& builder) -> std::optional<KeyboardKeyData>;
   [[nodiscard]] bool subtractKey(Keyboard& keyboard, ModuleDeleteFunc deleter);
 
   [[nodiscard]] bool isKeyAt(sndbx::grid::Position pos) const noexcept;
@@ -41,11 +42,6 @@ public:
   void changeScale(Keyboard::Scale scale, std::uint32_t keyboardID);
 
 private:
-  [[nodiscard]] float nextKeyAmplitude(Keyboard::Scale scale, const KeyboardData* keyboard) const;
-  [[nodiscard]] KeyboardData* getKeyboardData(std::uint32_t id);
-
-private:
-  static constexpr std::size_t maxKeyboards = 5;
   sndbx::fixed_vector<KeyboardData, maxKeyboards> m_Keyboards;
 };
 

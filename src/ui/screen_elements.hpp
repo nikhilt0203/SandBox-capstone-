@@ -8,9 +8,10 @@
 #include "core/fixed_vector.hpp"
 
 
-//===============================================================================================
-// Base for screen elements
-//===============================================================================================
+/**
+ * @brief Representing a screen display element. Designed to be stack objects,
+ *        dimensions must be known at construction time to use centering
+ */
 class ScreenElement
 {
 public:
@@ -36,11 +37,13 @@ public:
 
   [[nodiscard]] virtual std::uint16_t x() const { return m_X; }
   [[nodiscard]] virtual std::uint16_t y() const { return m_Y; }
+
   [[nodiscard]] virtual std::uint16_t width() const { return m_Width; }
   [[nodiscard]] virtual std::uint16_t height() const { return m_Height; }
 
   virtual void setX(std::uint16_t x) { m_X = x; }
   virtual void setY(std::uint16_t y) { m_Y = y; }
+
   virtual void setWidth(std::uint16_t width) { m_Width = width; }
   virtual void setHeight(std::uint16_t height) { m_Height = height; }
 
@@ -49,6 +52,7 @@ public:
 
   virtual void centerX(ScreenElement& other) { m_X = other.x() + (other.width() - m_Width) / 2; }
   virtual void centerY(ScreenElement& other) { m_Y = other.y() + (other.height() - m_Height) / 2; }
+
   virtual void centerX(std::uint16_t x, std::uint16_t width) { m_X = x + (width - m_Width) / 2; }
   virtual void centerY(std::uint16_t y, std::uint16_t height) { m_Y = y + (height - m_Height) / 2; }
 
@@ -58,16 +62,17 @@ public:
     m_Frame.drawCircle(m_X, m_Y, 3, ILI9341_WHITE);
   }
 
-  [[nodiscard]] static std::uint16_t centeredX(std::uint16_t width,
+  [[nodiscard]] constexpr static std::uint16_t centeredX(
+                                               std::uint16_t width,
                                                std::uint16_t parentX, 
                                                std::uint16_t parentWidth) 
   { 
     return parentX + (parentWidth - width) / 2; 
   }
 
-  [[nodiscard]] static std::uint16_t centeredY(std::uint16_t height, 
-                                               std::uint16_t parentY, 
-                                               std::uint16_t parentHeight) 
+  [[nodiscard]] constexpr static std::uint16_t centeredY(std::uint16_t height, 
+                                                         std::uint16_t parentY, 
+                                                         std::uint16_t parentHeight) 
   { 
     return parentY + (parentHeight - height) / 2; 
   }
@@ -88,7 +93,7 @@ public:
        std::string_view text, 
        std::uint32_t color, 
        std::uint8_t fontSize,
-      GFXcanvas16& frame)
+       GFXcanvas16& frame)
   : ScreenElement(x, y, 0, 0, frame),
     m_Text(text),
     m_Color(sndbx::color::to565(color)),
@@ -118,13 +123,13 @@ public:
     frame.setTextColor(sndbx::color::to565(color));
     frame.setTextSize(fontSize);
     frame.setCursor(x, y);
-    frame.println(text.data()); 
+    frame.print(text.data()); 
   }
 
-  [[nodiscard]] std::uint16_t color() const { return m_Color; }
+  [[nodiscard]] std::uint16_t color() const noexcept { return m_Color; }
 
 private:
-  std::uint16_t getMaxTextHeight()
+  [[nodiscard]] std::uint16_t getMaxTextHeight() const
   {
     int16_t x, y;
     std::uint16_t width, height;
@@ -205,8 +210,8 @@ public:
 class Knob : public ScreenElement
 {
 public:
-  static constexpr int radius = 25;
-  static constexpr int width = radius * 2 + 1;
+  static constexpr std::uint8_t radius = 25;
+  static constexpr std::uint8_t width = radius * 2 + 1;
 
 public:
   Knob(std::uint16_t x, 
@@ -232,21 +237,23 @@ public:
 
     constexpr static int minRotation = 120;
     constexpr static int maxRotation = 420;
-    const int degreesTurned = minRotation + (m_PercentTurned * (maxRotation - minRotation));
-
     constexpr static int indicatorRadius = 6;
     constexpr static float indicatorScale = 0.9f;
-    const int indicatorX = m_X + std::cos(degreesTurned % 360 * (M_PI / 180.0f)) * (Knob::radius - indicatorRadius) * indicatorScale;
-    const int indicatorY = m_Y + std::sin(degreesTurned % 360 * (M_PI / 180.0f)) * (Knob::radius - indicatorRadius) * indicatorScale;
+
+    const int degreesTurned = minRotation + (m_PercentTurned * (maxRotation - minRotation));
+    const auto angle = degreesTurned % 360 * (M_PI / 180.0f);
+    const auto offset = (Knob::radius - indicatorRadius) * indicatorScale;
+
+    const std::int16_t indicatorX = m_X + std::cos(angle) * offset;
+    const std::int16_t indicatorY = m_Y + std::sin(angle) * offset;
 
     m_Frame.fillCircle(indicatorX, indicatorY, indicatorRadius, indicatorColor);
 
     //Knob label
-    constexpr static int labelSize = 1;
 
     int16_t textX, textY;
     std::uint16_t textWidth, textHeight;
-    m_Frame.setTextSize(labelSize);
+    m_Frame.setTextSize(1);
     m_Frame.getTextBounds(m_Label.data(), 0, m_Y, &textX, &textY, &textWidth, &textHeight);
 
     constexpr static int offsetX = 2;
@@ -260,7 +267,7 @@ public:
   }
 
 public:
-  float m_PercentTurned;
+  const float m_PercentTurned;
   std::string_view m_Label;
 };
 
@@ -285,8 +292,7 @@ public:
     m_Labels(labels),
     m_Colors(colors)
   {
-
-    const std::size_t numPorts = m_Labels.size();
+    const auto numPorts = m_Labels.size();
     
     m_Width = (numPorts == 0) ? 
       0 : squareWidth * numPorts + SPACING_PX * (numPorts - 1);
@@ -294,11 +300,11 @@ public:
 
   void draw() const override
   {
-    const std::size_t numConnections = m_Labels.size();
+    const auto numConnections = m_Labels.size();
 
     if (numConnections == 0) { return; }
 
-    for (std::size_t i{}; i < std::min(m_Labels.size(), m_Colors.size()); i++)
+    for (std::size_t i{}; i < std::min(m_Labels.size(), m_Colors.size()); ++i)
     {
       int x = m_X + i * (squareWidth + SPACING_PX);
       const auto color = m_Colors.at(i);
@@ -344,7 +350,7 @@ public:
                 GFXcanvas16& frame)
 
   : ScreenElement(frame),
-    m_Name(0, 70, name, color, nameSize, frame),
+    m_Name(0, 65, name, color, nameSize, frame),
     m_Color(sndbx::color::to565(color)),
     m_ControlLabels(controlLabels),
     m_ControlVals(controlVals),
@@ -368,25 +374,24 @@ public:
 private:
   void drawKnobs() const
   {
-    for (std::size_t i{}; i < 4; i++)
-    {
-      constexpr static auto spacingPx = 24;
-      constexpr static auto knobsY = 175;
+    constexpr static std::uint16_t knobsY = 175;
+    constexpr static auto spacingPx = 24;
 
-      const auto x = Knob::radius + spacingPx + (Knob::radius + spacingPx * 2) * i;
+    for (std::size_t i{}; i < 4; ++i)
+    {
+      const std::uint16_t knobX = Knob::radius + spacingPx + (Knob::radius + spacingPx * 2) * i;
 
       if (i < m_ControlLabels.size())
       {
-        Knob knob(x, knobsY, m_ControlVals[i], m_ControlLabels[i], m_Frame);
-        knob.draw();
+        Knob{knobX, knobsY, m_ControlVals[i], m_ControlLabels[i], m_Frame}.draw();
       }
-      else { m_Frame.drawCircle(x, knobsY, Knob::radius * 0.85, ILI9341_DARKGREY); }
+      else { m_Frame.drawCircle(knobX, knobsY, Knob::radius * 0.85, ILI9341_DARKGREY); }
     }
   }
   
 private:
   Text m_Name;
-  std::uint16_t m_Color;
+  const std::uint16_t m_Color;
 
   const sndbx::vector_4U<std::string_view>& m_ControlLabels;
   const sndbx::vector_4U<float>& m_ControlVals;
@@ -488,7 +493,7 @@ public:
     const auto destPortX = m_DestPortText.x();
     const auto destPortY = m_DestPortText.y();
     const auto destPortWidth = m_DestPortText.width();
-    const auto destPortHeight= m_DestPortText.height();
+    const auto destPortHeight = m_DestPortText.height();
 
     const auto srcRectX = ScreenElement::centeredX(squareWidth, srcPortX, srcPortWidth);
     const auto srcRectY = ScreenElement::centeredY(squareWidth, srcPortY, srcPortHeight);
@@ -518,23 +523,6 @@ private:
 
 class WaveformDisplayFrame : public ScreenElement
 {
-public:
-  static constexpr float WAVEFORM_SCALE = 0.7f;
-  static constexpr float BORDER_SCALE = 0.85f;
-
-  static constexpr int TITLE_Y = 6;
-  static constexpr int WINDOW_X = TFT::height * (1 - BORDER_SCALE) / 2;
-  static constexpr int WINDOW_Y = TFT::height * (1 - BORDER_SCALE) / 2 + 7;
-  static constexpr int WINDOW_WIDTH = TFT::width * BORDER_SCALE;
-  static constexpr int WINDOW_HEIGHT = TFT::height * BORDER_SCALE;
-
-  static constexpr uint16_t WAVEFORM_COLOR = ILI9341_GREEN;
-  static constexpr uint16_t WAVEFORM_CLIPPING_COLOR = ILI9341_RED;
-  static constexpr uint16_t ZERO_LINE_COLOR = ILI9341_DARKGREY;
-  static constexpr uint16_t BORDER_COLOR = ILI9341_DARKCYAN;
-
-  static constexpr size_t SAMPLE_INCREMENT = 8;
-
   static constexpr std::size_t bufferSize = 1024;
   using SampleBuffer = std::array<float, bufferSize>;
 
@@ -547,10 +535,22 @@ public:
   void draw() const override
   {
     m_Frame.fillScreen(0);
-    m_Frame.drawRoundRect(WINDOW_X, WINDOW_Y, WINDOW_WIDTH, WINDOW_HEIGHT, 20, BORDER_COLOR);
-    m_Frame.drawFastHLine(WINDOW_X, WINDOW_Y + WINDOW_HEIGHT / 2, WINDOW_WIDTH, ZERO_LINE_COLOR);
 
-    Text title(0, TITLE_Y, "Oscilloscope", ILI9341_CYAN, 1, m_Frame);
+    constexpr static float waveformScale = 0.7f;
+    constexpr static float windowScale = 0.85f;
+
+    constexpr static int windowWidth = TFT::width * windowScale;
+    constexpr static int windowHeight = TFT::height * windowScale;
+    constexpr static int windowX = centeredX(windowWidth, 0, TFT::width);
+    constexpr static int windowY = centeredY(windowHeight, 0, TFT::height) + 7;
+
+    constexpr static uint16_t zeroLineColor = ILI9341_DARKGREY;
+    constexpr static uint16_t borderColor = ILI9341_DARKCYAN;
+
+    m_Frame.drawRoundRect(windowX, windowY, windowWidth, windowHeight, 20, borderColor);
+    m_Frame.drawFastHLine(windowX, windowY + windowHeight / 2, windowWidth, zeroLineColor);
+
+    Text title(0, 6, "scope", ILI9341_CYAN, 1, m_Frame);
     title.centerX();
     title.draw();
 
@@ -558,14 +558,14 @@ public:
     int prevX = 0;
     int prevY = 0;
 
-    constexpr static auto downsample = 8U;
-    for (std::size_t i{}; i < m_SampleBuffer.size(); i += downsample)
+    constexpr static auto downsampleFactor = 6U;
+    for (std::size_t i{}; i < m_SampleBuffer.size(); i += downsampleFactor)
     {
       const auto sampleValue = m_SampleBuffer[i];
       const auto percentDrawn = static_cast<float>(i) / (m_SampleBuffer.size() - 1);
 
-      const auto x = (WINDOW_X + 1) + static_cast<int>(percentDrawn * (WINDOW_WIDTH - 1));
-      const auto y = (WINDOW_HEIGHT / 2) - (WINDOW_HEIGHT / 2) * (sampleValue * WAVEFORM_SCALE) + WINDOW_Y;
+      const auto x = (windowX + 1) + static_cast<int>(percentDrawn * (windowWidth - 1));
+      const auto y = (windowHeight / 2) - (windowHeight / 2) * (sampleValue * waveformScale) + windowY;
 
       if (i == 0)
       {
@@ -576,10 +576,13 @@ public:
 
       if (prevX == x && prevY == y) { continue; }
 
+      constexpr static uint16_t waveformColor = ILI9341_GREEN;
+      constexpr static uint16_t waveformClippingColor = ILI9341_RED;
+
       color = 
-        (sampleValue >= 1.0f || sampleValue <= -1.0f) 
-        ? WAVEFORM_CLIPPING_COLOR 
-        : WAVEFORM_COLOR;
+        (sampleValue <= -1.0f || sampleValue >= 1.0f) 
+        ? waveformClippingColor 
+        : waveformColor;
 
       m_Frame.drawLine(prevX, prevY, x, y, color);
       prevX = x;
@@ -588,7 +591,7 @@ public:
   }
 
 private:
-  const std::array<float, 1024>& m_SampleBuffer;
+  const SampleBuffer& m_SampleBuffer;
 };
 
 #endif

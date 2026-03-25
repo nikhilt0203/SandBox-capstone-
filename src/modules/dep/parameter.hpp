@@ -2,15 +2,16 @@
 #define SANDBOX_PARAMETER_HPP_
 
 template<typename T>
-class Parameter
+class ModuleParameter
 {
 using ChangeFunc = T (*)(T, int);
 
 public:
-  Parameter(T defaultVal, T min, T max) 
+  ModuleParameter(T defaultVal, T min, T max) 
   : m_Value(defaultVal), 
     m_Min(min), 
-    m_Max(max) 
+    m_Max(max),
+    m_Default(defaultVal)
   {}
 
   operator T() const { return m_Value; }
@@ -34,6 +35,11 @@ public:
    * @param delta The magnitude of change.
    */
   void change(ChangeFunc changeFunc, int delta) { setValue(changeFunc(m_Value, delta)); }
+
+  /**
+   * @brief Reset to the default value.
+   */
+  void reset() { setValue(m_Default); }
 
   /**
    * @brief Maps the current value to [0.0, 1.0].
@@ -63,6 +69,7 @@ private:
   T m_Value;
   T m_Min;
   T m_Max;
+  T m_Default;
 };
 
 #endif

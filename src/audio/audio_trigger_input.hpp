@@ -31,7 +31,7 @@ public:
 
     bool sawHigh = false;
 
-    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; i++)
+    for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
     {
       const float sample = block->data[i] / 32767.0f;
       if (sample >= m_Threshold) 

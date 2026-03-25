@@ -13,11 +13,8 @@ const std::array<Oscillator::Waveform, Oscillator::numWaveforms> Oscillator::m_W
 Oscillator::Oscillator() : Module(2, 1)
 {
   m_Audio.addDevice<AudioSynthWaveformModulated>();
-
   m_Oscillator = m_Audio.device<AudioSynthWaveformModulated>();
-
-  m_Oscillator->begin(0.5f, m_Frequency, m_Waveforms.at(m_WaveformIndex).id);
-  m_Oscillator->frequencyModulation(m_FMDepth);
+  initSynthWaveform();
 
   m_Audio.mapInput(0, m_Oscillator, 0);
   m_Audio.mapInput(1, m_Oscillator, 1);
@@ -31,9 +28,34 @@ Oscillator::Oscillator(float frequency, int fineTuneOffset, float fmDepth, std::
   m_FineTuneOffset.setValue(fineTuneOffset);
   m_FMDepth.setValue(fmDepth);
   m_WaveformIndex.setValue(waveform);
+  initSynthWaveform();
+}
 
+void Oscillator::initSynthWaveform()
+{
   m_Oscillator->begin(0.5f, m_Frequency + m_FineTuneOffset, m_Waveforms.at(m_WaveformIndex).id);
   m_Oscillator->frequencyModulation(m_FMDepth);
+}
+
+void Oscillator::changeControl(std::size_t index, int delta) 
+{
+  switch (index)
+  {
+    case 0: frequencyAdjustCoarse(delta); break;
+    case 1: frequencyAdjustFine(delta); break;
+    case 2: fmDepthAdjust(delta); break;
+    case 3: waveformAdjust(delta); break;
+    default: return;
+  }
+}
+
+void Oscillator::resetControls()
+{
+  m_Frequency.reset();
+  m_FineTuneOffset.reset();
+  m_FMDepth.reset();
+  m_WaveformIndex.reset();
+  initSynthWaveform();
 }
 
 auto Oscillator::normalizedControlValues() const -> const sndbx::vector_4U<float>&

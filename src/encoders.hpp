@@ -12,7 +12,7 @@ public:
   Encoders(TurnCallback onTurn)
   : m_TurnCallback(onTurn)
   { 
-    for (std::size_t i{}; i < numEncoders; i++)
+    for (std::size_t i{}; i < numEncoders; ++i)
     {
       m_EncoderPositions.at(i) = m_Encoders.at(i).read();
     }
@@ -20,7 +20,7 @@ public:
 
   void update()
   {
-    for (std::size_t i{}; i < numEncoders; i++)
+    for (std::size_t i{}; i < numEncoders; ++i)
     {
       auto& previousPos = m_EncoderPositions[i];
       const auto currentPos = static_cast<int>(m_Encoders[i].read());

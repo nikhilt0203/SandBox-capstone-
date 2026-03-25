@@ -12,6 +12,22 @@ Keyboard::Keyboard() : Module(0, 2)
   m_Audio.mapOutput(1, m_TrigOut, 0);
 }
 
+void Keyboard::changeControl(std::size_t index, int delta)
+{
+  switch (index)
+  {
+    case 0: lengthAdjust(delta); break;
+    case 1: scaleAdjust(delta); break;
+    default: return;
+  }
+}
+
+void Keyboard::resetControls()
+{
+  m_NumKeys.reset();
+  m_Scale.reset();
+}
+
 auto Keyboard::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 {
   m_ControlValues.clear();
@@ -23,14 +39,13 @@ auto Keyboard::normalizedControlValues() const -> const sndbx::vector_4U<float>&
 void Keyboard::onKeyPress(float amplitude)
 {
   m_DC->amplitude(amplitude);
-  m_NumKeysOn++;
+  ++m_NumKeysOn;
   m_TrigOut->on();
 }
 
-
 void Keyboard::onKeyRelease()
 {
-  m_NumKeysOn--;
+  --m_NumKeysOn;
   if (m_NumKeysOn == 0) { m_TrigOut->off(); }
 }
 
@@ -81,7 +96,7 @@ auto KeyboardKey::normalizedControlValues() const -> const sndbx::vector_4U<floa
 
 void KeyboardKey::updateColor()
 {
-  m_LEDColor = sndbx::color::blend(COLOR, 0xDD0F00, m_Amplitude);
+  m_LEDColor = sndbx::color::blend(COLOR, 0xDD0FFF, m_Amplitude);
 }
 
 void KeyboardKey::adjustAmplitude(int delta)

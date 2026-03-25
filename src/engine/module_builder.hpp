@@ -41,7 +41,7 @@ public:
 
   static constexpr std::size_t maxModules = 56;
   using ModuleRegistry = sndbx::fixed_vector<ModuleEntry, maxModules>;
-  using ModuleReleaseTable = std::array<void(*)(Module*), sndbx::engine::numModuleTypes()>;
+  using ModuleReleaseFunctions = std::array<void(*)(Module*), sndbx::engine::numModuleTypes()>;
 
 public:
   ModuleBuilder() = default;
@@ -51,9 +51,9 @@ public:
    *      
    * Pulls a module of type T from the preallocated pool and creates a registry entry.
    * 
-   * @tparam T  Module type
-   * @param pos Position to create at
-   * @param args Forwarded constructor args
+   * @tparam T  Module type.
+   * @param pos Position to create at.
+   * @param args Forwarded constructor args.
    * 
    * @return sndbx::Result<T*> Type containing the result.
    * 
@@ -91,8 +91,6 @@ public:
   /**
    * @brief Retrieve a T pointer to a module given its integer ID.
    * 
-   * T must be of type Module or a valid Module interface type.
-   * 
    * @tparam T Type to retrieve.
    * @param id The integer ID of the module.
    * 
@@ -110,8 +108,6 @@ public:
 
   /**
    * @brief Retrieve a T pointer to a module given its position.
-   * 
-   * T must be of type Module or a valid Module interface type.
    * 
    * @tparam T Type to retrieve.
    * @param pos The position of the module.
@@ -198,7 +194,7 @@ private:
   {
     static_assert(std::is_base_of_v<Module, T>, "Entry must be derived from Module.");
 
-    const auto id = makeID();
+    const auto id = makeModuleID();
     module->setID(id);
 
     Displayable* displayable{};
@@ -242,25 +238,25 @@ private:
    */
   [[nodiscard]] ModuleRegistry::const_iterator find(sndbx::grid::Position pos) const;
 
-  [[nodiscard]] std::uint32_t makeID() const;
+  [[nodiscard]] std::uint32_t makeModuleID() const;
 
 private:
   template<typename T>
   static void releaseModule(Module* m) { m_ModulePools.release(static_cast<T*>(m)); }
 
   template <std::size_t... Is>
-  static constexpr ModuleReleaseTable createReleaseTable(std::index_sequence<Is...>) 
+  static constexpr ModuleReleaseFunctions createReleaseTable(std::index_sequence<Is...>) 
   {
     return { &releaseModule<sndbx::engine::ModuleTypes::get<Is>>... };
   }
 
 private:
   ModuleRegistry m_ModuleRegistry;
-  static sndbx::engine::ModulePools m_ModulePools;
-  static const ModuleReleaseTable m_ModuleReleaseFuncs;
+  inline static sndbx::engine::ModulePools m_ModulePools{};
+  static const ModuleReleaseFunctions m_ModuleReleaseFuncs;
 };
 
-inline const ModuleBuilder::ModuleReleaseTable ModuleBuilder::m_ModuleReleaseFuncs 
+inline const ModuleBuilder::ModuleReleaseFunctions ModuleBuilder::m_ModuleReleaseFuncs 
   = createReleaseTable(std::make_index_sequence<sndbx::engine::numModuleTypes()>{});
 
 #endif

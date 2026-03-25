@@ -20,6 +20,12 @@ public:
   LFO(float frequency, int fineTuneOffset, float fmDepth, std::size_t waveform)
     : Oscillator(frequency, fineTuneOffset, fmDepth, waveform) {}
 
+  void resetControls() override
+  {
+    m_Frequency.value() = 2.0f;
+    m_Oscillator->frequency(m_Frequency);
+  }
+
   std::string_view displayName() const override { return m_WaveformNames[m_WaveformIndex]; }
 
   void onRisingEdge() { m_Oscillator->restart(); }
