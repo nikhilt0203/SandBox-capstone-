@@ -1,22 +1,25 @@
 #ifndef SANDBOX_PATCHING_HPP_
 #define SANDBOX_PATCHING_HPP_
 
-#include "modules/dep/module.hpp"
 #include <optional>
+#include "modules/dep/module.hpp"
 
-namespace sndbx::patch
-{
-  bool connect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* dest, std::size_t destPort);
-  bool disconnect(AudioGraph& graph, Module* src, std::size_t srcPort, Module* dest, std::size_t destPort);
+namespace sndbx::patch {
+bool connect(AudioGraph &graph, Module *src, std::size_t srcPort, Module *dest,
+             std::size_t destPort);
+bool disconnect(AudioGraph &graph, Module *src, std::size_t srcPort,
+                Module *dest, std::size_t destPort);
 
-  bool disconnectFirstConnection(AudioGraph& graph, Module* m1, Module* m2);
-  void disconnectAll(AudioGraph& graph, Module* module);
+bool disconnectFirstConnection(AudioGraph &graph, Module *m1, Module *m2);
+void disconnectAll(AudioGraph &graph, Module *module);
 
-  [[nodiscard]] std::optional<std::size_t> firstAvailablePort(const Module::PortArray& ports);
+[[nodiscard]] std::optional<std::size_t>
+firstAvailablePort(const Module::PortArray &ports);
 
-  //[[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> connectedPorts(Module* m1, Module* m2);
-  
-  [[nodiscard]] bool connectionExists(Module* m1, Module* m2);
-}
+//[[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>>
+//connectedPorts(Module* m1, Module* m2);
+
+[[nodiscard]] bool connectionExists(Module *m1, Module *m2);
+} // namespace sndbx::patch
 
 #endif

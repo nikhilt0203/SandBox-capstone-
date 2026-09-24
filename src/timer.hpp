@@ -3,18 +3,20 @@
 
 #include <Arduino.h>
 
-class Timer
-{
+class Timer {
 public:
   Timer() = default;
 
   void start() { m_LastTime = millis(); }
-  
-  [[nodiscard]] bool hasReached(unsigned long ms) const { return millis() - m_LastTime > ms; }
-  [[nodiscard]] unsigned long read() const { return millis() - m_LastTime; }
+  void set(std::uint32_t ms) { m_LastTime = ms; }
+
+  [[nodiscard]] bool hasReached(std::uint32_t ms) const {
+    return millis() - m_LastTime > ms;
+  }
+  [[nodiscard]] std::uint32_t read() const { return millis() - m_LastTime; }
 
 private:
-  unsigned long m_LastTime{};
+  std::uint32_t m_LastTime{};
 };
 
 #endif

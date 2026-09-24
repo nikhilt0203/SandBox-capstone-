@@ -2,50 +2,27 @@
 #define SANDBOX_EVENT_HPP_
 
 #include "grid.hpp"
-#include <optional>
-#include <vector>
+#include <nst/hardware/button.hpp>
+#include <nst/hardware/rotary_encoder.hpp>
+#include <nst/hardware/trellis.hpp>
+#include <nst/inplace_vector.hpp>
+#include <variant>
 
-namespace sndbx::event
-{
-  struct Event
-  {
-    unsigned long time{millis()};
-  };
+namespace sndbx {
 
-  enum class Edge
-  {
-    RISING_EDGE,
-    FALLING_EDGE
-  };
+struct KeypadEvent {
+  using Edge = nst::teensy::TrellisKeyEvent::Edge;
+  nst::teensy::TrellisKeyEvent data;
+  std::uint32_t time;
+  KeypadEvent(nst::teensy::TrellisKeyEvent evt) : data{evt}, time{millis()} {}
+};
 
-  struct ButtonPress : public Event
-  {
-    std::uint8_t index;
-    Edge edge;
-    
-    ButtonPress(std::uint8_t index, Edge e)
-    : index(index), edge(e) {}
-  };
+using KnobEvent = nst::teensy::EncoderTurnEvent;
+using ButtonEvent = nst::teensy::ButtonEvent;
 
-  struct EncoderTurn : public Event
-  {
-    std::uint8_t encoderNum;
-    int delta;
-    
-    EncoderTurn(std::uint8_t encoderNum, int delta)
-    : encoderNum(encoderNum), delta(delta) {}
-  };
+using InputEvent = std::variant<KeypadEvent, KnobEvent, ButtonEvent>;
+using InputEventQueue = nst::inplace_vector<InputEvent, 32>;
 
-  struct TrellisPress : public Event
-  {
-    sndbx::grid::Position position;
-    Edge edge;
-    
-    TrellisPress() = default;
-    
-    TrellisPress(sndbx::grid::Position pos, Edge e)
-    : position(pos), edge(e) {}
-  };
-}
+} // namespace sndbx
 
 #endif

@@ -1,56 +1,69 @@
-#ifndef SANDBOX_ENCODERS_HPP_
-#define SANDBOX_ENCODERS_HPP_
+// #ifndef SANDBOX_ENCODERS_HPP_
+// #define SANDBOX_ENCODERS_HPP_
 
-#include "Encoder.h"
-#include "pinouts.hpp"
+// #include "Encoder.h"
+// #include "event.hpp"
+// #include "config.hpp"
+// #include <nst/inplace_vector.hpp>
+// #include <type_traits>
 
-class Encoders
-{   
-using TurnCallback = void(*)(std::size_t, int);
+// class Encoders {
+// public:
+//   Encoders() {
+//     for (std::size_t i{}; i < numEncoders; ++i) {
+//       m_old_positions[i] = m_Encoders[i].read();
+//     }
+//   }
 
-public:
-  Encoders(TurnCallback onTurn)
-  : m_TurnCallback(onTurn)
-  { 
-    for (std::size_t i{}; i < numEncoders; ++i)
-    {
-      m_EncoderPositions.at(i) = m_Encoders.at(i).read();
-    }
-  }
+//   void update() {
+//     for (std::size_t i{}; i < numEncoders; ++i) {
+//       const auto cur = m_Encoders[i].read();
+//       auto &prev = m_old_positions[i];
 
-  void update()
-  {
-    for (std::size_t i{}; i < numEncoders; ++i)
-    {
-      auto& previousPos = m_EncoderPositions[i];
-      const auto currentPos = static_cast<int>(m_Encoders[i].read());
-      const auto delta = currentPos - previousPos;
-      
-      constexpr static int minChange = 4;
-      
-      if (abs(delta) >= minChange)
-      {
-        m_TurnCallback(i, delta > 0 ? 1 : -1);
-        previousPos = currentPos;
-      }
-    }
-  }
+//       if (const auto delta = cur - prev; abs(delta) >= 4) {
+//         m_TurnEvents.emplace_back(i, delta);
+//         prev = cur;
+//       }
+//     }
+//   }
 
-  [[nodiscard]] constexpr std::size_t size() const noexcept { return numEncoders; }
+//   [[nodiscard]] bool hasEvent() { return !m_TurnEvents.is_empty(); }
 
-private:
-  static constexpr std::size_t numEncoders = 4U;
+//   /**
+//    * @brief Pop the last turn event.
+//    *
+//    * Must check hasEvent() before performing this operation.
+//    *
+//    * @return sndbx::event::EncoderTurn
+//    */
+//   [[nodiscard]] sndbx::event::EncoderTurn popEvent() {
+//     auto event = m_TurnEvents.back();
+//     m_TurnEvents.pop_back();
+//     return event;
+//   }
 
-  std::array<Encoder, numEncoders> m_Encoders = { 
-    Encoder{ ENC_PIN_1A, ENC_PIN_1B }, 
-    Encoder{ ENC_PIN_2A, ENC_PIN_2B },
-    Encoder{ ENC_PIN_3A, ENC_PIN_3B }, 
-    Encoder{ ENC_PIN_4A, ENC_PIN_4B }
-  };
+//   /**
+//    * @brief View the last turn event.
+//    *
+//    * Must check hasEvent() before performing this operation.
+//    *
+//    * @return sndbx::event::EncoderTurn
+//    */
+//   [[nodiscard]] const sndbx::event::EncoderTurn &readEvent() {
+//     return m_TurnEvents.back();
+//   }
 
-  std::array<int, numEncoders> m_EncoderPositions{};
+//   [[nodiscard]] constexpr std::size_t size() const { return numEncoders; }
 
-  TurnCallback m_TurnCallback;
-};
+// private:
+//   static constexpr std::size_t numEncoders = 4U;
 
-#endif
+//   std::array<Encoder, numEncoders> m_Encoders = {
+//       Encoder{33, 34}, Encoder{35, 36}, Encoder{37, 38}, Encoder{39, 40}};
+
+//   std::array<int, numEncoders> m_old_positions;
+
+//   nst::vector_16U<sndbx::event::EncoderTurn> m_TurnEvents;
+// };
+
+// #endif

@@ -3,21 +3,20 @@
 
 #include <Arduino.h>
 #include <AudioStream.h>
- 
-class AudioTriggerOutput : public AudioStream
-{
+
+class AudioTriggerOutput : public AudioStream {
 public:
   AudioTriggerOutput() : AudioStream(1, m_InputQueueArray) {}
 
   ~AudioTriggerOutput() { SAFE_RELEASE_INPUTS(); }
 
-  void update() override
-  {
-    audio_block_t* outBlock = allocate();
-    if (!outBlock) { return; }
+  void update() override {
+    audio_block_t *outBlock = allocate();
+    if (!outBlock) {
+      return;
+    }
 
-    for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
-    {
+    for (size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i) {
       outBlock->data[i] = m_On ? 32767 : 0;
     }
 
@@ -25,12 +24,12 @@ public:
     release(outBlock);
   }
 
-  void on() noexcept { m_On = true; }
+  void on() { m_On = true; }
 
-  void off() noexcept { m_On = false; }
+  void off() { m_On = false; }
 
 private:
-  audio_block_t* m_InputQueueArray[1];
+  audio_block_t *m_InputQueueArray[1];
   volatile bool m_On{false};
 };
 

@@ -3,23 +3,21 @@
 
 #include <Audio.h>
 
-class AudioOutputI2SMixer : public AudioOutputI2S
-{
+class AudioOutputI2SMixer : public AudioOutputI2S {
 public:
   AudioOutputI2SMixer() = default;
   ~AudioOutputI2SMixer() { SAFE_RELEASE_INPUTS(); }
 
-  void update() override
-  {
+  void update() override {
     auto left = receiveReadOnly(0); // input 0 = left channel
     auto right = receiveReadOnly(1);
     const float scale = m_OutputScale;
-    if (left || right)
-    {
-      for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i)
-      {
-        if (left) left->data[i] *= scale;
-        if (right) right->data[i] *= scale;
+    if (left || right) {
+      for (std::size_t i{}; i < AUDIO_BLOCK_SAMPLES; ++i) {
+        if (left)
+          left->data[i] *= scale;
+        if (right)
+          right->data[i] *= scale;
       }
     }
 

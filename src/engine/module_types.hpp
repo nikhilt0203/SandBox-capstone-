@@ -1,6 +1,11 @@
 #ifndef SANDBOX_MODULE_TYPES_HPP_
 #define SANDBOX_MODULE_TYPES_HPP_
 
+#include <nst/object_pool.hpp>
+#include <nst/strong_alias.hpp>
+#include <nst/type_list.hpp>
+
+#include "modules/combine.hpp"
 #include "modules/envelope.hpp"
 #include "modules/keyboard.hpp"
 #include "modules/lfo.hpp"
@@ -9,81 +14,92 @@
 #include "modules/oscillator.hpp"
 #include "modules/oscilloscope.hpp"
 #include "modules/reverb.hpp"
+#include "modules/sequencer.hpp"
 #include "modules/usbout.hpp"
 #include "modules/vcf.hpp"
 
-#include "core/object_pool.hpp"
-#include "core/type_array.hpp"
+namespace sndbx {
 
-namespace sndbx::engine
-{
+using ModuleTypes =
+    nst::type_list<Oscillator, LFO, Mixer, USBOut, Envelope, VCF, Keyboard,
+                   Oscilloscope, Mult, KeyboardKey, Sequencer, SequencerStep,
+                   Combine>;
 
-using ModuleBank = 
-  sndbx::type_array<
-    Oscillator, 
-    LFO,
-    Mixer, 
-    USBOut, 
-    Envelope, 
-    VCF, 
-    Keyboard, 
-    Mult,
-    Oscilloscope>;
+using ModuleBank =
+    nst::type_list<Oscillator, LFO, Mixer, USBOut, Envelope, Combine, VCF,
+                   Keyboard, Mult, Oscilloscope, Sequencer>;
 
-using ModuleTypes = 
-  sndbx::type_array<
-    Oscillator, 
-    LFO,
-    Mixer, 
-    USBOut, 
-    Envelope, 
-    VCF, 
-    Keyboard, 
-    Oscilloscope,
-    Mult,
-    KeyboardKey>;
+struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
+  using strong_alias::strong_alias;
 
-template<typename T> struct PoolSize { static constexpr auto max = 16U; };
-#define MAX_COUNT(type, count) template<> struct PoolSize<type> { static constexpr std::size_t max = count; }
-
-MAX_COUNT(Oscillator, 32);
-MAX_COUNT(LFO, 32);
-MAX_COUNT(Mixer, 16);
-MAX_COUNT(USBOut, 1);
-MAX_COUNT(Envelope, 16);
-MAX_COUNT(VCF, 16);
-MAX_COUNT(Keyboard, 5);
-MAX_COUNT(Mult, 16);
-MAX_COUNT(Oscilloscope, 8);
-MAX_COUNT(KeyboardKey, 54); //max keys 32, highest possible total possible is 2 keyboards (len 32 + len 22)
-
-struct ModulePools
-{
-  template<typename T>
-  auto& pool()
-  {
-    static sndbx::object_pool<T, PoolSize<T>::max> pool;
-    return pool;
+  constexpr bool operator==(const ModuleType &other) const {
+    return value == other.value;
   }
-
-  template<typename T>
-  T* acquire() { return pool<T>().acquire(); }
-
-  template<typename T>
-  void release(T* obj) 
-  { 
-    if constexpr (std::is_base_of_v<Controllable, T>) { obj->resetControls(); }
-    pool<T>().release(obj); 
+  constexpr bool operator!=(const ModuleType &other) const {
+    return value != other.value;
   }
 };
 
-template <typename T> 
-constexpr std::size_t typeIndexOf() { return indexOf<T, ModuleTypes>(); }
-template <typename T> 
-constexpr std::size_t bankIndexOf() { return indexOf<T, ModuleBank>(); }
+// type lookup
+template <typename T, typename = std::enable_if_t<ModuleTypes::contains<T>>>
+constexpr ModuleType type_id{ModuleTypes::index_of<T>};
 
-constexpr std::size_t numModuleTypes() { return ModuleTypes::size; }
+template <std::size_t I, typename = std::enable_if_t<(I < ModuleTypes::size)>>
+using get_type = ModuleTypes::get<I>;
 
+template <typename T, typename = std::enable_if_t<ModuleBank::contains<T>>>
+constexpr std::size_t bank_index = ModuleBank::index_of<T>;
+
+} // namespace sndbx
+
+namespace sndbx::engine {
+
+// T must have a static max_count member
+class ModulePools {
+public:
+  template <typename T> T *acquire() { return pool<T>().acquire(); }
+
+  template <typename T> void release(T *obj) {
+    if constexpr (std::is_base_of_v<Controllable, T>) {
+      obj->resetControls();
+    }
+    pool<T>().release(obj);
+  }
+
+private:
+  template <typename T> auto &pool() {
+    static nst::object_pool<T, T::max_count> pool;
+    return pool;
+  }
+};
+
+namespace impl {
+
+inline static ModulePools module_pools;
+
+template <typename T> static void release(void *m) {
+  module_pools.release(static_cast<T *>(m));
 }
+
+using ReleaseTable = std::array<void (*)(void *), ModuleTypes::size>;
+
+template <std::size_t... Is>
+static constexpr ReleaseTable make_table(std::index_sequence<Is...>) {
+  return {&release<ModuleTypes::get<Is>>...};
+}
+
+inline static constexpr ReleaseTable release_table =
+    make_table(ModuleTypes::index_sequence{});
+} // namespace impl
+
+template <class Module> inline auto pool_acquire() {
+  return impl::module_pools.acquire<Module>();
+}
+
+inline void pool_release(ModuleType type, void *module) {
+  impl::release_table[type.value](module);
+}
+
+} // namespace sndbx::engine
 
 #endif
