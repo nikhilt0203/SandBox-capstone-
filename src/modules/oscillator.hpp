@@ -1,81 +1,125 @@
 #ifndef SANDBOX_OSCILLATOR_HPP_
 #define SANDBOX_OSCILLATOR_HPP_
 
-#include "dep/module.hpp"
-#include "dep/module_interfaces.hpp"
-#include "dep/parameter.hpp"
+#include "audio/audio_engine.hpp"
+#include "controllable.hpp"
+#include "displayable.hpp"
+#include "parameter.hpp"
 
-//===================================================
-// OSCILLATOR
-//===================================================
+namespace sndbx {
 
-class Oscillator : public Module, public Controllable, public Displayable {
+struct Waveform {
+  constexpr Waveform(short id, std::string_view name, std::uint32_t color)
+      : id{id}, name{name}, color{color} {}
+
+  short id;
+  std::string_view name;
+  std::uint32_t color;
+};
+
+class Oscillator : public audio::Patchable,
+                   public Controllable,
+                   public Displayable {
 public:
-  MODULE_TYPE_INFO("oscillator", "outputs a continuous waveform", 0x00FF00);
   constexpr static auto max_count = 32U;
 
-public:
-  Oscillator();
-  Oscillator(float frequency, int fineTuneOffset, float fmDepth,
-             std::size_t waveform);
-
-  void changeControl(std::size_t index, int delta) override;
-  void setControls(const Controllable::ControlValues &values) override;
-  void resetControls() override;
-
-  [[nodiscard]] std::string_view displayName() const override {
-    return m_Waveforms.at(m_WaveformIndex).name;
-  }
-  [[nodiscard]] std::uint32_t displayColor() const override {
-    return m_Waveforms.at(m_WaveformIndex).color;
+  Oscillator() : Patchable{2, 1} {
+    frequency_ = 440.0f;
+    fine_tune_ = 0;
+    fm_depth_ = 8.25f;
+    waveform_ = 0;
   }
 
-  [[nodiscard]] auto inputNames() const
-      -> const Displayable::PortNames & override {
-    return m_InputNames;
-  }
-  [[nodiscard]] auto outputNames() const
-      -> const Displayable::PortNames & override {
-    return m_OutputNames;
-  }
-  [[nodiscard]] auto controlNames() const
-      -> const Displayable::ControlNames & override {
-    return m_ControlNames;
+  void change(std::uint8_t ctrl, std::int8_t amt) override {
+    switch (ctrl) {
+    case 0:
+      coarse_tune(amt);
+      break;
+    case 1:
+      fine_tune(amt);
+      break;
+    case 2:
+      fm_adjust(amt);
+      break;
+    case 3:
+      change_waveform(amt);
+      break;
+    }
   }
 
-  [[nodiscard]] auto normalizedControlValues() const
-      -> const Controllable::ControlValues & override;
+  auto link(AudioGraph &graph) -> AudioError override {
+    auto id = graph.add_node(&synth_);
+    if (!id) {
+      return id.error();
+    }
+    synth_id_ = *id;
+    return AudioError::NONE;
+  }
+
+  auto map(ModulePort port) const -> AudioEndpoint override {
+    return audio::make_endpoint(synth_id_, 0);
+  }
+
+  void unlink(AudioGraph &graph) override { graph.remove_node(synth_id_); }
+
+  std::string_view name() const override { return waveforms[waveform_].name; }
+
+  std::uint16_t color() const override { return waveforms[waveform_].color; }
 
 private:
-  void frequencyAdjustCoarse(int delta);
-  void frequencyAdjustFine(int delta);
-  void fmDepthAdjust(int delta);
-  void waveformAdjust(int delta);
-  void initSynthWaveform();
+  void set_waveform(std::size_t waveform) {
+    waveform_ = waveform;
+    synth_.begin(waveforms[waveform_].id);
+  }
+
+  void coarse_tune(int amt) {
+    frequency_ *= powf(1.08f, amt);
+    synth_.frequency(frequency_ + fine_tune_);
+  }
+
+  void fine_tune(int amt) {
+    fine_tune_ += amt;
+    synth_.frequency(frequency_ + fine_tune_);
+  }
+
+  void fm_adjust(int amt) {
+    fm_depth_ += 0.25f * amt;
+    synth_.frequencyModulation(fm_depth_);
+  }
+
+  void change_waveform(int amt) {
+    int total = num_waveforms;
+    const auto wrapped_idx =
+        ((static_cast<int>(waveform_) + amt) % total + total) % total;
+    set_waveform(wrapped_idx);
+  }
+
+  void init_synth() {
+    synth_.frequency(frequency_);
+    synth_.frequencyModulation(fm_depth_);
+    set_waveform(waveform_);
+  }
 
 protected:
-  AudioSynthWaveformModulated *m_Oscillator{};
+  AudioSynthWaveformModulated synth_;
+  AudioGraph::NodeID synth_id_;
 
-  ModuleParameter<float> m_Frequency{440.0f, 0.0f, 18000.0f};
-  ModuleParameter<int> m_FineTuneOffset{0, -50, 50};
-  ModuleParameter<float> m_FMDepth{8.25f, 0.0f, 12.0f};
-  ModuleParameter<std::size_t> m_WaveformIndex{0U, 0U, numWaveforms - 1};
+  ModuleParameter<float> frequency_{0.01f, 18000.0f};
+  ModuleParameter<int> fine_tune_{-50, 50};
+  ModuleParameter<float> fm_depth_{0.0f, 12.0f};
+  ModuleParameter<std::size_t> waveform_{0U, num_waveforms - 1};
 
-  struct Waveform {
-    short id;
-    std::string_view name;
-    std::uint32_t color;
-  };
-
-  static constexpr std::size_t numWaveforms = 7U;
-  static const std::array<Waveform, numWaveforms> m_Waveforms;
-
-private:
-  static inline const Displayable::PortNames m_InputNames{"fm", "wv"};
-  static inline const Displayable::PortNames m_OutputNames{"out"};
-  static inline const Displayable::ControlNames m_ControlNames{"coarse", "fine",
-                                                               "fm", "wave"};
-  mutable Controllable::ControlValues m_ControlValues{};
+  static constexpr std::size_t num_waveforms = 7U;
+  static constexpr std::array<Waveform, num_waveforms> waveforms = {
+      Waveform{WAVEFORM_SINE, "sine", 0x0FF00},
+      Waveform{WAVEFORM_SQUARE, "square", 0xFF000},
+      Waveform{WAVEFORM_SAWTOOTH, "saw", 0xFF00F},
+      Waveform{WAVEFORM_TRIANGLE, "triangle", 0xFFF00},
+      Waveform{WAVEFORM_PULSE, "pulse", 0x00832},
+      Waveform{WAVEFORM_SAWTOOTH_REVERSE, "rev saw", 0xB817E},
+      Waveform{WAVEFORM_SAMPLE_HOLD, "s&h noise", 0x09F77}};
 };
+
+} // namespace sndbx
 
 #endif

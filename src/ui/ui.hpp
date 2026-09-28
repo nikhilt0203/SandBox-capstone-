@@ -1,97 +1,50 @@
 #ifndef SANDBOX_UI_HPP_
 #define SANDBOX_UI_HPP_
 
+#include "nst/hardware/ILI9341_display.hpp"
+#include "nst/hardware/trellis_led_display.hpp"
 #include "ui/led_elements.hpp"
 #include "ui/screen_elements.hpp"
-#include "ui/tft_display.hpp"
+
+namespace sndbx {
+using LEDGrid = nst::teensy::TrellisLEDDisplay<Adafruit_MultiTrellis>;
+using Screen = nst::teensy::TFT;
+} // namespace sndbx
 
 namespace sndbx::ui {
-//====================================================================
-// LED matrix display functions
-//====================================================================
 
-template <typename T, typename... Args>
-inline void draw(LEDMatrixDisplay &display, Args &&...args) {
-  static_assert(std::is_base_of_v<LEDUIElement, T>);
-  T ledElement(std::forward<Args>(args)..., display.currentFrame());
-  ledElement.draw();
-  display.setFrameAvailable(true);
+template <typename Display, typename Element, typename... Args>
+inline void draw(Display &d, Args &&...args) {
+  Element{std::forward<Args>(args)..., d.current_frame()}.draw();
 }
 
-inline void draw(const LEDUIElement &element, LEDMatrixDisplay &display) {
-  element.draw();
-  display.setFrameAvailable(true);
+template <typename Display, typename Element, typename... Args>
+inline void draw(Display &d, const Element &e) {
+  e.draw();
 }
 
-template <typename T, typename... Args>
-inline void clearAndDraw(LEDMatrixDisplay &display, Args &&...args) {
-  display.clear();
-  draw<T>(display, std::forward<Args>(args)...);
+template <typename Display, typename Element, typename... Args>
+inline void clear_and_draw(Display &d, Args &&...args) {
+  d.clear();
+  draw<Element>(d, std::forward<Args>(args)...);
 }
 
-inline void clear(LEDMatrixDisplay &display) {
-  display.clear();
-  display.setFrameAvailable(true);
+template <typename Display> inline void clear(Display &d) {
+  d.clear();
 }
 
-//====================================================================
-// TFT functions
-//====================================================================
-inline void draw(const ScreenElement &element, TFT &display) {
-  element.draw();
-  display.setFrameAvailable(true);
+/*
+ * Screen
+ */
+inline void print(Screen &s, std::string_view text, std::uint16_t x,
+                  std::uint16_t y, std::uint32_t color, std::uint8_t pt) {
+  auto &frame = s.current_frame();
+  frame.setTextColor(sndbx::color::to_565(color));
+  frame.setTextSize(pt);
+  frame.setCursor(x, y);
+  frame.print(text.data());
 }
 
-template <typename T, typename... Args>
-inline void draw(TFT &display, Args &&...args) {
-  static_assert(std::is_base_of_v<ScreenElement, T>);
-  T screenElement(std::forward<Args>(args)..., display.currentFrame());
-  screenElement.draw();
-  display.setFrameAvailable(true);
-}
-
-template <typename T, typename... Args>
-inline void clearAndDraw(TFT &display, Args &&...args) {
-  display.clear();
-  draw<T>(display, std::forward<Args>(args)...);
-}
-
-inline void clear(TFT &display) {
-  display.clear();
-  display.setFrameAvailable(true);
-}
-
-//====================================================================
-// Center relative to the screen
-//====================================================================
-inline void centerX(ScreenElement &element) {
-  element.setX((TFT::width - element.width()) / 2);
-}
-
-inline void centerY(ScreenElement &element) {
-  element.setY((TFT::height - element.height()) / 2);
-}
-
-inline void center(ScreenElement &element) {
-  centerX(element);
-  centerY(element);
-}
-
-//====================================================================
-// Center relative to another element
-//====================================================================
-inline void centerX(ScreenElement &element, const ScreenElement &parent) {
-  element.setX(parent.x() + (parent.width() - element.width()) / 2);
-}
-
-inline void centerY(ScreenElement &element, const ScreenElement &parent) {
-  element.setY(parent.y() + (parent.height() - element.height()) / 2);
-}
-
-inline void center(ScreenElement &element, const ScreenElement &parent) {
-  centerX(element, parent);
-  centerY(element, parent);
-}
 } // namespace sndbx::ui
 
 #endif

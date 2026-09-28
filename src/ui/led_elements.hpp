@@ -1,7 +1,7 @@
 #ifndef SANDBOX_LED_UI_ELEMENTS_HPP_
 #define SANDBOX_LED_UI_ELEMENTS_HPP_
 
-#include "grid.hpp"
+#include "config.hpp"
 #include "ui/led_matrix.hpp"
 #include <cstdint>
 
@@ -11,12 +11,12 @@
 //==========================================================================================
 class LEDUIElement {
 public:
-  LEDUIElement(LEDFrame &frame) : m_Frame(frame) {}
+  LEDUIElement(LEDFrame &frame) : frame_(frame) {}
 
   virtual void draw() const = 0;
 
 protected:
-  LEDFrame &m_Frame;
+  LEDFrame &frame_;
 };
 
 //==========================================================================================
@@ -29,14 +29,15 @@ public:
       : LEDUIElement(frame), m_Colors(colors), m_StartIndex(startIndex) {}
 
   void draw() const override {
-    constexpr static auto bankRow = sndbx::grid::bankStart / sndbx::grid::rows;
+    constexpr static auto bankRow = 54 / sndbx::config::grid_rows;
 
     const auto numColors = m_Colors.size();
-    const auto max = std::min<std::uint8_t>(numColors, sndbx::grid::cols);
+    const auto max =
+        std::min<std::uint8_t>(numColors, sndbx::config::grid_cols);
 
     for (std::size_t col{}; col < max; ++col) {
       const auto wrappedIndex = (m_StartIndex + col) % numColors;
-      m_Frame.drawPixel(bankRow, col, m_Colors.at(wrappedIndex));
+      frame_.draw_pixel(bankRow, col, m_Colors.at(wrappedIndex));
     }
   }
 

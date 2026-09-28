@@ -16,7 +16,7 @@ namespace nst::teensy {
 
 template <class Trellis> class TrellisLEDDisplay {
   static_assert(std::is_same_v<Adafruit_MultiTrellis, Trellis> ||
-                std::is_same_v<Adafruit_NeoTrellis, Trellis>,
+                    std::is_same_v<Adafruit_NeoTrellis, Trellis>,
                 "Must use type Adafruit_NeoTrellis or Adafruit_MultiTrellis");
 
 public:
@@ -26,7 +26,9 @@ public:
   }
 
   [[nodiscard]] LEDFrame &current_frame() { return *framebuffers_[0]; }
-  [[nodiscard]] const LEDFrame &current_frame() const { return *framebuffers_[0]; }
+  [[nodiscard]] const LEDFrame &current_frame() const {
+    return *framebuffers_[0];
+  }
 
   void clear() { current_frame().clear(); }
 
@@ -39,31 +41,23 @@ public:
   }
 
   void render_frame() {
-    if (!frame_available_) {
-      return;
-    }
-
     auto &previous_frame = *framebuffers_[1];
     const auto &current_frame = *framebuffers_[0];
 
-    for (std::size_t px{}; px < LEDFrame::size; ++px) {
+    for (std::size_t px{}; px < LEDFrame::width * LEDFrame::height; ++px) {
       const auto current_color = current_frame.at(px);
       if (current_color == previous_frame.at(px)) {
         continue;
       }
 
-      const auto color = nst::color::brightness(current_color, brightness_);
-      trellis_.setPixelColor(px, color);
+      trellis_.setPixelColor(px, nst::teensy::brightness(current_color, brightness_));
 
       previous_frame.at(px) = current_color;
     }
 
     trellis_.show();
     swap_frames();
-    frame_available_ = false;
   }
-
-  void push_frame() { frame_available_ = true; }
 
   void brightness(float brightness) { brightness_ = brightness; }
 
@@ -79,7 +73,6 @@ private:
   LEDFrame buffer1_;
   LEDFrame buffer2_;
   std::array<LEDFrame *, 2> framebuffers_{&buffer1_, &buffer2_};
-  bool frame_available_{true};
   float brightness_{0.5f};
 };
 

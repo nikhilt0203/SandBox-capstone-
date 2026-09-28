@@ -11,7 +11,11 @@
 #include <nst/inplace_string.hpp>
 #include <nst/span.hpp>
 
-struct App;
+namespace sndbx {
+class App;
+}
+
+namespace sndbx {
 
 class AppState {
 public:
@@ -58,7 +62,7 @@ public:
     //  app.select_module(module_id);
     //  break;
     case sndbx::KeypadEvent::Edge::FALLING_EDGE:
-      if (timer_.hasReached(hold_ms)) {
+      if (timer_.has_reached(hold_ms)) {
         // app.delete_module(module_id);
       }
       // app.handleTrellisFallingEdge(e);
@@ -98,95 +102,33 @@ public:
   void handle_button_evt(App &app, const sndbx::ButtonEvent &e) override {}
 };
 
-class InputHandler {
+class InputEventHandler {
 public:
-  template <typename Event> using Callback = void (*)(const Event &);
-
-  InputHandler(Callback<sndbx::KeypadEvent> a, Callback<sndbx::KnobEvent> b)
-      : keypad_cb_{a}, knob_cb_{b} {}
+  InputEventHandler(App &app) : app_{app} {}
 
   void operator()(const sndbx::KeypadEvent &evt) {
-    // state_->handle_keypad_evt(app_, evt);
-    keypad_cb_(evt);
+    state_->handle_keypad_evt(app_, evt);
   }
 
   void operator()(const sndbx::KnobEvent &evt) {
-    // state_->handle_knob_evt(app_, evt);
-    knob_cb_(evt);
+    state_->handle_knob_evt(app_, evt);
   }
 
   void operator()(const sndbx::ButtonEvent &evt) {
-    // state_->handle_button_evt(app_, evt);
+    state_->handle_button_evt(app_, evt);
   }
 
   template <typename State> void change_state() {
     state_ = &std::get<State>(states_);
   }
 
-  [[nodiscard]] auto &event_queue() { return events_; }
-
 private:
-  // App &app_;
-  Callback<sndbx::KeypadEvent> keypad_cb_;
-  Callback<sndbx::KnobEvent> knob_cb_;
-
+  App &app_;
   std::tuple<EditMode, ViewMode> states_{};
   AppState *state_{&std::get<EditMode>(states_)};
-  sndbx::InputEventQueue events_;
+  InputEventQueue events_;
 };
 
-// template<typename ...States>
-// class InputHandler {
-// static_assert((std::is_base_of_v<State, States> && ...));
-// public:
-//   InputHandler(App &app) : m_App(app) {
-//     // m_Buttons.enableRisingEdge();
-//   }
-
-//   void update() {
-//     m_Trellis.update();
-//     m_Encoders.update();
-//     // m_Buttons.update();
-
-//     while (m_Trellis.hasEvent()) {
-//       m_CurrentState->onTrellisPress(m_App, m_Trellis.popEvent());
-//     }
-//     while (m_Encoders.hasEvent()) {
-//       m_CurrentState->handle_knob_evt(m_App, m_Encoders.popEvent());
-//     }
-//     //sndbx::event::handle_evts(m_Buttons, buttons_handler);
-
-//     // if (m_Buttons.hasEvent())  {
-//     handle_button_evt(m_Buttons.popEvent());
-//     }
-//   }
-
-//   [[nodiscard]] Trellis &trellis() { return m_Trellis; }
-
-//   template <typename State> void change_state() {
-//     m_CurrentState = &std::get<State>(m_States);
-//   }
-
-// private:
-//   void handle_button_evt(const sndbx::event::ButtonPress &buttonEvent) {
-//     if (buttonEvent.edge == sndbx::event::Edge::FALLING_EDGE) {
-//       return;
-//     }
-//     // switch (buttonEvent.buttonNum)
-//     // {
-//     //   case 0: //toggleEditMode();
-//     //   case 1: //app.saveCurrentPatch()
-//     //   case 2: //app.loadPatch()
-//     //   case 3: //app.shift()
-//     // }
-//   }
-
-// private:
-//   App &m_App;
-//   Encoders m_Encoders;
-//   Trellis m_Trellis;
-//   State *m_CurrentState{&std::get<0>(m_States)};
-//   std::tuple<States...> m_States{};
-// };
+} // namespace sndbx
 
 #endif

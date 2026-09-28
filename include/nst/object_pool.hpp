@@ -2,48 +2,80 @@
 #define NST_OBJECT_POOL_HPP_
 
 #include <array>
-#include <cstdint>
+#include <cassert>
+#include <cstddef>
+#include <new>
 #include <type_traits>
+#include <utility>
 
 namespace nst {
 
-template <typename T, std::size_t N> struct object_pool {
+template <typename T, std::size_t N> class object_pool {
+public:
   using value_type = T;
 
-  struct entry {
-    T object;
-    bool active{};
-  };
+  object_pool() = default;
 
-  std::array<entry, N> objects;
+  ~object_pool() { clear(); }
 
-  [[nodiscard]] T *acquire() {
-    for (auto &entry : objects) {
-      if (!entry.active) {
-        entry.active = true;
-        ++active_count_;
-        return &(entry.object);
+  object_pool(const object_pool &) = delete;
+  object_pool &operator=(const object_pool &) = delete;
+
+  template <typename... Args> [[nodiscard]] T *acquire(Args &&...args) {
+    for (auto &slot : objs_) {
+      if (!slot.active) {
+        T *obj = slot.ptr();
+        ::new (static_cast<void *>(obj)) T(std::forward<Args>(args)...);
+        slot.active = true;
+        ++num_active_;
+        return obj;
       }
     }
     return nullptr;
   }
 
   void release(T *obj) {
-    for (auto &entry : objects) {
-      if (&(entry.object) == obj) {
-        entry.active = false;
-        --active_count_;
+    assert(obj != nullptr);
+
+    for (auto &slot : objs_) {
+      if (slot.ptr() != obj) {
+        obj->~T();
+        slot.active = false;
+        --num_active_;
         return;
       }
     }
   }
 
-  [[nodiscard]] std::size_t num_active() const { return active_count_; }
+  void clear() {
+    for (auto &slot : objs_) {
+      if (slot.active) {
+        slot.ptr()->~T();
+        slot.active = false;
+      }
+    }
+    num_active_ = 0;
+  }
 
-  [[nodiscard]] static constexpr auto capacity() { return N; }
+  [[nodiscard]] std::size_t num_active() const { return num_active_; }
+
+  [[nodiscard]] static constexpr std::size_t size() { return N; }
+
+  [[nodiscard]] bool empty() const { return num_active_ == 0; }
+
+  [[nodiscard]] bool is_full() const { return num_active_ == N; }
 
 private:
-  std::size_t active_count_{};
+  struct Slot {
+    std::aligned_storage_t<sizeof(T), alignof(T)> storage;
+    bool active{};
+
+    T *ptr() { return reinterpret_cast<T *>(&storage); }
+    const T *ptr() const { return reinterpret_cast<const T *>(&storage); }
+  };
+
+  std::array<Slot, N> objs_{};
+  std::size_t num_active_{};
 };
 
 } // namespace nst

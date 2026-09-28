@@ -4,75 +4,68 @@
 #include <cstdint>
 
 #include "color.hpp"
-#include "grid.hpp"
 #include "led_frame.hpp"
 
 class LEDMatrixDisplay {
 public:
-  explicit LEDMatrixDisplay(Adafruit_MultiTrellis &trellis) : m_Trellis(trellis) {
-    m_FrameBuffer1.clear();
-    m_FrameBuffer2.clear();
+  explicit LEDMatrixDisplay(Adafruit_MultiTrellis &trellis)
+      : trellis_(trellis) {
+    buffer1_.clear();
+    buffer2_.clear();
   }
 
-  [[nodiscard]] LEDFrame &currentFrame() { return *m_DoubleFrameBuffer[0]; }
+  [[nodiscard]] LEDFrame &current_frame() { return *double_buffer_[0]; }
 
-  void clear() { currentFrame().clear(); }
+  void clear() { current_frame().clear(); }
 
-  void setFrameAvailable(bool available) { m_FrameAvailable = available; }
+  void set_frame_available(bool available) { render_next_ = available; }
 
-  void drawPixel(sndbx::grid::Position pos, std::uint32_t color) {
-    currentFrame().drawPixel(pos, color);
-    m_FrameAvailable = true;
+  void draw_pixel(int row, int col, std::uint32_t color) {
+    current_frame().draw_pixel(row, col, color);
+    render_next_ = true;
   }
 
-  void drawPixel(int row, int col, std::uint32_t color) {
-    currentFrame().drawPixel(row, col, color);
-    m_FrameAvailable = true;
-  }
-
-  void renderFrame() {
-    if (!m_FrameAvailable) {
+  void render_frame() {
+    if (!render_next_) {
       return;
     }
 
-    auto &previousFrame = *m_DoubleFrameBuffer[1];
-    const auto &currentFrame = *m_DoubleFrameBuffer[0];
+    auto &prev = *double_buffer_[1];
+    const auto &cur = *double_buffer_[0];
 
     for (std::size_t px{}; px < LEDFrame::size; ++px) {
-      const auto currentPixel = currentFrame.at(px);
-      if (currentPixel == previousFrame.at(px)) {
+      const auto cur_px = cur.at(px);
+      if (cur_px == prev.at(px)) {
         continue;
       }
 
-      const auto pixelColor =
-          sndbx::color::changeBrightness(currentPixel, m_Brightness);
-      m_Trellis.setPixelColor(px, pixelColor);
+      const auto color = sndbx::color::brightness(cur_px, brightness_);
+      trellis_.setPixelColor(px, color);
 
-      previousFrame.at(px) = currentPixel;
+      prev.at(px) = cur_px;
     }
 
-    m_Trellis.show();
-    swapFrames();
-    m_FrameAvailable = false;
+    trellis_.show();
+    swap_frames();
+    render_next_ = false;
   }
 
-  void brightness(float brightness) { m_Brightness = brightness; }
+  void brightness(float brightness) { brightness_ = brightness; }
 
 private:
-  void swapFrames() {
-    auto *tmp = m_DoubleFrameBuffer[0];
-    m_DoubleFrameBuffer[0] = m_DoubleFrameBuffer[1];
-    m_DoubleFrameBuffer[1] = tmp;
+  void swap_frames() {
+    auto *tmp = double_buffer_[0];
+    double_buffer_[0] = double_buffer_[1];
+    double_buffer_[1] = tmp;
   }
 
 private:
-  Adafruit_MultiTrellis &m_Trellis;
-  LEDFrame m_FrameBuffer1;
-  LEDFrame m_FrameBuffer2;
-  std::array<LEDFrame *, 2> m_DoubleFrameBuffer{&m_FrameBuffer1,
-                                                &m_FrameBuffer2};
-  bool m_FrameAvailable{};
-  float m_Brightness{0.5f};
+  Adafruit_MultiTrellis &trellis_;
+  LEDFrame buffer1_;
+  LEDFrame buffer2_;
+  std::array<LEDFrame *, 2> double_buffer_{&buffer1_, &buffer2_};
+  bool render_next_{};
+  float brightness_{0.5f};
 };
 
 #endif

@@ -9,23 +9,30 @@ struct RGBColor {
   [[nodiscard]] constexpr std::uint32_t hex() const noexcept {
     return (r << 16) | (g << 8) | b;
   }
+
+  constexpr RGBColor &operator*=(std::uint8_t f) noexcept {
+    r *= f;
+    g *= f;
+    b *= f;
+    return *this;
+  }
 };
 
-[[nodiscard]] constexpr RGBColor toRGB(std::uint32_t hex) noexcept {
+[[nodiscard]] constexpr RGBColor make_rgb(std::uint32_t hex) noexcept {
   return RGBColor{static_cast<std::uint8_t>((hex >> 16) & 0xFF),
                   static_cast<std::uint8_t>((hex >> 8) & 0xFF),
                   static_cast<std::uint8_t>(hex & 0xFF)};
 }
 
-[[nodiscard]] constexpr std::uint16_t to565(std::uint32_t hex888) noexcept {
-  std::uint8_t r = (hex888 >> 16) & 0xFF;
-  std::uint8_t g = (hex888 >> 8) & 0xFF;
-  std::uint8_t b = (hex888 & 0xFF);
+[[nodiscard]] constexpr std::uint16_t to_565(std::uint32_t hex) noexcept {
+  std::uint8_t r = (hex >> 16) & 0xFF;
+  std::uint8_t g = (hex >> 8) & 0xFF;
+  std::uint8_t b = (hex & 0xFF);
   return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
 }
 
-[[nodiscard]] constexpr std::uint32_t
-changeBrightness(std::uint32_t color, float brightness) noexcept {
+[[nodiscard]] constexpr std::uint32_t brightness(std::uint32_t color,
+                                                 float brightness) noexcept {
   auto r = static_cast<std::uint8_t>((color >> 16) & 0xFF);
   auto g = static_cast<std::uint8_t>((color >> 8) & 0xFF);
   auto b = static_cast<std::uint8_t>(color & 0xFF);
@@ -39,8 +46,8 @@ changeBrightness(std::uint32_t color, float brightness) noexcept {
 
 [[nodiscard]] constexpr std::uint32_t
 blend(std::uint32_t color1, std::uint32_t color2, float ratio) noexcept {
-  auto c1 = toRGB(color1);
-  auto c2 = toRGB(color2);
+  auto c1 = make_rgb(color1);
+  auto c2 = make_rgb(color2);
   uint8_t r = c1.r * (1 - ratio) + c2.r * ratio;
   uint8_t g = c1.g * (1 - ratio) + c2.g * ratio;
   uint8_t b = c1.b * (1 - ratio) + c2.b * ratio;

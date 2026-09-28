@@ -1,238 +1,251 @@
-#ifndef SANDBOX_AUDIO_GRAPH_HPP_
-#define SANDBOX_AUDIO_GRAPH_HPP_
+#ifndef NST_TEENSY_AUDIO_GRAPH_HPP_
+#define NST_TEENSY_AUDIO_GRAPH_HPP_
+
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <utility>
+
+#include "nst/expected.hpp"
+#include "nst/inplace_vector.hpp"
+#include "nst/object_pool.hpp"
+#include "nst/strong_alias.hpp"
 
 #include <Audio.h>
-#include <cassert>
-#include <cstdint>
-#include <map>
-#include <memory>
-#include <nst/inplace_vector.hpp>
-#include <nst/object_pool.hpp>
-#include <optional>
-#include <vector>
 
-//=====================================================
-// Holds AudioStream objects and an I/O map
-//=====================================================
-class AudioComponent {
+namespace nst::teensy {
+
+// Fixed-size audio graph for Teensy Audio Library. Abstracts AudioStreams
+// and AudioConnections into ID-based graph.
+template <std::size_t Nodes, std::size_t Patches> class AudioGraph {
 public:
-  struct AudioStreamPort {
-    AudioStream *device;
-    std::size_t port;
+  struct NodeID : public nst::strong_alias<std::uint32_t, NodeID> {
+    using nst::strong_alias<std::uint32_t, NodeID>::strong_alias;
+
+    constexpr operator bool() const { return this->value != 0; }
+
+    constexpr bool operator==(const NodeID &other) const {
+      return this->value == other.value;
+    }
+
+    constexpr bool operator!=(const NodeID &other) const {
+      return this->value != other.value;
+    }
   };
 
-  static constexpr std::size_t maxPorts = 8;
-  using PortMap = std::array<std::optional<AudioStreamPort>, maxPorts>;
-
-public:
-  AudioComponent() = default;
-
-  template <typename T> void addDevice() {
-    static_assert(std::is_base_of_v<AudioStream, T>);
-    __disable_irq();
-    m_AudioDevices.emplace_back(std::make_unique<T>());
-    __enable_irq();
-  }
-
-  template <typename T> [[nodiscard]] T *device(std::size_t index = 0) const {
-    static_assert(std::is_base_of_v<AudioStream, T>);
-    return static_cast<T *>(m_AudioDevices.at(index).get());
-  }
-
-  void mapInput(std::size_t port, AudioStream *device, std::size_t devicePort) {
-    m_InputMap[port] = AudioStreamPort{device, devicePort};
-  }
-
-  void mapOutput(std::size_t port, AudioStream *device,
-                 std::size_t devicePort) {
-    m_OutputMap[port] = AudioStreamPort{device, devicePort};
-  }
-
-  [[nodiscard]] AudioStreamPort getInputMapping(std::size_t port) const {
-    return *m_InputMap[port];
-  }
-  [[nodiscard]] AudioStreamPort getOutputMapping(std::size_t port) const {
-    return *m_OutputMap[port];
-  }
-
-  [[nodiscard]] const PortMap &inputMap() const { return m_InputMap; }
-  [[nodiscard]] const PortMap &outputMap() const { return m_OutputMap; }
-
-  [[nodiscard]] float processorUsage() const {
-    float total{};
-    for (const auto &device : m_AudioDevices) {
-      total += device->processorUsage();
-    }
-    return total;
-  }
-
-private:
-  nst::vector_8U<std::unique_ptr<AudioStream>> m_AudioDevices;
-  PortMap m_InputMap{};
-  PortMap m_OutputMap{};
-};
-
-class Patchable {
-public:
-  Patchable() = default;
-  virtual ~Patchable() = default;
-
-  [[nodiscard]] AudioComponent &audio() { return m_Audio; }
-  [[nodiscard]] const AudioComponent &audio() const { return m_Audio; }
-
-  [[nodiscard]] std::uint32_t id() const { return m_ID; }
-  void setID(std::uint32_t id) { m_ID = id; }
-
-protected:
-  AudioComponent m_Audio;
-  std::uint32_t m_ID;
-};
-
-class AudioGraph {
-public:
-  class Patch {
-  public:
-    Patchable *source{};
-    std::size_t sourcePort{};
-    Patchable *destination{};
-    std::size_t destinationPort{};
-
-    Patch() = default;
-
-    void connect(Patchable *src, std::size_t srcPort, Patchable *dest,
-                 std::size_t destPort) {
-      auto srcOut = src->audio().getOutputMapping(srcPort);
-      auto destIn = dest->audio().getInputMapping(destPort);
-
-      m_Connection.connect(*(srcOut.device), srcOut.port, *(destIn.device),
-                           destIn.port);
-
-      source = src;
-      sourcePort = srcPort;
-      destination = dest;
-      destinationPort = destPort;
-    }
-
-    void disconnect() {
-      m_Connection.disconnect();
-      source = nullptr;
-      destination = nullptr;
-    }
-
-    [[nodiscard]] bool equals(Patchable *src, std::size_t srcPort,
-                              Patchable *dest, std::size_t destPort) const {
-      return source == src && sourcePort == srcPort && destination == dest &&
-             destinationPort == destPort;
-    }
-
-  private:
-    AudioConnection m_Connection;
+  struct Node {
+    NodeID id;
+    ::AudioStream *device;
+    Node(NodeID id, ::AudioStream *device) : id{id}, device{device} {}
   };
 
-  static constexpr std::size_t maxPatches = 64;
+  template <class AudioDevice> struct NodeHandle {
+    NodeID id;
+    AudioDevice *device;
+    const AudioDevice *operator->() const { return device; }
+    AudioDevice *operator->() { return device; }
+  };
+
+  struct Port : public nst::strong_alias<std::uint8_t, Port> {
+    using nst::strong_alias<std::uint8_t, Port>::strong_alias;
+
+    constexpr bool operator==(const Port &other) const {
+      return this->value == other.value;
+    }
+
+    constexpr bool operator!=(const Port &other) const {
+      return this->value != other.value;
+    }
+
+    [[nodiscard]] constexpr auto operator*() const { return this->value; }
+  };
+
+  struct Patch {
+    NodeID src_id;
+    Port src_port;
+    NodeID dst_id;
+    Port dst_port;
+    ::AudioConnection *connection;
+
+    Patch(Node src, Port src_port, Node dst, Port dst_port,
+          ::AudioConnection *c)
+        : src_id{src.id}, src_port{src_port}, dst_id{dst.id},
+          dst_port{dst_port}, connection{c} {
+      c->connect(*src.device, *src_port, *dst.device, *dst_port);
+    }
+  };
+
+  enum class Error {
+    NONE,
+    POOL_EXHAUSTED,
+    PATCH_ALREADY_EXISTS,
+    NODE_NOT_FOUND,
+    PATCH_NOT_FOUND,
+    GRAPH_FULL,
+    INVALID_PORT
+  };
 
 public:
-  AudioGraph() { AudioMemory(100); }
+  auto add_node(::AudioStream *device) -> nst::expected<NodeID, Error> {
+    if (nodes_.is_full()) {
+      return Error::GRAPH_FULL;
+    }
+    return emplace_and_get_id(device);
+  }
 
-  bool connect(Patchable *src, std::size_t srcPort, Patchable *dest,
-               std::size_t destPort) {
-    if (src == dest) {
+  template <class T, typename... Args>
+  auto emplace_node(Args &&...args) -> nst::expected<NodeHandle<T>, Error> {
+    static_assert(std::is_base_of_v<::AudioStream, T>);
+    if (nodes_.is_full()) {
+      return Error::GRAPH_FULL;
+    }
+    const auto device = new T(std::forward<Args>(args)...);
+    const auto id = emplace_and_get_id(device);
+    return NodeHandle<T>{id, device};
+  }
+
+  bool remove_node(NodeID id) {
+    auto it = find_node(id);
+    if (it == nodes_.end()) {
       return false;
     }
-
-    if (!portExists(src->audio().outputMap(), srcPort)) {
-      return false;
-    }
-    if (!portExists(dest->audio().inputMap(), destPort)) {
-      return false;
-    }
-
-    if (patchExists(src, srcPort, dest, destPort)) {
-      return false;
-    }
-
-    auto patch = m_PatchPool.acquire();
-    if (!patch) {
-      return false;
-    }
-
-    if (!m_Patches.push_back(patch)) {
-      m_PatchPool.release(patch);
-      return false;
-    }
-
-    patch->connect(src, srcPort, dest, destPort);
+    nodes_.erase(it);
+    patches_.erase(std::remove_if(patches_.begin(), patches_.end(),
+                                  [id](const auto &p) {
+                                    return p.src_id == id || p.dst_id == id;
+                                  }),
+                   patches_.end());
     return true;
   }
 
-  bool disconnect(Patchable *src, std::size_t srcPort, Patchable *dest,
-                  std::size_t destPort) {
-    if (src == dest) {
-      return false;
+  auto connect(NodeID src_id, Port src_port, NodeID dst_id, Port dst_port)
+      -> Error {
+    if (!(connection_pool_.num_active() < connection_pool_.size()) ||
+        patches_.is_full()) {
+      return Error::POOL_EXHAUSTED;
     }
 
-    auto it = findPatch(src, srcPort, dest, destPort);
-    if (it == m_Patches.end()) {
-      return false;
+    if (find_patch(src_id, src_port, dst_id, dst_port) != patches_.end()) {
+      return Error::PATCH_ALREADY_EXISTS;
     }
 
-    auto patch = *it;
-
-    patch->disconnect();
-    m_PatchPool.release(patch);
-    m_Patches.erase(it);
-    return true;
-  }
-
-  [[nodiscard]] bool patchExists(Patchable *src, std::size_t srcPort,
-                                 Patchable *dest, std::size_t destPort) const {
-    return findPatch(src, srcPort, dest, destPort) != m_Patches.end();
-  }
-
-  void clear() {
-    for (auto patch : m_Patches) {
-      patch->disconnect();
-      m_PatchPool.release(patch);
+    const auto src = find_node(src_id);
+    const auto dst = find_node(dst_id);
+    if (src == nodes_.end() || dst == nodes_.end()) {
+      return Error::NODE_NOT_FOUND;
     }
-    m_Patches.clear();
+
+    emplace_patch(*src, src_port, *dst, dst_port);
+    return Error::NONE;
   }
 
-  float processorUsage() const { return AudioProcessorUsage(); }
-
-  [[nodiscard]] const nst::inplace_vector<Patch *, maxPatches> &patches() {
-    return m_Patches;
+  auto disconnect(NodeID src_id, Port src_port, NodeID dst_id, Port dst_port)
+      -> Error {
+    auto it = find_patch(src_id, src_port, dst_id, dst_port);
+    if (it == patches_.end()) {
+      return Error::PATCH_NOT_FOUND;
+    }
+    release_patch(*it);
+    patches_.erase(it);
+    return Error::NONE;
   }
+
+  auto disconnect(NodeID src_id, NodeID dst_id) -> Error {
+    const auto begin = patches_.begin();
+    const auto end = patches_.end();
+
+    auto it = std::partition(begin, end, [src_id, dst_id](const auto &p) {
+      return p.src_id == src_id && p.dst_id == dst_id;
+    });
+    if (it == begin) {
+      return Error::PATCH_NOT_FOUND;
+    }
+
+    std::for_each(begin, it, [](auto &p) { release_patch(p); });
+    patches_.erase(it, end);
+    return Error::NONE;
+  }
+
+  [[nodiscard]] AudioStream &operator[](NodeID id) {
+    auto it = find_node(id);
+    assert(it != nodes_.end());
+    return *it->device;
+  }
+
+  [[nodiscard]] const AudioStream &operator[](NodeID id) const {
+    auto it = find_node(id);
+    assert(it != nodes_.end());
+    return *it->device;
+  }
+
+  [[nodiscard]] const auto &nodes() const { return nodes_; }
+  [[nodiscard]] const auto &patches() const { return patches_; }
+  [[nodiscard]] auto &nodes() { return nodes_; }
+  [[nodiscard]] auto &patches() { return patches_; }
 
 private:
-  [[nodiscard]] Patch *const *findPatch(Patchable *src, std::size_t srcPort,
-                                        Patchable *dest,
-                                        std::size_t destPort) const {
-    return std::find_if(m_Patches.begin(), m_Patches.end(),
-                        [src, srcPort, dest, destPort](const Patch *patch) {
-                          return patch->equals(src, srcPort, dest, destPort);
+  void emplace_patch(Node src, Port src_port, Node dst, Port dst_port) {
+    const auto c = connection_pool_.acquire();
+    assert(c);
+    patches_.emplace_back(src, src_port, dst, dst_port, c);
+  }
+
+  void release_patch(Patch &p) {
+    p.connection->disconnect();
+    connection_pool_.release(p.connection);
+  }
+
+  auto find_node(NodeID id) {
+    return std::find_if(nodes_.begin(), nodes_.end(),
+                        [id](const auto &n) { return n.id == id; });
+  }
+
+  auto find_node(NodeID id) const {
+    return std::find_if(nodes_.cbegin(), nodes_.cend(),
+                        [id](const auto &n) { return n.id == id; });
+  }
+
+  auto find_patch(NodeID src_id, Port src_port, NodeID dst_id,
+                  Port dst_port) const {
+    return std::find_if(patches_.cbegin(), patches_.cend(), [&](const auto &p) {
+      return src_id == p.src_id && src_port == p.src_port &&
+             dst_id == p.dst_id && dst_port == p.dst_port;
+    });
+  }
+
+  auto find_patch(NodeID src_id, NodeID dst_id) const {
+    return std::find_if(patches_.cbegin(), patches_.end(), [&](const auto &p) {
+      return src_id == p.src_id && dst_id == p.dst_id;
+    });
+  }
+
+  auto find_patch(NodeID src_id, Port src_port, NodeID dst_id, Port dst_port) {
+    return std::find_if(patches_.begin(), patches_.end(),
+                        [src_id, src_port, dst_id, dst_port](const auto &p) {
+                          return src_id == p.src_id && src_port == p.src_port &&
+                                 dst_id == p.dst_id && dst_port == p.dst_port;
                         });
   }
 
-  [[nodiscard]] Patch **findPatch(Patchable *src, std::size_t srcPort,
-                                  Patchable *dest, std::size_t destPort) {
-    return std::find_if(m_Patches.begin(), m_Patches.end(),
-                        [src, srcPort, dest, destPort](const Patch *patch) {
-                          return patch->equals(src, srcPort, dest, destPort);
-                        });
+  NodeID emplace_and_get_id(::AudioStream *device) {
+    const auto new_id = node_id_gen_.next_id();
+    nodes_.emplace_back(new_id, device);
+    return new_id;
   }
 
-  [[nodiscard]] bool portExists(const AudioComponent::PortMap &portMap,
-                                std::size_t port) const {
-    if (port >= portMap.size()) {
-      return false;
+  struct {
+    NodeID next_id() {
+      ++last_id.value;
+      return NodeID{last_id};
     }
-    return portMap[port].has_value();
-  }
+    NodeID last_id{};
+  } node_id_gen_;
 
-private:
-  nst::object_pool<Patch, maxPatches> m_PatchPool;
-  nst::inplace_vector<Patch *, maxPatches> m_Patches;
-  static inline AudioOutputI2S m_I2S{}; // needed to start audio interrupts
+  nst::inplace_vector<Node, Nodes> nodes_;
+  nst::inplace_vector<Patch, Patches> patches_;
+  nst::object_pool<::AudioConnection, Patches> connection_pool_;
 };
+
+} // namespace nst::teensy
 
 #endif
