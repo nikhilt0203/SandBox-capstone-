@@ -5,8 +5,8 @@ namespace sndbx {
 class Displayable {
 public:
   virtual ~Displayable() = default;
-  virtual std::string_view name() const = 0;
-  virtual std::uint16_t color() const = 0;
+  virtual std::string_view display_name() const = 0;
+  virtual std::uint16_t display_color() const = 0;
 };
 } // namespace sndbx
 

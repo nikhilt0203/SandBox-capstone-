@@ -1,18 +1,19 @@
-#ifndef SANDBOX_AUD_TRIGGER_INPUT_HPP_
-#define SANDBOX_AUD_TRIGGER_INPUT_HPP_
+#ifndef SANDBOX_AUDIO_TRIGGER_INPUT_HPP_
+#define SANDBOX_AUDIO_TRIGGER_INPUT_HPP_
 
 #include <Arduino.h>
 #include <AudioStream.h>
 
 namespace sndbx {
 
-// T models an object where 'trigger(AudioTriggerInput::Edge)' is a valid public
-// method
-template <class Target> class AudioTriggerInput : public AudioStream {
-public:
-  enum class Edge { RISING_EDGE, FALLING_EDGE };
+enum class AudioEdge { RISING_EDGE, FALLING_EDGE };
 
-  AudioTriggerInput(Target &t) : AudioStream(1, input_array_), target_{t} {}
+// 'Triggerable' models an object where 'trigger(sndbx::AudioEdge)' is a
+// valid public method
+template <class Triggerable> class AudioTriggerInput : public AudioStream {
+public:
+  AudioTriggerInput(Triggerable &t)
+      : AudioStream(1, input_array_), target_{t} {}
 
   ~AudioTriggerInput() { SAFE_RELEASE_INPUTS(); }
 
@@ -24,7 +25,7 @@ public:
     if (!block) {
       if (last_rising_) {
         last_rising_ = false;
-        target_.trigger(Edge::FALLING_EDGE);
+        target_.trigger(AudioEdge::FALLING_EDGE);
       }
       return;
     }
@@ -41,10 +42,10 @@ public:
 
     if (saw_high && !last_rising_) {
       last_rising_ = true;
-      target_.trigger(Edge::RISING_EDGE);
+      target_.trigger(AudioEdge::RISING_EDGE);
     } else if (!saw_high && last_rising_) {
       last_rising_ = false;
-      target_.trigger(Edge::FALLING_EDGE);
+      target_.trigger(AudioEdge::FALLING_EDGE);
     }
 
     release(block);
@@ -52,7 +53,7 @@ public:
 
 private:
   audio_block_t *input_array_[1];
-  Target &target_;
+  Triggerable &target_;
   float threshold_{0.25f};
   bool last_rising_{};
 };

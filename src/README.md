@@ -35,7 +35,7 @@ we forward any errors to the caller of link() and clean up partial successes. If
     if (!a_id) {
       // clean up previous
       graph.remove_node(synth_id_);
-      return a_id.error()
+      return a_id.error();
     }
     amp_id_ = *a_id;
     
@@ -82,11 +82,9 @@ we forward any errors to the caller of link() and clean up partial successes. If
   using namespace sndbx;
 
   AudioEndpoint map(ModulePort port) const override {
-    assert(port.index == 0);
-
     // Mapping: Module input  0 -> synth input 0
     //          Module output 0 -> amp output  0
-
+    assert(port.index == 0);
     switch (port.type) {
       case ModulePort::Type::IN:
         return audio::make_endpoint(synth_id_, 0);

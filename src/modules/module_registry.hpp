@@ -9,16 +9,11 @@
 #include "nst/poly_view.hpp"
 #include "nst/strong_alias.hpp"
 
+#include "module_id.hpp"
+#include "module_position.hpp"
 #include "module_types.hpp"
 
 namespace sndbx {
-
-struct ModuleID : public nst::strong_alias<std::uint32_t, ModuleID> {
-  using strong_alias::strong_alias;
-  constexpr operator bool() { return value != 0; }
-  bool operator==(const ModuleID &rhs) const { return value == rhs.value; }
-  bool operator!=(const ModuleID &rhs) const { return value != rhs.value; }
-};
 
 template <std::size_t Capacity, class... ModuleBases> class ModuleRegistry {
 public:
@@ -91,27 +86,23 @@ template <std::size_t N, class... ModuleBases> class MappedModuleRegistry {
 
 public:
   constexpr static auto size = N;
-  using ModuleView = typename Registry::value_type;
+  using value_type = typename Registry::value_type;
 
   template <class Module> struct Receipt {
     ModuleID id;
     Module &module;
   };
 
-  enum class Error {
-    LOCATION_OCCUPIED,
-    REGISTRY_FAILED,
-    POOL_EXHAUSTED
-  };
+  enum class Error { LOCATION_OCCUPIED, REGISTRY_FAILED, POOL_EXHAUSTED };
 
   // Creates a Module at the given position. Returns the new id and a reference
   // to the module if successful, Error if not
   template <class Module, typename... Args>
-  auto make(std::size_t pos, Args &&...args)
+  auto make(ModulePosition pos, Args &&...args)
       -> nst::expected<Receipt<Module>, Error> {
-    assert(pos < map_.size());
+    assert(pos.value < map_.size());
 
-    if (auto &entry = map_[pos]; entry.has_value()) {
+    if (auto &entry = map_[pos.value]; entry.has_value()) {
       return Error::LOCATION_OCCUPIED;
     } else if (auto *mod =
                    engine::acquire_module<Module>(std::forward<Args>(args)...);
@@ -140,7 +131,7 @@ public:
   }
 
   // Returns nullptr if not found.
-  [[nodiscard]] auto get_module(ModuleID id) const -> const ModuleView * {
+  [[nodiscard]] auto get_module(ModuleID id) const -> const value_type * {
     auto it = registry_.find(id);
     if (it == registry_.cend()) {
       return nullptr;
@@ -149,7 +140,7 @@ public:
   }
 
   // Returns nullptr if not found.
-  [[nodiscard]] auto get_module(ModuleID id) -> ModuleView * {
+  [[nodiscard]] auto get_module(ModuleID id) -> value_type * {
     auto it = registry_.find(id);
     if (it == registry_.end()) {
       return nullptr;
@@ -157,8 +148,9 @@ public:
     return it;
   }
 
-  [[nodiscard]] auto get_id(std::size_t pos) const -> std::optional<ModuleID> {
-    const auto &entry = map_[pos];
+  [[nodiscard]] auto get_id(ModulePosition pos) const
+      -> std::optional<ModuleID> {
+    const auto &entry = map_[pos.value];
     if (!entry.has_value()) {
       return std::nullopt;
     }
@@ -171,19 +163,19 @@ public:
 
   [[nodiscard]] auto &operator[](ModuleID id) { return registry_[id]; }
 
-  [[nodiscard]] ModuleID operator[](std::size_t pos) const {
-    const auto &entry = map_[pos];
+  [[nodiscard]] ModuleID operator[](ModulePosition pos) const {
+    const auto &entry = map_[pos.value];
     assert(entry.has_value());
-    return map_[pos]->id;
+    return map_[pos.value]->id;
   }
 
-  [[nodiscard]] ModuleType type_at(std::size_t pos) const {
-    const auto &entry = map_[pos];
+  [[nodiscard]] ModuleType type_at(ModulePosition pos) const {
+    const auto &entry = map_[pos.value];
     assert(entry.has_value());
     return entry->type;
   }
 
-  [[nodiscard]] static constexpr auto capacity() { return size; }
+  [[nodiscard]] constexpr static auto capacity() { return size; }
 
 private:
   struct MapEntry {

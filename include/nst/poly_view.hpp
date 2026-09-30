@@ -51,6 +51,8 @@ public:
 
   template <class...> friend class poly_view;
 
+  constexpr poly_view() = default;
+
   // Construct a poly_view from a Derived ptr
   template <class Derived>
   constexpr explicit poly_view(Derived *obj) noexcept
@@ -129,7 +131,7 @@ private:
     return std::get<Base *>(ptrs_);
   }
 
-  value_type ptrs_;
+  value_type ptrs_{};
 
 protected:
   void set(value_type ptrs) { ptrs_ = ptrs; }

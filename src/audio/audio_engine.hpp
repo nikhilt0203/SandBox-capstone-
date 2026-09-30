@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SANDBOX_AUDIO_ENGINE_HPP_
+#define SANDBOX_AUDIO_ENGINE_HPP_
 
 #include <algorithm>
 #include <cstddef>
@@ -6,23 +7,20 @@
 #include <utility>
 
 #include "audio/audio_trigger.hpp"
-#include "audio_graph.hpp"
-#include "config.hpp"
+#include "config/config.hpp"
 #include "modules/parameter.hpp"
+#include <nst/audio_graph.hpp>
 
 namespace sndbx {
 
-// Configure audio graph
-using AudioGraph =
-    nst::teensy::AudioGraph<limits::max_modules, limits::max_connections>;
-using AudioError = AudioGraph::Error;
+using AudioGraph = nst::teensy::AudioGraph<limits::max_audio_graph_nodes,
+                                           limits::max_audio_graph_patches>;
 
-template <std::size_t N>
-using AudioNodeIDs = nst::inplace_vector<AudioGraph::NodeID, N>;
+using AudioError = nst::teensy::AudioGraphError;
 
 struct AudioEndpoint {
-  AudioGraph::NodeID id;
-  AudioGraph::Port port;
+  nst::teensy::AudioNodeID id;
+  nst::teensy::AudioPort port;
 };
 
 struct ModulePort {
@@ -42,9 +40,9 @@ struct ModulePort {
 
 namespace sndbx::audio {
 
-[[nodiscard]] inline auto make_endpoint(AudioGraph::NodeID id,
+[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
                                         std::uint8_t graph_port) {
-  return AudioEndpoint{id, AudioGraph::Port{graph_port}};
+  return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
 }
 
 // Interface between module and audio graph.
@@ -65,39 +63,33 @@ private:
   std::uint8_t outs_;
 };
 
-inline auto connect(const Patchable &src, ModulePort src_port,
-                    const Patchable &dst, ModulePort dst_port,
-                    AudioGraph &graph) {
-  if (src_port.index >= src.outs() || src_port.index >= dst.ins()) {
+// connect two Patchables by port index
+inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
+                          const Patchable &dst, std::uint8_t input_idx,
+                          AudioGraph &graph) {
+  if (output_idx >= src.outs() || input_idx >= dst.ins()) {
     return AudioError::INVALID_PORT;
   }
-  const auto src_endpt = src.map(src_port);
-  const auto dst_endpt = dst.map(dst_port);
+  const auto src_endpt = src.map(ModulePort{ModulePort::Type::OUT, output_idx});
+  const auto dst_endpt = dst.map(ModulePort{ModulePort::Type::IN, output_idx});
   return graph.connect(src_endpt.id, src_endpt.port, dst_endpt.id,
                        dst_endpt.port);
 }
 
-inline auto disconnect(const Patchable &src, ModulePort src_port,
-                       const Patchable &dst, ModulePort dst_port,
-                       AudioGraph &graph) {
-  if (src_port.index >= src.outs() || src_port.index >= dst.ins()) {
+// disconnect two Patchables by port index
+inline AudioError disconnect(const Patchable &src, std::uint8_t output_idx,
+                             const Patchable &dst, std::uint8_t input_idx,
+                             AudioGraph &graph) {
+  if (output_idx >= src.outs() || input_idx >= dst.ins()) {
     return AudioError::INVALID_PORT;
   }
-  const auto src_endpt = src.map(src_port);
-  const auto dst_endpt = dst.map(dst_port);
+  const auto src_endpt = src.map(ModulePort{ModulePort::Type::OUT, output_idx});
+  const auto dst_endpt = dst.map(ModulePort{ModulePort::Type::IN, output_idx});
   return graph.disconnect(src_endpt.id, src_endpt.port, dst_endpt.id,
                           dst_endpt.port);
 }
 
-inline auto connect(AudioEndpoint src, AudioEndpoint dst, AudioGraph &graph) {
-  return graph.connect(src.id, src.port, dst.id, dst.port);
-}
-
-inline auto disconnect(AudioEndpoint src, AudioEndpoint dst,
-                       AudioGraph &graph) {
-  return graph.disconnect(src.id, src.port, dst.id, dst.port);
-}
-
+// Query AudioGraph processor usage
 [[nodiscard]] inline float processor_usage(AudioGraph &graph) {
   float sum{};
   for (const auto &n : graph.nodes()) {
@@ -122,11 +114,4 @@ inline void processor_usage_max_reset(AudioGraph &graph) {
 
 } // namespace sndbx::audio
 
-namespace sndbx {
-template <typename M> struct StaticModuleInfo {
-  nst::inplace_vector<std::string_view, 4> ctrls;
-  nst::inplace_vector<std::string_view, 8> ins;
-  nst::inplace_vector<std::string_view, 8> outs;
-};
-
-} // namespace sndbx
+#endif

@@ -1,7 +1,7 @@
 #ifndef SANDBOX_LED_FRAME_HPP_
 #define SANDBOX_LED_FRAME_HPP_
 
-#include "config.hpp"
+#include "config/config.hpp"
 #include <array>
 #include <cstdint>
 

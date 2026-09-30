@@ -21,7 +21,8 @@ class Oscillator : public audio::Patchable,
                    public Controllable,
                    public Displayable {
 public:
-  constexpr static auto max_count = 32U;
+  constexpr static std::string_view name = "oscillator";
+  constexpr static std::string_view desc = "outputs a continuous waveform";
 
   Oscillator() : Patchable{2, 1} {
     frequency_ = 440.0f;
@@ -62,9 +63,13 @@ public:
 
   void unlink(AudioGraph &graph) override { graph.remove_node(synth_id_); }
 
-  std::string_view name() const override { return waveforms[waveform_].name; }
+  std::string_view display_name() const override {
+    return waveforms[waveform_].name;
+  }
 
-  std::uint16_t color() const override { return waveforms[waveform_].color; }
+  std::uint16_t display_color() const override {
+    return waveforms[waveform_].color;
+  }
 
 private:
   void set_waveform(std::size_t waveform) {
@@ -102,7 +107,7 @@ private:
 
 protected:
   AudioSynthWaveformModulated synth_;
-  AudioGraph::NodeID synth_id_;
+  nst::teensy::AudioNodeID synth_id_;
 
   ModuleParameter<float> frequency_{0.01f, 18000.0f};
   ModuleParameter<int> fine_tune_{-50, 50};

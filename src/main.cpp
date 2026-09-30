@@ -1,4 +1,4 @@
-#include "application.hpp"
+#include "app/application.hpp"
 #include <Arduino.h>
 
 void setup() { sndbx::app::init(); }

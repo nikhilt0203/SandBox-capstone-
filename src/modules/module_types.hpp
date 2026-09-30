@@ -13,9 +13,6 @@ namespace sndbx {
 // Modules recognized by the system
 using ModuleTypes = nst::type_list<Oscillator>;
 
-// Modules listed in the bank
-using ModuleBank = nst::type_list<Oscillator>;
-
 // Max instances per module
 namespace limits {
 template <typename Module> constexpr std::size_t max_instances = 16U;
@@ -37,9 +34,6 @@ struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
 // type lookup
 template <typename T, typename = std::enable_if_t<ModuleTypes::contains<T>>>
 constexpr ModuleType module_type{ModuleTypes::index_of<T>};
-
-template <typename T, typename = std::enable_if_t<ModuleBank::contains<T>>>
-constexpr std::size_t bank_index = ModuleBank::index_of<T>;
 
 } // namespace sndbx
 

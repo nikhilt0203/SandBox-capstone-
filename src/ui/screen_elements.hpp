@@ -3,6 +3,7 @@
 
 #include <string_view>
 
+#include "assets/sandbox_logo_bitmap.hpp"
 #include "nst/hardware/ILI9341_display.hpp"
 #include "ui/color.hpp"
 #include <nst/inplace_vector.hpp>
@@ -158,15 +159,10 @@ private:
 // Startup splash screen bitmap
 //===============================================================================================
 
-#include "sandbox_logo_bitmap.hpp"
 struct SplashScreen {
   SplashScreen(GFXcanvas16 &frame)
-      : bitmap(0,
-               0,
-               nst::teensy::TFT::width,
-               nst::teensy::TFT::height,
-               SANDBOX_LOGO_BITMAP.data(),
-               frame) {}
+      : bitmap(0, 0, nst::teensy::TFT::width, nst::teensy::TFT::height,
+               SANDBOX_LOGO_BITMAP.data(), frame) {}
   void draw() const { bitmap.draw(); }
   Bitmap bitmap;
 };

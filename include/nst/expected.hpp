@@ -52,6 +52,7 @@ public:
   [[nodiscard]] constexpr bool has_value() const noexcept {
     return std::holds_alternative<T>(data_);
   }
+
   constexpr operator bool() const noexcept { return has_value(); }
 
 private:

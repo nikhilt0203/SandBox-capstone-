@@ -1,7 +1,7 @@
 #ifndef SANDBOX_LED_UI_ELEMENTS_HPP_
 #define SANDBOX_LED_UI_ELEMENTS_HPP_
 
-#include "config.hpp"
+#include "config/config.hpp"
 #include "ui/led_matrix.hpp"
 #include <cstdint>
 
