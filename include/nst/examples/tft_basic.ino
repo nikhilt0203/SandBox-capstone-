@@ -1,35 +1,26 @@
 #include <Arduino.h>
 #include <nst/hardware/ILI9341_display.hpp>
 
-constexpr auto tft_cs = nst::Pin{14};
-constexpr auto tft_dc = nst::Pin{15};
-
 // Initialize TFT with CS and DC pin
-nst::teensy::TFT screen{tft_cs, tft_dc};
+nst::teensy::TFT screen{nst::Pin{14}, nst::Pin{15}};
 
-std::uint32_t last_render_time{};
-bool swap_text{false};
+unsigned long last_render_time = 0;
+bool swap_text = false;
 
-void setup() {
-  screen.clear();
-  screen.set_frame_available();
-}
+void setup() { screen.clear(); }
 
 void loop() {
   const auto now = millis();
-  //Display every 100ms
-  if (now - last_render_time >= 100) {
+  // Display every 100ms
+  if (millis() - last_render_time >= 100) {
     if (swap_text) {
-      //ScreenElements should be immediately drawn after construction
-      nst::teensy::Text{50, 50, "hello", 0xFF00, 4, screen.current_frame()}.draw();
+      screen.current_frame().println("hello");
     } else {
-      nst::teensy::Text{50, 50, "world", 0x00FF, 4, screen.current_frame()}.draw();
+      screen.current_frame().println("world");
     }
     swap_text = !swap_text;
-    // Tell screen to render on the next call to render_frame
-    screen.set_frame_available();
     last_render_time = now;
+
+    screen.render_frame();
   }
-  // Render the frame onto the screen
-  screen.render_frame();
 }

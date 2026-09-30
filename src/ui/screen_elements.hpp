@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "assets/sandbox_logo_bitmap.hpp"
+#include "config/config.hpp"
 #include "nst/hardware/ILI9341_display.hpp"
 #include "ui/color.hpp"
 #include <nst/inplace_vector.hpp>
@@ -12,6 +13,8 @@
  * @brief Representing a screen display element. Designed to be stack objects,
  *        dimensions must be known at construction time to use centering
  */
+namespace sndbx {
+
 class UIElement {
 public:
   UIElement(std::uint16_t x, std::uint16_t y, std::uint16_t width,
@@ -19,14 +22,14 @@ public:
       : x_{x}, y_{y}, width_{width}, height_{height}, frame_{frame} {}
 
   explicit UIElement(GFXcanvas16 &frame)
-      : x_{0}, y_{0}, width_(nst::teensy::TFT::width),
-        height_(nst::teensy::TFT::height), frame_{frame} {}
+      : x_{0}, y_{0}, width_(limits::screen_width_px),
+        height_(limits::screen_height_px), frame_{frame} {}
 
-  [[nodiscard]] std::uint16_t x() const { return x_; }
-  [[nodiscard]] std::uint16_t y() const { return y_; }
+  [[nodiscard]] auto x() const { return x_; }
+  [[nodiscard]] auto y() const { return y_; }
 
-  [[nodiscard]] std::uint16_t width() const { return width_; }
-  [[nodiscard]] std::uint16_t height() const { return height_; }
+  [[nodiscard]] auto width() const { return width_; }
+  [[nodiscard]] auto height() const { return height_; }
 
   void set_x(std::uint16_t x) { x_ = x; }
   void set_y(std::uint16_t y) { y_ = y; }
@@ -34,8 +37,8 @@ public:
   void set_width(std::uint16_t width) { width_ = width; }
   void set_height(std::uint16_t height) { height_ = height; }
 
-  void center_x() { x_ = (nst::teensy::TFT::width - width_) / 2; }
-  void center_y() { y_ = (nst::teensy::TFT::height - height_) / 2; }
+  void center_x() { x_ = (limits::screen_width_px - width_) / 2; }
+  void center_y() { y_ = (limits::screen_height_px - height_) / 2; }
 
   void center_x(UIElement &other) {
     x_ = other.x() + (other.width() - width_) / 2;
@@ -51,25 +54,28 @@ public:
     y_ = y + (height - height_) / 2;
   }
 
-  void draw_boundary() const {
+  void draw_bounds() const {
     frame_.drawRect(x_, y_, width_, height_, ILI9341_GREEN);
     frame_.drawCircle(x_, y_, 3, ILI9341_WHITE);
   }
 
-  [[nodiscard]] constexpr static std::uint16_t
-  centered_x(std::uint16_t width, std::uint16_t parent_x,
-             std::uint16_t parent_w) {
+  [[nodiscard]] static constexpr auto centered_x(std::uint16_t width,
+                                                 std::uint16_t parent_x,
+                                                 std::uint16_t parent_w) {
     return parent_x + (parent_w - width) / 2;
   }
 
-  [[nodiscard]] constexpr static std::uint16_t
-  centered_y(std::uint16_t height, std::uint16_t parent_y,
-             std::uint16_t parent_h) {
+  [[nodiscard]] static constexpr auto centered_y(std::uint16_t height,
+                                                 std::uint16_t parent_y,
+                                                 std::uint16_t parent_h) {
     return parent_y + (parent_h - height) / 2;
   }
 
 protected:
-  std::uint16_t x_, y_, width_, height_;
+  std::uint16_t x_;
+  std::uint16_t y_;
+  std::uint16_t width_;
+  std::uint16_t height_;
   GFXcanvas16 &frame_;
 };
 
@@ -114,7 +120,6 @@ private:
     return height;
   }
 
-private:
   std::string_view text_;
   std::uint16_t color_;
   std::uint8_t font_size_;
@@ -161,7 +166,7 @@ private:
 
 struct SplashScreen {
   SplashScreen(GFXcanvas16 &frame)
-      : bitmap(0, 0, nst::teensy::TFT::width, nst::teensy::TFT::height,
+      : bitmap(0, 0, limits::screen_width_px, limits::screen_height_px,
                SANDBOX_LOGO_BITMAP.data(), frame) {}
   void draw() const { bitmap.draw(); }
   Bitmap bitmap;
@@ -279,7 +284,6 @@ private:
   const nst::vector_8U<std::uint32_t> &colors_;
 };
 
-#include <string>
 class ModuleDisplay : public UIElement {
 public:
   ModuleDisplay(std::string_view name, std::uint32_t color,
@@ -518,12 +522,12 @@ private:
   constexpr static float waveform_scale = 0.7f;
   constexpr static float window_scale = 0.85f;
 
-  constexpr static auto window_width = nst::teensy::TFT::width * window_scale;
-  constexpr static auto window_height = nst::teensy::TFT::height * window_scale;
+  constexpr static auto window_width = limits::screen_width_px * window_scale;
+  constexpr static auto window_height = limits::screen_height_px * window_scale;
   constexpr static auto window_x =
-      centered_x(window_width, 0, nst::teensy::TFT::width);
+      centered_x(window_width, 0, limits::screen_width_px);
   constexpr static auto window_y =
-      centered_y(window_height, 0, nst::teensy::TFT::height) + 7;
+      centered_y(window_height, 0, limits::screen_height_px) + 7;
 
   constexpr static auto zero_line_color = ILI9341_DARKGREY;
   constexpr static auto border_color = ILI9341_DARKCYAN;
@@ -600,5 +604,7 @@ public:
   constexpr static auto escape_idx = 39U;
   Text cur_text_;
 };
+
+} // namespace sndbx
 
 #endif

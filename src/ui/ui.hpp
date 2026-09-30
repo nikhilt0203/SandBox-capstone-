@@ -7,8 +7,10 @@
 #include "ui/screen_elements.hpp"
 
 namespace sndbx {
+
 using LEDGrid = nst::teensy::TrellisLEDDisplay<Adafruit_MultiTrellis>;
 using Screen = nst::teensy::TFT;
+
 } // namespace sndbx
 
 namespace sndbx::ui {
@@ -29,9 +31,7 @@ inline void clear_and_draw(Display &d, Args &&...args) {
   draw<Element>(d, std::forward<Args>(args)...);
 }
 
-template <typename Display> inline void clear(Display &d) {
-  d.clear();
-}
+template <typename Display> inline void clear(Display &d) { d.clear(); }
 
 /*
  * Screen

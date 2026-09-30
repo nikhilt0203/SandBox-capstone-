@@ -9,7 +9,6 @@
 
 namespace nst::teensy {
 
-/// @brief Information about a button event. Pushed into the event queue
 struct ButtonEvent {
   enum class Edge : std::uint8_t { RISING_EDGE, FALLING_EDGE };
   std::uint8_t button_num;
