@@ -25,6 +25,7 @@ public:
   constexpr explicit inplace_string(std::string_view s) noexcept { append(s); }
 
   [[nodiscard]] constexpr const char *data() const noexcept { return buffer_; }
+  [[nodiscard]] constexpr char *data() noexcept { return buffer_; }
 
   [[nodiscard]] constexpr std::string_view view() const noexcept {
     return std::string_view(data(), size_);
