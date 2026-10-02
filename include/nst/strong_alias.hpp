@@ -9,21 +9,21 @@ namespace nst {
 /// @tparam T the aliased type
 /// @tparam Tag unique tag
 template <typename T, typename Tag> struct strong_alias {
-  static_assert(std::is_trivial_v<T>, "Aliased type must be trivial.");
+	static_assert(std::is_trivial_v<T>, "Aliased type must be trivial.");
 
-  using underlying_type = T;
-  using tag_type = Tag;
+	using underlying_type = T;
+	using tag_type = Tag;
 
-  T value{};
+	T value{};
 
-  constexpr strong_alias() = default;
-  constexpr explicit strong_alias(T value) : value{value} {}
-  constexpr explicit operator T() const { return value; }
+	constexpr strong_alias() = default;
+	constexpr explicit strong_alias(T value) : value{value} {}
+	constexpr explicit operator T() const { return value; }
 };
 
 template <typename AliasType>
 [[nodiscard]] constexpr auto to_underlying_t(AliasType alias) {
-  return static_cast<typename AliasType::underlying_type>(alias);
+	return static_cast<typename AliasType::underlying_type>(alias);
 }
 
 } // namespace nst

@@ -7,14 +7,14 @@
 namespace sndbx {
 
 struct ModulePosition : public nst::strong_alias<std::size_t, ModulePosition> {
-  using strong_alias::strong_alias;
+	using strong_alias::strong_alias;
 
-  constexpr bool operator==(const ModulePosition &other) const {
-    return value == other.value;
-  }
-  constexpr bool operator!=(const ModulePosition &other) const {
-    return value != other.value;
-  }
+	constexpr bool operator==(const ModulePosition &other) const {
+		return value == other.value;
+	}
+	constexpr bool operator!=(const ModulePosition &other) const {
+		return value != other.value;
+	}
 };
 
 } // namespace sndbx

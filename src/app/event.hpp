@@ -12,17 +12,18 @@
 namespace sndbx {
 
 struct KeypadEvent {
-  using Edge = nst::teensy::TrellisKeyEvent::Edge;
+	using Edge = nst::teensy::TrellisKeyEvent::Edge;
 
-  nst::teensy::TrellisKeyEvent data;
-  std::uint32_t time;
-  KeypadEvent(nst::teensy::TrellisKeyEvent evt) : data{evt}, time{millis()} {}
+	nst::teensy::TrellisKeyEvent data;
+	std::uint32_t time;
+	KeypadEvent(nst::teensy::TrellisKeyEvent evt) : data{evt}, time{millis()} {}
 };
 
 using KnobEvent = nst::teensy::EncoderTurnEvent;
 using ButtonEvent = nst::teensy::ButtonEvent;
 
 using InputEvent = std::variant<KeypadEvent, KnobEvent, ButtonEvent>;
+using InputEventQueue = nst::inplace_vector<InputEvent, limits::max_input_evts>;
 
 } // namespace sndbx
 

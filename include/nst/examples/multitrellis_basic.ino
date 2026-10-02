@@ -19,17 +19,17 @@ static std::vector<TrellisKeyEvent> key_events;
 static auto keypad = make_multitrellis<i2c_addrs>(key_events);
 
 void handle_key_event(const TrellisKeyEvent &e) {
-  Serial.printf("Key %d pressed!\n", e.key_num);
+	Serial.printf("Key %d pressed!\n", e.key_num);
 }
 
 void setup() { Serial.begin(9600); }
 
 void loop() {
-  keypad.update();
-  // Empty event queue
-  while (!key_events.empty()) {
-    const auto event = key_events.back();
-    key_events.pop_back();
-    handle_key_event(event);
-  }
+	keypad.update();
+	// Empty event queue
+	while (!key_events.empty()) {
+		const auto event = key_events.back();
+		key_events.pop_back();
+		handle_key_event(event);
+	}
 }

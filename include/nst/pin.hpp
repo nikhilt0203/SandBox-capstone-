@@ -8,10 +8,10 @@
 namespace nst {
 
 struct Pin : public nst::strong_alias<std::uint8_t, Pin> {
-  using strong_alias::strong_alias;
-  std::uint8_t read() const { return digitalRead(value); }
-  void write(std::uint8_t val) { digitalWrite(value, val); }
-  void pin_mode(std::uint8_t mode) { pinMode(value, mode); }
+	using strong_alias::strong_alias;
+	std::uint8_t read() const { return digitalRead(value); }
+	void write(std::uint8_t val) { digitalWrite(value, val); }
+	void pin_mode(std::uint8_t mode) { pinMode(value, mode); }
 };
 
 } // namespace nst

@@ -18,45 +18,49 @@ using ModuleFactory =
 using ModuleView = ModuleFactory::value_type;
 
 struct ModuleConnection {
-  ModulePosition src_pos;
-  std::uint8_t output_idx;
-  ModulePosition dst_pos;
-  std::uint8_t input_idx;
+	ModulePosition src_pos;
+	std::uint8_t output_idx;
+	ModulePosition dst_pos;
+	std::uint8_t input_idx;
 };
 
 class Engine {
-public:
-  bool connect(ModulePosition src_pos, std::uint8_t output_idx,
-               ModulePosition dst_pos, std::uint8_t input_idx);
+  public:
+	bool connect(ModulePosition src_pos, std::uint8_t output_idx,
+	             ModulePosition dst_pos, std::uint8_t input_idx);
 
-  bool disconnect(ModulePosition src_pos, std::uint8_t output_idx,
-                  ModulePosition dst_pos, std::uint8_t input_idx);
+	bool disconnect(ModulePosition src_pos, std::uint8_t output_idx,
+	                ModulePosition dst_pos, std::uint8_t input_idx);
 
-  bool connect_first(ModulePosition src_pos, ModulePosition dst_pos);
+	bool connect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-  bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
+	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-  bool connection_exists(ModulePosition src_pos, ModulePosition dst_pos) const;
-  bool connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
-                         ModulePosition dst_pos, std::uint8_t input_idx) const;
+	bool connection_exists(ModulePosition src_pos,
+	                       ModulePosition dst_pos) const;
+	bool connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
+	                       ModulePosition dst_pos,
+	                       std::uint8_t input_idx) const;
 
-  [[nodiscard]] auto create_module(ModuleType type, ModulePosition pos)
-      -> std::optional<ModuleID>;
+	[[nodiscard]] auto create_module(ModuleType type, ModulePosition pos)
+	    -> std::optional<ModuleID>;
 
-  [[nodiscard]] bool delete_module(ModulePosition pos);
+	[[nodiscard]] bool delete_module(ModulePosition pos);
 
-  [[nodiscard]] auto module_id(ModulePosition pos) const
-      -> std::optional<ModuleID> {
-    return factory_.get_id(pos);
-  }
+	[[nodiscard]] auto module_id(ModulePosition pos) const
+	    -> std::optional<ModuleID> {
+		return factory_.get_id(pos);
+	}
 
-  [[nodiscard]] auto get_module(ModuleID id) { return factory_[id]; }
+	[[nodiscard]] auto get_module(ModuleID id) { return factory_[id]; }
 
-private:
-  ModuleFactory factory_;
-  AudioGraph audio_graph_;
-  nst::inplace_vector<ModuleConnection, limits::max_module_connections>
-      connections_;
+	[[nodiscard]] const auto &factory() const { return factory_; }
+
+  private:
+	ModuleFactory factory_;
+	AudioGraph audio_graph_;
+	nst::inplace_vector<ModuleConnection, limits::max_module_connections>
+	    connections_;
 };
 
 } // namespace sndbx

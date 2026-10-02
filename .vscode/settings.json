@@ -61,11 +61,11 @@
     "audiocvinput": "cpp",
     "audiotriggeroutput": "cpp"
   },
-"editor.detectIndentation": false,
-"editor.indentSize": "tabSize",
-"editor.tabSize": 2,
-"cmake.sourceDirectory": "/Users/nikhiltalwalkar/Projects/teensy41/lib/Adafruit GFX Library@src-bec0f45403ebb1c48ea0f9da3babd45f",
-"clang-format.executable": "clang-format",
-"C_Cpp.formatting": "clangFormat",
-"C_Cpp.default.configurationProvider": "platformio.platformio-ide"
+  "editor.detectIndentation": false,
+  "editor.indentSize": "tabSize",
+  "editor.tabSize": 4,
+  "cmake.sourceDirectory": "/Users/nikhiltalwalkar/Projects/teensy41/lib/Adafruit GFX Library@src-bec0f45403ebb1c48ea0f9da3babd45f",
+  "clang-format.executable": "clang-format",
+  "C_Cpp.formatting": "clangFormat",
+  "C_Cpp.default.configurationProvider": "platformio.platformio-ide"
 }

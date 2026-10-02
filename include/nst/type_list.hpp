@@ -6,26 +6,26 @@
 
 namespace nst {
 template <typename... Ts> struct type_list {
-  using tuple_type = std::tuple<Ts...>;
+	using tuple_type = std::tuple<Ts...>;
 
-  template <std::size_t N>
-  using get = std::tuple_element_t<N, std::tuple<Ts...>>;
+	template <std::size_t N>
+	using get = std::tuple_element_t<N, std::tuple<Ts...>>;
 
-  using index_sequence = std::index_sequence_for<Ts...>;
+	using index_sequence = std::index_sequence_for<Ts...>;
 
-  template <typename T>
-  static constexpr std::size_t index_of = []() {
-    static_assert((std::is_same_v<T, Ts> || ...), "Type not found.");
-    bool found = false;
-    std::size_t index{};
-    ((!found ? (++index, found = std::is_same_v<T, Ts>) : 0), ...);
-    return index - 1;
-  }();
+	template <typename T>
+	static constexpr std::size_t index_of = []() {
+		static_assert((std::is_same_v<T, Ts> || ...), "Type not found.");
+		bool found = false;
+		std::size_t index{};
+		((!found ? (++index, found = std::is_same_v<T, Ts>) : 0), ...);
+		return index - 1;
+	}();
 
-  static constexpr std::size_t size = sizeof...(Ts);
+	static constexpr std::size_t size = sizeof...(Ts);
 
-  template <typename T>
-  static constexpr bool contains = (std::is_same_v<T, Ts> || ...);
+	template <typename T>
+	static constexpr bool contains = (std::is_same_v<T, Ts> || ...);
 };
 
 }; // namespace nst

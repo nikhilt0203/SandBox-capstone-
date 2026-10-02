@@ -10,17 +10,17 @@ bool swap_text = false;
 void setup() { screen.clear(); }
 
 void loop() {
-  const auto now = millis();
-  // Display every 100ms
-  if (millis() - last_render_time >= 100) {
-    if (swap_text) {
-      screen.current_frame().println("hello");
-    } else {
-      screen.current_frame().println("world");
-    }
-    swap_text = !swap_text;
-    last_render_time = now;
+	const auto now = millis();
+	// Display every 100ms
+	if (millis() - last_render_time >= 100) {
+		if (swap_text) {
+			screen.current_frame().println("hello");
+		} else {
+			screen.current_frame().println("world");
+		}
+		swap_text = !swap_text;
+		last_render_time = now;
 
-    screen.render_frame();
-  }
+		screen.render_frame();
+	}
 }

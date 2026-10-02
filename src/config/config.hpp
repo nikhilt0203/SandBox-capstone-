@@ -6,21 +6,26 @@
 
 namespace sndbx::limits {
 
-constexpr auto module_name_len = 13U;
-constexpr auto module_description_len = 72U;
 constexpr auto max_audio_graph_nodes = 128U;
 constexpr auto max_audio_graph_patches = 128U;
 constexpr auto max_modules = 64U;
 constexpr auto max_module_connections = 128U;
 constexpr auto max_in_ports = 8U;
 constexpr auto max_out_ports = 8U;
-constexpr auto max_input_evts = 32U;
-constexpr auto screen_width_px = 320U;
-constexpr auto screen_height_px = 240U;
+constexpr auto max_module_ctrls = 4U;
+constexpr auto max_ctrl_name_len = 6U;
+constexpr auto max_port_name_len = 3U;
+
 constexpr auto max_file_line_len = 72U;
 constexpr auto max_lines_in_file = 128U;
 constexpr auto max_files_in_directory = 128U;
 constexpr auto max_filename_len = 32U;
+constexpr auto max_module_name_len = 13U;
+constexpr auto max_module_desc_len = 72U;
+
+constexpr auto max_input_evts = 32U;
+constexpr auto screen_width_px = 320U;
+constexpr auto screen_height_px = 240U;
 
 } // namespace sndbx::limits
 
@@ -34,6 +39,7 @@ constexpr auto screen_width_px = 320U;
 constexpr auto screen_height_px = 240U;
 constexpr auto grid_rows = 8U;
 constexpr auto grid_cols = 8U;
+constexpr auto grid_size = grid_rows * grid_cols;
 
 } // namespace sndbx::config
 
