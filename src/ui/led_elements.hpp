@@ -2,52 +2,42 @@
 #define SANDBOX_LED_UI_ELEMENTS_HPP_
 
 #include "config/config.hpp"
-#include "ui/led_matrix.hpp"
+#include "ui/ui_element.hpp"
 #include <cstdint>
+#include <nst/hardware/trellis_led_display.hpp>
+#include <nst/inplace_vector.hpp>
 
-//==========================================================================================
-// Base class for all LED UI elements. Derived classes must take in an LEDFrame
-// reference as the last argument in their constructor.
-//==========================================================================================
-class LEDUIElement {
-  public:
-	LEDUIElement(LEDFrame &frame) : frame_(frame) {}
+namespace sndbx {
 
-	virtual void draw() const = 0;
-
-  protected:
-	LEDFrame &frame_;
-};
+using LEDFrame = nst::teensy::LEDFrame<limits::grid_rows, limits::grid_cols>;
+using LEDElement = UIElement<LEDFrame, LEDFrame::width, LEDFrame::height>;
 
 //==========================================================================================
 // For displaying the module bank
 //==========================================================================================
 template <std::size_t N> class ModuleBank : public LEDUIElement {
   public:
-	ModuleBank(const nst::inplace_vector<std::uint32_t, N> &colors,
-	           std::size_t startIndex, LEDFrame &frame)
-	    : LEDUIElement(frame), m_Colors(colors), m_StartIndex(startIndex) {}
+	ModuleBank(const nst::inplace_vector<nst::teensy::ColorRGB, N> &colors,
+	           std::size_t start_idx, LEDFrame &frame)
+	    : LEDUIElement{frame}, colors_{colors}, start_idx_{start_idx} {}
 
-	void draw() const override {
-		constexpr static auto bankRow = 54 / sndbx::config::grid_rows;
+	void draw(LEDFrame &frame = frame_) const {
+		constexpr static auto bank_row = 54 / limits::grid_rows;
 
-		const auto numColors = m_Colors.size();
 		const auto max =
-		    std::min<std::uint8_t>(numColors, sndbx::config::grid_cols);
+		    std::min<std::uint8_t>(colors_.size(), limits::grid_cols);
 
 		for (std::size_t col{}; col < max; ++col) {
-			const auto wrappedIndex = (m_StartIndex + col) % numColors;
-			frame_.draw_pixel(bankRow, col, m_Colors.at(wrappedIndex));
+			const auto idx = (start_idx_ + col) % colors_.size();
+			frame.draw_pixel(bank_row, col, colors_.at(idx));
 		}
 	}
 
   private:
-	const nst::inplace_vector<std::uint32_t, N> &m_Colors;
-	const std::size_t m_StartIndex;
+	const nst::inplace_vector<nst::teensy::ColorRGB, N> &colors_;
+	std::size_t start_idx_;
 };
 
-template <std::size_t N>
-ModuleBank(const nst::inplace_vector<std::uint32_t, N> &, std::size_t,
-           LEDFrame &) -> ModuleBank<N>;
+} // namespace sndbx
 
 #endif

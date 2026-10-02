@@ -13,10 +13,12 @@
 
 namespace nst::teensy {
 
-template <class Trellis> class TrellisLEDDisplay {
+template <class Trellis, std::size_t Rows, std::size_t Cols>
+class TrellisLEDDisplay {
 	static_assert(std::is_same_v<Adafruit_MultiTrellis, Trellis> ||
 	                  std::is_same_v<Adafruit_NeoTrellis, Trellis>,
 	              "Must use type Adafruit_NeoTrellis or Adafruit_MultiTrellis");
+	using Frame = LEDFrame<Rows, Cols>;
 
   public:
 	explicit TrellisLEDDisplay(Trellis &trellis) : trellis_{trellis} {
@@ -43,7 +45,7 @@ template <class Trellis> class TrellisLEDDisplay {
 		auto &previous_frame = *framebuffers_[1];
 		const auto &current_frame = *framebuffers_[0];
 
-		for (std::size_t px{}; px < LEDFrame::width * LEDFrame::height; ++px) {
+		for (std::size_t px{}; px < Frame::width * Frame::height; ++px) {
 			const auto current_color = current_frame.at(px);
 			if (current_color == previous_frame.at(px)) {
 				continue;
@@ -67,9 +69,9 @@ template <class Trellis> class TrellisLEDDisplay {
 
   private:
 	Trellis &trellis_;
-	LEDFrame buffer1_;
-	LEDFrame buffer2_;
-	std::array<LEDFrame *, 2> framebuffers_{&buffer1_, &buffer2_};
+	Frame buffer1_;
+	Frame buffer2_;
+	std::array<Frame *, 2> framebuffers_{&buffer1_, &buffer2_};
 };
 
 } // namespace nst::teensy

@@ -7,10 +7,10 @@
 
 namespace nst::teensy {
 
-class LEDFrame {
+template <std::size_t X, std::size_t Y> class LEDFrame {
   public:
-	static constexpr std::size_t width = 8;
-	static constexpr std::size_t height = 8;
+	static constexpr std::size_t width = X;
+	static constexpr std::size_t height = Y;
 
 	using Buffer = std::array<ColorRGB, width * height>;
 

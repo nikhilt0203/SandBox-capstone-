@@ -66,7 +66,7 @@ class App {
 	inline static constexpr ModuleBank module_bank =
 	    make_module_bank(ModuleBankTypes::index_sequence{});
 	nst::span<const ModuleBankEntry> bank_window_{module_bank.begin(),
-	                                              config::grid_cols};
+	                                              limits::grid_cols};
 };
 
 } // namespace sndbx

@@ -40,7 +40,7 @@ struct ModuleDisplayInfo {
 
 // default display info, specialize template in each module .hpp
 template <class Module>
-constexpr ModuleDisplayInfo module_info{
+inline constexpr ModuleDisplayInfo module_info{
     {"unnamed", 0xFFFFFF}, "N/A", {}, {}, {}};
 
 } // namespace sndbx

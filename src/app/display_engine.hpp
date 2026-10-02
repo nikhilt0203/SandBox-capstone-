@@ -12,7 +12,9 @@
 
 namespace sndbx {
 using Screen = nst::teensy::TFT;
-using LEDGrid = nst::teensy::TrellisLEDDisplay<Adafruit_MultiTrellis>;
+using LEDGrid =
+    nst::teensy::TrellisLEDDisplay<Adafruit_MultiTrellis, limits::grid_rows,
+                                   limits::grid_cols>;
 } // namespace sndbx
 
 namespace sndbx::display {
@@ -66,7 +68,7 @@ class DisplayEngine {
 		Displayable &module;
 	};
 
-	std::array<std::optional<DisplayEntry>, config::grid_size> display_grid_{};
+	std::array<std::optional<DisplayEntry>, limits::grid_size> display_grid_{};
 	Screen screen_{pinouts::tft_cs, pinouts::tft_dc};
 	LEDGrid led_grid_;
 };

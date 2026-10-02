@@ -12,7 +12,7 @@ namespace sndbx {
 class Oscillator;
 
 template <>
-constexpr ModuleDisplayInfo module_info<Oscillator>{
+inline constexpr ModuleDisplayInfo module_info<Oscillator>{
     {"oscillator", 0x00FF00},
     "outputs a continous waveform modulated by an fm input",
     {"in", "fm"},
