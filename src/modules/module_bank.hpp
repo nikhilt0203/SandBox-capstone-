@@ -26,8 +26,8 @@ template <std::size_t... Is>
 static constexpr ModuleBank make_module_bank(std::index_sequence<Is...>) {
 	return ModuleBank{[]() {
 		using Module = ModuleTypes::get<Is>;
-		constexpr auto name = display_info<Module>.name;
-		constexpr auto desc = display_info<Module>.description;
+		constexpr auto name = module_info<Module>.name;
+		constexpr auto desc = module_info<Module>.description;
 		return ModuleBankEntry{module_type<Module>, name, desc};
 	}()...};
 }

@@ -12,8 +12,8 @@ namespace sndbx {
 class Oscillator;
 
 template <>
-constexpr ModuleDisplayInfo display_info<Oscillator>{
-    "oscillator",
+constexpr ModuleDisplayInfo module_info<Oscillator>{
+    {"oscillator", 0x00FF00},
     "outputs a continous waveform modulated by an fm input",
     {"in", "fm"},
     {"out"},
@@ -32,6 +32,7 @@ class Oscillator : public audio::Patchable,
 
 	std::uint8_t change_control(std::uint8_t idx, std::int8_t amt) override;
 
+	[[nodiscard]] const ModuleDisplayInfo &display_info() const override;
 	[[nodiscard]] ColoredText display_text() const override;
 	[[nodiscard]] nst::teensy::ColorRGB led_color() const override;
 

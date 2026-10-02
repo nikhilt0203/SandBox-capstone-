@@ -35,7 +35,7 @@ class App {
 	bool connect_first(ModulePosition src_pos, ModulePosition dst_pos);
 	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-	void press_module(ModuleID id);
+	void press_module(ModulePosition pos);
 	void turn_module_knob(std::uint8_t idx, std::int8_t amt);
 
 	void rotate_bank(std::int8_t amt);
@@ -43,12 +43,15 @@ class App {
 
 	void clear_selection() { selection_ = {}; }
 
-	bool has_selection() const { return selection_.module; }
+	[[nodiscard]] bool has_selection() const { return selection_.module; }
 
-	[[nodiscard]] auto module_id(ModulePosition pos) const
-	    -> std::optional<ModuleID>;
+	[[nodiscard]] auto selected_pos() const { return selection_.pos; }
+
+	// [[nodiscard]] auto module_id(ModulePosition pos) const
+	//     -> std::optional<ModuleID>;
 
 	[[nodiscard]] const auto &engine() const { return engine_; }
+	[[nodiscard]] auto &engine() { return engine_; }
 
   private:
 	Engine engine_;

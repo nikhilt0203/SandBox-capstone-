@@ -1,6 +1,7 @@
 #ifndef SANDBOX_DISPLAYABLE_HPP_
 #define SANDBOX_DISPLAYABLE_HPP_
 
+#include "module_display_info.hpp"
 #include "ui/ui_text.hpp"
 #include <config/config.hpp>
 #include <nst/color.hpp>
@@ -13,6 +14,7 @@ namespace sndbx {
 class Displayable {
   public:
 	virtual ~Displayable() = default;
+	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const = 0;
 	[[nodiscard]] virtual ColoredText display_text() const = 0;
 	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const = 0;
 };

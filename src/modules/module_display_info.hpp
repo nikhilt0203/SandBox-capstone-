@@ -3,8 +3,10 @@
 
 #include "config/config.hpp"
 #include <array>
+#include <nst/color.hpp>
 #include <nst/inplace_string.hpp>
 #include <string_view>
+#include <tuple>
 
 namespace sndbx {
 
@@ -17,7 +19,8 @@ using OutputLabels = std::array<nst::inplace_string<limits::max_port_name_len>,
 using ControlLabels = std::array<nst::inplace_string<limits::max_ctrl_name_len>,
                                  limits::max_module_ctrls>;
 
-using ModuleName = nst::inplace_string<limits::max_module_name_len>;
+using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
+                             nst::teensy::ColorRGB>;
 
 using ModuleDescription = nst::inplace_string<limits::max_module_desc_len>;
 
@@ -37,7 +40,8 @@ struct ModuleDisplayInfo {
 
 // default display info, specialize template in each module .hpp
 template <class Module>
-constexpr ModuleDisplayInfo display_info{"unnamed", "N/A", {}, {}, {}};
+constexpr ModuleDisplayInfo module_info{
+    {"unnamed", 0xFFFFFF}, "N/A", {}, {}, {}};
 
 } // namespace sndbx
 

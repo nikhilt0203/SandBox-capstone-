@@ -105,18 +105,26 @@ bool App::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 	return engine_.disconnect_first(src_pos, dst_pos);
 }
 
-auto App::module_id(ModulePosition pos) const -> std::optional<ModuleID> {
-	return engine_.module_id(pos);
-}
+// auto App::module_id(ModulePosition pos) const -> std::optional<ModuleID> {
+// 	return engine_.module_id(pos);
+// }
 
 void App::select(ModulePosition pos) {
 	const auto id = engine_.factory()[pos];
+    auto module = engine_.get_module(id);
 	selection_ = {engine_.get_module(id), pos};
+    if (module.holds<Pressable>()) {
+        module.get<Pressable>().on_rising_edge();
+    }
 }
+
+// void App::press_module(ModulePosition pos) {
+//     engine_.module_id(pos)
+// 	engine_.get_module(engine_.module_id(pos));
+// }
 
 void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
 	auto &module = selection_.module;
-
 	if (module.holds<Controllable>() &&
 	    idx < module.get<Controllable>().num_ctrls()) {
 		display_engine_.update_module_ctrl(selection_.pos, idx, amt);

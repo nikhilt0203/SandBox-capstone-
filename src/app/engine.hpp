@@ -55,6 +55,7 @@ class Engine {
 	[[nodiscard]] auto get_module(ModuleID id) { return factory_[id]; }
 
 	[[nodiscard]] const auto &factory() const { return factory_; }
+	[[nodiscard]] auto &factory() { return factory_; }
 
   private:
 	ModuleFactory factory_;

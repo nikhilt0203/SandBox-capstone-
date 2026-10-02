@@ -10,12 +10,13 @@ namespace sndbx {
 
 namespace {
 struct OscWaveform {
-	constexpr OscWaveform(short id, std::string_view name, std::uint32_t color)
+	constexpr OscWaveform(short id, std::string_view name,
+	                      nst::teensy::ColorRGB color)
 	    : id{id}, name{name}, color{color} {}
 
 	short id;
 	std::string_view name;
-	std::uint32_t color;
+	nst::teensy::ColorRGB color;
 };
 
 static constexpr std::array<OscWaveform, 7> osc_waveforms = {
@@ -61,6 +62,10 @@ std::uint8_t Oscillator::change_control(std::uint8_t idx, std::int8_t amt) {
 		return scale_to<std::uint8_t>(waveform_idx_);
 	}
 	return 0;
+}
+
+const ModuleDisplayInfo &Oscillator::display_info() const {
+	return module_info<Oscillator>;
 }
 
 ColoredText Oscillator::display_text() const {
