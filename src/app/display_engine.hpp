@@ -34,7 +34,7 @@ inline void print(Screen &s, std::string_view text,
                   nst::teensy::ColorRGB color = 0xFFFFFF, std::uint8_t size = 4,
                   std::uint16_t x = 0, std::uint16_t y = 0) {
 	auto &frame = s.current_frame();
-	frame.setTextColor(static_cast<nst::teensy::Color565>(color).hex());
+	frame.setTextColor(to_565_hex(color));
 	frame.setTextSize(size);
 	frame.setCursor(x, y);
 	frame.print(text.data());

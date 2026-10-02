@@ -27,6 +27,8 @@ constexpr auto max_input_evts = 32U;
 constexpr auto screen_width_px = 320U;
 constexpr auto screen_height_px = 240U;
 
+constexpr auto serialization_buffer_max = 256U;
+
 } // namespace sndbx::limits
 
 namespace sndbx::config {

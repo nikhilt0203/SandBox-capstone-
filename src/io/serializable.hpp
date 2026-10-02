@@ -1,15 +1,20 @@
 #ifndef SANDBOX_SERIALIZABLE_HPP_
 #define SANDBOX_SERIALIZABLE_HPP_
 
+#include "config/config.hpp"
 #include <array>
 
 namespace sndbx {
 
-template <std::size_t MaxBytes> class Serializable {
-  using Buffer = std::array<std::byte, MaxBytes>;
+struct SerializationBuffer {
+	std::array<std::byte, limits::serialization_buffer_max> data{};
+	std::size_t size{};
+	void write(std::byte b) { data[size++] = b; }
+};
 
-  virtual ~Serializable() = default;
-  virtual void serialize(Buffer &) const = 0;
+class Serializable {
+	virtual ~Serializable() = default;
+	virtual void serialize_to(SerializationBuffer &) const = 0;
 };
 
 } // namespace sndbx

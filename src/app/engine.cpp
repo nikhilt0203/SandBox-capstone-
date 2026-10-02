@@ -28,25 +28,6 @@ std::optional<ModuleID> create_module_impl(ModuleFactory factory,
 	return ret;
 }
 
-AudioError init_audio(AudioGraph &graph, audio::Patchable &p) {
-	const auto prev_nodes_size = graph.nodes().size();
-	const auto prev_patches_size = graph.patches().size();
-
-	auto shrink = [](auto &c, std::size_t size) {
-		while (size < c.size()) {
-			c.pop_back();
-		}
-	};
-
-	const auto error = p.link(graph);
-	if (error != AudioError::NONE) {
-		// restore previous graph state
-		shrink(graph.nodes(), prev_nodes_size);
-		shrink(graph.patches(), prev_patches_size);
-	}
-	return error;
-}
-
 template <typename Container>
 auto find_connection(Container &c, ModulePosition src_pos,
                      std::uint8_t output_idx, ModulePosition dst_pos,
@@ -155,14 +136,14 @@ std::optional<ModuleID> Engine::create_module(ModuleType type,
 	}
 
 	const auto id = factory_[pos];
+	auto &module = factory_[id];
 
 	// initialize audio if module has an audio component
-	if (auto &m = factory_[id]; m.holds<audio::Patchable>()) {
-		if (init_audio(audio_graph_, m.get<audio::Patchable>()) !=
-		    AudioError::NONE) {
-			factory_.erase(id);
-			return std::nullopt;
-		}
+	if (module.holds<audio::Patchable>() &&
+	    (AudioError::NONE !=
+	     module.get<audio::Patchable>().link(audio_graph_))) {
+		factory_.erase(id);
+		return std::nullopt;
 	}
 
 	return id;
