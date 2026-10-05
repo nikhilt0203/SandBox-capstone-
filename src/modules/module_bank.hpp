@@ -11,8 +11,9 @@ namespace sndbx {
  */
 using ModuleBankTypes = nst::type_list<Oscillator>;
 
-template <typename T, typename = std::enable_if_t<ModuleBankTypes::contains<T>>>
-constexpr std::size_t bank_index = ModuleBankTypes::index_of<T>;
+template <typename T,
+          typename = std::enable_if_t<ModuleBankTypes::contains_v<T>>>
+inline constexpr std::size_t bank_index = ModuleBankTypes::index_of<T>;
 
 struct ModuleBankEntry {
 	ModuleType type;
@@ -26,9 +27,8 @@ template <std::size_t... Is>
 static constexpr ModuleBank make_module_bank(std::index_sequence<Is...>) {
 	return ModuleBank{[]() {
 		using Module = ModuleTypes::get<Is>;
-		constexpr auto name = module_info<Module>.name;
-		constexpr auto desc = module_info<Module>.description;
-		return ModuleBankEntry{module_type<Module>, name, desc};
+		return ModuleBankEntry{module_type<Module>, module_info<Module>.name,
+		                       module_info<Module>.description};
 	}()...};
 }
 

@@ -1,12 +1,14 @@
 #include "application.hpp"
-#include "display_engine.hpp"
-#include "event.hpp"
-#include "input_handler.hpp"
-#include "io/pinouts.hpp"
+
 #include <algorithm>
 #include <nst/hardware/rotary_encoder.hpp>
 #include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
+
+#include "display_engine.hpp"
+#include "event.hpp"
+#include "input_handler.hpp"
+#include "io/pinouts.hpp"
 
 namespace sndbx {
 
@@ -51,6 +53,16 @@ void process_events() {
 	}
 }
 
+void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
+	// wiggle all knobs to get the initial values
+	for (std::uint8_t i{}; i < c.num_controls(); ++i) {
+		d.update_module_ctrl(pos, i, c.change_control(i, 1));
+	}
+	for (std::uint8_t i{}; i < c.num_controls(); ++i) {
+		d.update_module_ctrl(pos, i, c.change_control(i, -1));
+	}
+}
+
 } // namespace
 
 void app::init() { Serial.begin(115200); }
@@ -63,7 +75,10 @@ void app::loop() { // Main loop
 }
 //******************************************************************************
 
-void App::update() { display_engine_.render_frame(); }
+void App::update() {
+	display_engine_.display_module(engine_, selection_.pos);
+	display_engine_.render_frame();
+}
 
 void App::rotate_bank(std::int8_t amt) {
 	const std::int8_t min =
@@ -74,8 +89,20 @@ void App::rotate_bank(std::int8_t amt) {
 }
 
 bool App::create_module(ModuleType type, ModulePosition pos) {
-	// display
-	return engine_.create_module(type, pos).has_value();
+	auto id = engine_.create_module(type, pos);
+	if (!id) {
+		return false;
+	}
+
+	nst::poly_view<Displayable, Controllable> module = engine_.get_module(*id);
+
+	if (auto d = module.get_if<Displayable>()) {
+		display_engine_.add_module(*d, pos);
+	}
+	if (auto c = module.get_if<Controllable>()) {
+		populate_ctrl_vals(display_engine_, *c, pos);
+	}
+	return true;
 }
 
 bool App::delete_module(ModulePosition pos) {
@@ -111,11 +138,12 @@ bool App::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 
 void App::select(ModulePosition pos) {
 	const auto id = engine_.factory()[pos];
-    auto module = engine_.get_module(id);
+	auto module = engine_.get_module(id);
 	selection_ = {engine_.get_module(id), pos};
-    if (module.holds<Pressable>()) {
-        module.get<Pressable>().on_rising_edge();
-    }
+	if (module.holds<Pressable>()) {
+		module.get<Pressable>().on_rising_edge();
+	}
+	display_engine_.display_module(engine_, pos);
 }
 
 // void App::press_module(ModulePosition pos) {
@@ -125,9 +153,11 @@ void App::select(ModulePosition pos) {
 
 void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
 	auto &module = selection_.module;
+	const auto pos = selection_.pos;
+
 	if (module.holds<Controllable>() &&
-	    idx < module.get<Controllable>().num_ctrls()) {
-		display_engine_.update_module_ctrl(selection_.pos, idx, amt);
+	    idx < module.get<Controllable>().num_controls()) {
+		display_engine_.update_module_ctrl(pos, idx, amt);
 	}
 }
 

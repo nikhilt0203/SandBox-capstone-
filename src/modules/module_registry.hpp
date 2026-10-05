@@ -105,18 +105,20 @@ template <std::size_t N, class... ModuleBases> class MappedModuleRegistry {
 	    -> nst::expected<Receipt<Module>, Error> {
 		assert(pos.value < map_.size());
 
-		if (auto &entry = map_[pos.value]; entry.has_value()) {
+		auto &entry = map_[pos.value];
+		if (!entry) {
 			return Error::LOCATION_OCCUPIED;
-		} else if (auto *mod = engine::acquire_module<Module>(
-		               std::forward<Args>(args)...);
-		           !mod) {
-			return Error::POOL_EXHAUSTED;
-		} else if (auto new_id = registry_.add(mod); !new_id) {
-			return Error::REGISTRY_FAILED;
-		} else {
-			entry.emplace(MapEntry{*new_id, module_type<Module>, mod});
-			return Receipt<Module>{*new_id, *mod};
 		}
+		auto m = arena::acquire_module<Module>(std::forward<Args>(args)...);
+		if (!m) {
+			return Error::POOL_EXHAUSTED;
+		}
+		auto new_id = registry_.add(m);
+		if (!new_id) {
+			return Error::REGISTRY_FAILED;
+		}
+		entry.emplace(MapEntry{*new_id, module_type<Module>, m});
+		return Receipt<Module>{*new_id, *m};
 	}
 
 	bool erase(ModuleID id) {
@@ -127,7 +129,7 @@ template <std::size_t N, class... ModuleBases> class MappedModuleRegistry {
 			return false;
 		}
 		auto &entry = *it;
-		engine::release_module(entry->type, entry->ptr);
+		arena::release_module(entry->type, entry->ptr);
 		entry.reset();
 		registry_.erase(id);
 		return true;

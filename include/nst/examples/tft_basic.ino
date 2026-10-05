@@ -1,4 +1,5 @@
 #include <Arduino.h>
+
 #include <nst/hardware/ILI9341_display.hpp>
 
 // Initialize TFT with CS and DC pin

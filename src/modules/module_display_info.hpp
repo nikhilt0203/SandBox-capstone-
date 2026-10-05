@@ -10,14 +10,13 @@
 
 namespace sndbx {
 
-using InputLabels = std::array<nst::inplace_string<limits::max_port_name_len>,
-                               limits::max_in_ports>;
+using ModulePortName = nst::inplace_string<limits::max_port_name_len>;
+using ModuleControlName = nst::inplace_string<limits::max_ctrl_name_len>;
 
-using OutputLabels = std::array<nst::inplace_string<limits::max_port_name_len>,
-                                limits::max_out_ports>;
+using ModulePortNames = std::array<ModulePortName, limits::max_in_ports>;
 
-using ControlLabels = std::array<nst::inplace_string<limits::max_ctrl_name_len>,
-                                 limits::max_module_ctrls>;
+using ModuleControlNames =
+    std::array<ModuleControlName, limits::max_module_ctrls>;
 
 using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
                              nst::teensy::ColorRGB>;
@@ -25,22 +24,22 @@ using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
 using ModuleDescription = nst::inplace_string<limits::max_module_desc_len>;
 
 struct ModuleDisplayInfo {
-	InputLabels in_labels;
-	OutputLabels out_labels;
-	ControlLabels ctrl_labels;
+	ModulePortNames in_names;
+	ModulePortNames out_names;
+	ModuleControlNames ctrl_names;
 	ModuleName name;
 	ModuleDescription description;
 
 	constexpr ModuleDisplayInfo(ModuleName name, ModuleDescription desc,
-	                            InputLabels ins, OutputLabels outs,
-	                            ControlLabels ctrls)
-	    : in_labels{ins}, out_labels{outs}, ctrl_labels{ctrls}, name{name},
+	                            ModulePortNames ins, ModulePortNames outs,
+	                            ModuleControlNames ctrls)
+	    : in_names{ins}, out_names{outs}, ctrl_names{ctrls}, name{name},
 	      description{desc} {}
 };
 
 // default display info, specialize template in each module .hpp
 template <class Module>
-inline constexpr ModuleDisplayInfo module_info{
+inline constexpr ModuleDisplayInfo module_info = {
     {"unnamed", 0xFFFFFF}, "N/A", {}, {}, {}};
 
 } // namespace sndbx

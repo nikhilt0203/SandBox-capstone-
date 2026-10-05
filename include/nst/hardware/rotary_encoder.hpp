@@ -66,7 +66,7 @@ template <typename EventContainer> class RotaryEncoder {
 template <std::size_t N>
 using EncoderPins = std::array<std::pair<nst::Pin, nst::Pin>, N>;
 
-namespace details {
+namespace detail {
 template <std::size_t N, typename EventContainer, std::size_t... Is>
 auto make_encoder_array_impl(const EncoderPins<N> &encoder_pins,
                              EventContainer &events,
@@ -75,7 +75,7 @@ auto make_encoder_array_impl(const EncoderPins<N> &encoder_pins,
 	                                encoder_pins[Is].second, Is, events}...};
 }
 
-} // namespace details
+} // namespace detail
 
 template <std::size_t N, typename EventContainer>
 [[nodiscard]] auto make_encoder_array(const EncoderPins<N> &encoder_pins,
@@ -83,8 +83,8 @@ template <std::size_t N, typename EventContainer>
 	static_assert(
 	    detail::can_hold_encoder_events_v<EventContainer>,
 	    "Container must hold EncoderTurnEvent or another convertible type.");
-	return details::make_encoder_array_impl<N>(encoder_pins, events,
-	                                           std::make_index_sequence<N>{});
+	return detail::make_encoder_array_impl<N>(encoder_pins, events,
+	                                          std::make_index_sequence<N>{});
 }
 
 } // namespace nst::teensy

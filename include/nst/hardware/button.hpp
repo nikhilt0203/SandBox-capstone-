@@ -3,9 +3,8 @@
 
 #include <array>
 #include <cstdint>
-#include <type_traits>
-
 #include <nst/pin.hpp>
+#include <type_traits>
 
 namespace nst::teensy {
 

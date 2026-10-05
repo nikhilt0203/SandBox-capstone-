@@ -25,7 +25,7 @@ template <typename... Ts> struct type_list {
 	static constexpr std::size_t size = sizeof...(Ts);
 
 	template <typename T>
-	static constexpr bool contains = (std::is_same_v<T, Ts> || ...);
+	static constexpr bool contains_v = (std::is_same_v<T, Ts> || ...);
 };
 
 }; // namespace nst

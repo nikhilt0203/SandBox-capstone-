@@ -1,10 +1,12 @@
 #ifndef NST_ILI9341_DISPLAY_HPP_
 #define NST_ILI9341_DISPLAY_HPP_
 
-#include "Adafruit_ILI9341.h"
-#include "nst/pin.hpp"
 #include <array>
 #include <cstdint>
+#include <cstring>
+
+#include "Adafruit_ILI9341.h"
+#include "nst/pin.hpp"
 
 namespace nst::teensy {
 

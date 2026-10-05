@@ -5,6 +5,7 @@
 
 #include "assets/sandbox_logo_bitmap.hpp"
 #include "config/config.hpp"
+#include "modules/module_display_info.hpp"
 #include "nst/hardware/ILI9341_display.hpp"
 #include "ui/ui_element.hpp"
 #include "ui/ui_text.hpp"
@@ -180,8 +181,7 @@ class Knob : public ScreenElement {
 
 class PortsDisplay : public ScreenElement {
   public:
-	PortsDisplay(GFXcanvas16 &frame,
-	             const nst::vector_8U<std::string_view> &labels,
+	PortsDisplay(GFXcanvas16 &frame, const ModulePortNames &labels,
 	             const nst::vector_8U<nst::teensy::ColorRGB> &colors,
 	             std::uint16_t x, std::uint16_t y)
 	    : ScreenElement{frame, x, y, 0, square_width}, labels_{labels},
@@ -215,7 +215,7 @@ class PortsDisplay : public ScreenElement {
 				text_color = 0x6060;
 			}
 
-			Text label(frame_, {labels_[i], text_color, 1}, 0, 0);
+			Text label(frame_, {labels_[i].view(), text_color, 1}, 0, 0);
 			label.center_x(x, square_width);
 			label.center_y(y_, square_width);
 			label.draw();
@@ -228,20 +228,19 @@ class PortsDisplay : public ScreenElement {
 	constexpr static auto spacing_px = 7;
 	constexpr static auto text_x_offset = 0;
 	constexpr static auto text_y_offset = 1;
-	const nst::vector_8U<std::string_view> &labels_;
+	const ModulePortNames &labels_;
 	const nst::vector_8U<nst::teensy::ColorRGB> &colors_;
 };
 
 class ModuleDisplay : public ScreenElement {
   public:
-	ModuleDisplay(GFXcanvas16 &frame, ColoredText name,
-	              const nst::vector_4U<std::string_view> &ctrl_labels,
-	              const std::array<std::uint8_t, 4> &ctrl_vals,
-	              const nst::vector_8U<std::string_view> &in_names,
-	              const nst::vector_8U<std::string_view> &out_names,
-	              const nst::vector_8U<nst::teensy::ColorRGB> &in_colors,
-	              const nst::vector_8U<nst::teensy::ColorRGB> &out_colors)
-
+	ModuleDisplay(
+	    GFXcanvas16 &frame, ColoredText name,
+	    const ModuleControlNames &ctrl_labels,
+	    const std::array<std::uint8_t, limits::max_module_ctrls> &ctrl_vals,
+	    const ModulePortNames &in_names, const ModulePortNames &out_names,
+	    const nst::vector_8U<nst::teensy::ColorRGB> &in_colors,
+	    const nst::vector_8U<nst::teensy::ColorRGB> &out_colors)
 	    : ScreenElement{frame},
 	      name_{frame, {name.text, name.color, name_size}, 0, 65},
 	      ctrl_labels_{ctrl_labels}, ctrl_vals_{ctrl_vals},
@@ -273,7 +272,8 @@ class ModuleDisplay : public ScreenElement {
 			const auto turn_amt = static_cast<float>(ctrl_vals_[i]) / 255.0f;
 
 			if (i < ctrl_labels_.size()) {
-				Knob{frame_, knob_x, knobs_y, turn_amt, ctrl_labels_[i]}.draw();
+				Knob{frame_, knob_x, knobs_y, turn_amt, ctrl_labels_[i].view()}
+				    .draw();
 			} else {
 				frame_.drawCircle(knob_x, knobs_y, Knob::radius * 0.85,
 				                  ILI9341_DARKGREY);
@@ -301,7 +301,7 @@ class ModuleDisplay : public ScreenElement {
   private:
 	constexpr static std::uint8_t name_size = 2;
 	Text name_;
-	const nst::vector_4U<std::string_view> &ctrl_labels_;
+	const ModuleControlNames &ctrl_labels_;
 	const std::array<std::uint8_t, 4> &ctrl_vals_;
 	PortsDisplay inputs_;
 	PortsDisplay outputs_;

@@ -13,7 +13,7 @@ inline constexpr auto max_module_connections = 128U;
 inline constexpr auto max_in_ports = 8U;
 inline constexpr auto max_out_ports = 8U;
 inline constexpr auto max_module_ctrls = 4U;
-inline constexpr auto max_ctrl_name_len = 6U;
+inline constexpr auto max_ctrl_name_len = 8U;
 inline constexpr auto max_port_name_len = 3U;
 
 inline constexpr auto max_file_line_len = 72U;

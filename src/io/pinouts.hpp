@@ -21,6 +21,6 @@ inline constexpr std::array trellis_addrs{0x2E, 0x30, 0x31, 0x2f};
 inline constexpr nst::Pin tft_cs{14};
 inline constexpr nst::Pin tft_dc{15};
 
-} // namespace sndbx::pinouts
+}  // namespace sndbx::pinouts
 
 #endif

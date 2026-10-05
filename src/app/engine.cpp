@@ -149,6 +149,11 @@ std::optional<ModuleID> Engine::create_module(ModuleType type,
 	return id;
 }
 
+namespace {
+static std::array<bool, limits::max_in_ports> avail_ins;
+static std::array<bool, limits::max_out_ports> avail_outs;
+} // namespace
+
 bool Engine::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 	const auto src_id = factory_[src_pos];
 	const auto dst_id = factory_[dst_pos];
@@ -157,9 +162,6 @@ bool Engine::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 	if (!modules) {
 		return false;
 	}
-
-	std::array<bool, limits::max_in_ports> avail_ins;
-	std::array<bool, limits::max_out_ports> avail_outs;
 
 	avail_ins.fill(true);
 	avail_outs.fill(true);

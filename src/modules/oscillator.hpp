@@ -27,12 +27,14 @@ class Oscillator : public audio::Patchable,
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-
 	[[nodiscard]] AudioEndpoint map(ModulePort port) const override;
 
-	std::uint8_t change_control(std::uint8_t idx, std::int8_t amt) override;
+	float change_control(std::uint8_t idx, std::int8_t amt) override;
 
-	[[nodiscard]] const ModuleDisplayInfo &display_info() const override;
+	[[nodiscard]] const ModuleDisplayInfo &display_info() const override {
+		return module_info<Oscillator>;
+	}
+
 	[[nodiscard]] ColoredText display_text() const override;
 	[[nodiscard]] nst::teensy::ColorRGB led_color() const override;
 

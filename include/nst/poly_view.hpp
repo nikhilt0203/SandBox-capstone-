@@ -229,8 +229,8 @@ constexpr void invoke_if(poly_view<PossibleBases...> &view, U &&f) {
 }
 
 // Calls function f for each poly_view
-template <class PolyViewContainer, typename U, class... Bases>
-constexpr void for_each(PolyViewContainer &c, U &&f) {
+template <class... Bases, class Container, typename U>
+constexpr void for_each(Container &c, U &&f) {
 	for (auto &view : c) {
 		if constexpr (sizeof...(Bases) == 0) {
 			f(view);
@@ -240,8 +240,8 @@ constexpr void for_each(PolyViewContainer &c, U &&f) {
 	}
 }
 
-template <class PolyViewContainer, typename U, class... Bases>
-constexpr void for_each(const PolyViewContainer &c, U &&f) {
+template <class... Bases, class Container, typename U>
+constexpr void for_each(const Container &c, U &&f) {
 	for (const auto &view : c) {
 		if constexpr (sizeof...(Bases) == 0) {
 			f(view);

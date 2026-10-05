@@ -57,6 +57,8 @@ class Engine {
 	[[nodiscard]] const auto &factory() const { return factory_; }
 	[[nodiscard]] auto &factory() { return factory_; }
 
+	auto &connections() { return connections_; }
+
   private:
 	ModuleFactory factory_;
 	AudioGraph audio_graph_;

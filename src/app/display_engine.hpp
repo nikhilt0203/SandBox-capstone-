@@ -1,12 +1,14 @@
 #ifndef SANDBOX_DISPLAY_ENGINE_HPP_
 #define SANDBOX_DISPLAY_ENGINE_HPP_
 
+#include "engine.hpp"
 #include "io/pinouts.hpp"
 #include "modules/displayable.hpp"
 #include "modules/module_position.hpp"
 #include "ui/screen_elements.hpp"
 #include <nst/hardware/ILI9341_display.hpp>
 #include <nst/hardware/trellis_led_display.hpp>
+#include <nst/poly_view.hpp>
 #include <optional>
 #include <string_view>
 
@@ -52,7 +54,7 @@ class DisplayEngine {
 
 	void render_frame();
 
-	void display_module(ModulePosition pos);
+	void display_module(Engine &e, ModulePosition pos);
 
 	void add_module(Displayable &module, ModulePosition pos);
 

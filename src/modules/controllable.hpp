@@ -1,6 +1,7 @@
 #ifndef SANDBOX_CONTROLLABLE_HPP_
 #define SANDBOX_CONTROLLABLE_HPP_
 
+#include "config/config.hpp"
 #include <cstdint>
 
 namespace sndbx {
@@ -10,12 +11,12 @@ class Controllable {
 
   public:
 	Controllable(std::uint8_t num_ctrls) : num_ctrls_{num_ctrls} {}
-	[[nodiscard]] auto num_ctrls() const { return num_ctrls_; }
-
 	virtual ~Controllable() = default;
 
-	// Change control by amt and return the new value
-	virtual std::uint8_t change_control(std::uint8_t idx, std::int8_t amt) = 0;
+	[[nodiscard]] auto num_controls() const { return num_ctrls_; }
+
+	// Returns the new value of the changed control
+	virtual float change_control(std::uint8_t idx, std::int8_t amt) = 0;
 };
 
 } // namespace sndbx

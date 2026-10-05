@@ -1,6 +1,7 @@
 #ifndef SANDBOX_PARAMETER_HPP_
 #define SANDBOX_PARAMETER_HPP_
 #include <algorithm>
+#include <cassert>
 #include <limits>
 #include <type_traits>
 
@@ -55,6 +56,11 @@ class ModuleParameter {
 		return *this;
 	}
 
+	[[nodiscard]] constexpr float ratio() const noexcept {
+		return (static_cast<float>(value_) - static_cast<float>(min_)) /
+		       static_cast<float>(max_ - min_);
+	}
+
   private:
 	constexpr void set_clamped(T val) noexcept {
 		value_ = std::clamp(val, min_, max_);
@@ -64,14 +70,6 @@ class ModuleParameter {
 	T min_;
 	T max_;
 };
-
-template <typename To, typename From>
-[[nodiscard]] inline constexpr To
-scale_to(const ModuleParameter<From> &p) noexcept {
-	return std::numeric_limits<To>::max() *
-	       static_cast<float>(static_cast<From>(p) - p.min()) /
-	       static_cast<float>(p.max() - p.min());
-}
 
 } // namespace sndbx
 

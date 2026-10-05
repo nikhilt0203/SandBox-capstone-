@@ -9,9 +9,9 @@
 namespace sndbx {
 
 namespace {
-struct OscWaveform {
-	constexpr OscWaveform(short id, std::string_view name,
-	                      nst::teensy::ColorRGB color)
+struct Waveform {
+	constexpr Waveform(std::string_view name, short id,
+	                   nst::teensy::ColorRGB color)
 	    : id{id}, name{name}, color{color} {}
 
 	short id;
@@ -19,14 +19,14 @@ struct OscWaveform {
 	nst::teensy::ColorRGB color;
 };
 
-static constexpr std::array<OscWaveform, 7> osc_waveforms = {
-    OscWaveform{WAVEFORM_SINE, "sine", 0x0FF00},
-    OscWaveform{WAVEFORM_SQUARE, "square", 0xFF000},
-    OscWaveform{WAVEFORM_SAWTOOTH, "saw", 0xFF00F},
-    OscWaveform{WAVEFORM_TRIANGLE, "triangle", 0xFFF00},
-    OscWaveform{WAVEFORM_PULSE, "pulse", 0x00832},
-    OscWaveform{WAVEFORM_SAWTOOTH_REVERSE, "rev saw", 0xB817E},
-    OscWaveform{WAVEFORM_SAMPLE_HOLD, "s&h noise", 0x09F77}};
+static constexpr std::array<Waveform, 7> osc_waveforms = {
+    Waveform{"sine", WAVEFORM_SINE, 0x0FF00},
+    Waveform{"square", WAVEFORM_SQUARE, 0xFF000},
+    Waveform{"saw", WAVEFORM_SAWTOOTH, 0xFF00F},
+    Waveform{"triangle", WAVEFORM_TRIANGLE, 0xFFF00},
+    Waveform{"pulse", WAVEFORM_PULSE, 0x00832},
+    Waveform{"rev saw", WAVEFORM_SAWTOOTH_REVERSE, 0xB817E},
+    Waveform{"s&h noise", WAVEFORM_SAMPLE_HOLD, 0x09F77}};
 } // namespace
 
 AudioError Oscillator::link(AudioGraph &graph) {
@@ -44,28 +44,24 @@ AudioEndpoint Oscillator::map(ModulePort port) const {
 	return audio::make_endpoint(synth_id_, 0);
 }
 
-std::uint8_t Oscillator::change_control(std::uint8_t idx, std::int8_t amt) {
-	assert(idx < num_ctrls());
+float Oscillator::change_control(std::uint8_t idx, std::int8_t amt) {
+	assert(idx < num_controls());
 
 	switch (idx) {
 	case 0:
 		coarse_tune(amt);
-		return scale_to<std::uint8_t>(frequency_);
+		return frequency_.ratio();
 	case 1:
 		fine_tune(amt);
-		return scale_to<std::uint8_t>(fine_tune_);
+		return fine_tune_.ratio();
 	case 2:
 		fm_adjust(amt);
-		return scale_to<std::uint8_t>(fm_depth_);
+		return fm_depth_.ratio();
 	case 3:
 		change_waveform(amt);
-		return scale_to<std::uint8_t>(waveform_idx_);
+		return waveform_idx_.ratio();
 	}
 	return 0;
-}
-
-const ModuleDisplayInfo &Oscillator::display_info() const {
-	return module_info<Oscillator>;
 }
 
 ColoredText Oscillator::display_text() const {

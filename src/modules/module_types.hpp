@@ -13,13 +13,8 @@ namespace sndbx {
 // Modules recognized by the system
 using ModuleTypes = nst::type_list<Oscillator>;
 
-// Max instances per module
-namespace limits {
-template <typename Module> constexpr std::size_t max_instances = 16;
-template <> constexpr std::size_t max_instances<Oscillator> = 32;
-} // namespace limits
-
-// compile-time type id
+// An integer ID for each module type, corresponding to the index where it
+// appears in the ModuleTypes type_list
 struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
 	using strong_alias::strong_alias;
 
@@ -31,13 +26,20 @@ struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
 	}
 };
 
-// type lookup
-template <typename T, typename = std::enable_if_t<ModuleTypes::contains<T>>>
-constexpr ModuleType module_type{ModuleTypes::index_of<T>};
+// Get the value representation of a module type
+template <typename T, typename = std::enable_if_t<ModuleTypes::contains_v<T>>>
+inline constexpr ModuleType module_type{ModuleTypes::index_of<T>};
 
 } // namespace sndbx
 
-namespace sndbx::engine {
+namespace sndbx {
+
+// Max instances per module, default 16
+namespace limits {
+template <typename Module> inline constexpr std::size_t max_instances = 16;
+
+template <> inline constexpr std::size_t max_instances<Oscillator> = 32;
+} // namespace limits
 
 namespace impl {
 
@@ -59,7 +61,10 @@ static constexpr ReleaseTable make_table(std::index_sequence<Is...>) {
 
 inline static constexpr ReleaseTable release_table =
     make_table(ModuleTypes::index_sequence{});
+
 } // namespace impl
+
+namespace arena {
 
 template <class Module, typename... Args>
 inline auto acquire_module(Args &&...args) {
@@ -70,6 +75,8 @@ inline void release_module(ModuleType type, void *module) {
 	impl::release_table[type.value](module);
 }
 
-} // namespace sndbx::engine
+} // namespace arena
+
+} // namespace sndbx
 
 #endif
