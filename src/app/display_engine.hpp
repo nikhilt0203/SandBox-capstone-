@@ -58,8 +58,7 @@ class DisplayEngine {
 
 	void add_module(Displayable &module, ModulePosition pos);
 
-	void update_module_ctrl(ModulePosition pos, std::uint8_t idx,
-	                        std::uint8_t value);
+	void update_module_ctrl(ModulePosition pos, std::uint8_t idx, float value);
 
   private:
 	struct DisplayEntry {

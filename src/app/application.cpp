@@ -76,7 +76,7 @@ void app::loop() { // Main loop
 //******************************************************************************
 
 void App::update() {
-	display_engine_.display_module(engine_, selection_.pos);
+	display_engine_.display_module(engine_, selected_.pos);
 	display_engine_.render_frame();
 }
 
@@ -136,13 +136,8 @@ bool App::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 // 	return engine_.module_id(pos);
 // }
 
-void App::select(ModulePosition pos) {
-	const auto id = engine_.factory()[pos];
-	auto module = engine_.get_module(id);
-	selection_ = {engine_.get_module(id), pos};
-	if (module.holds<Pressable>()) {
-		module.get<Pressable>().on_rising_edge();
-	}
+void App::select(ModuleView module, ModulePosition pos) {
+	selected_ = {module, pos};
 	display_engine_.display_module(engine_, pos);
 }
 
@@ -152,13 +147,16 @@ void App::select(ModulePosition pos) {
 // }
 
 void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
-	auto &module = selection_.module;
-	const auto pos = selection_.pos;
-
-	if (module.holds<Controllable>() &&
-	    idx < module.get<Controllable>().num_controls()) {
-		display_engine_.update_module_ctrl(pos, idx, amt);
+	if (!selected_.module.holds<Controllable>()) {
+		return;
 	}
+	auto &c = selected_.module.get<Controllable>();
+	if (idx < c.num_controls()) {
+		return;
+	}
+	const auto new_val = c.change_control(idx, amt);
+	display_engine_.update_module_ctrl(selected_.pos, idx, new_val);
+	display_engine_.display_module(engine_, selected_.pos);
 }
 
 } // namespace sndbx

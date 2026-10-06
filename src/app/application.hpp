@@ -20,7 +20,7 @@ namespace sndbx {
 class App {
   public:
 	App(DisplayEngine &d) : display_engine_{d} {}
-
+	// display_module might belong here
 	void update();
 
 	bool create_module(ModuleType type, ModulePosition pos);
@@ -39,13 +39,13 @@ class App {
 	void turn_module_knob(std::uint8_t idx, std::int8_t amt);
 
 	void rotate_bank(std::int8_t amt);
-	void select(ModulePosition pos);
+	void select(ModuleView module, ModulePosition pos);
 
-	void clear_selection() { selection_ = {}; }
+	void clear_selection() { selected_ = {}; }
 
-	[[nodiscard]] bool has_selection() const { return selection_.module; }
+	[[nodiscard]] bool has_selection() const { return selected_.module; }
 
-	[[nodiscard]] auto selected_pos() const { return selection_.pos; }
+	[[nodiscard]] auto selected_pos() const { return selected_.pos; }
 
 	// [[nodiscard]] auto module_id(ModulePosition pos) const
 	//     -> std::optional<ModuleID>;
@@ -61,7 +61,9 @@ class App {
 	struct {
 		ModuleView module;
 		ModulePosition pos;
-	} selection_{};
+	} selected_{};
+
+	constexpr static auto size = sizeof(ModuleView);
 
 	inline static constexpr ModuleBank module_bank =
 	    make_module_bank(ModuleBankTypes::index_sequence{});

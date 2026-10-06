@@ -52,7 +52,10 @@ class Engine {
 		return factory_.get_id(pos);
 	}
 
-	[[nodiscard]] auto get_module(ModuleID id) { return factory_[id]; }
+	[[nodiscard]] const auto &get_module(ModuleID id) const {
+		return factory_[id];
+	}
+	[[nodiscard]] auto &get_module(ModuleID id) { return factory_[id]; }
 
 	[[nodiscard]] const auto &factory() const { return factory_; }
 	[[nodiscard]] auto &factory() { return factory_; }

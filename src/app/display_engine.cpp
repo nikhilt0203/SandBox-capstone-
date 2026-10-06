@@ -43,7 +43,8 @@ void DisplayEngine::render_frame() {
 void DisplayEngine::add_module(Displayable &module, ModulePosition pos) {
 	display_grid_[pos.value].emplace(module);
 }
-
+// A module should be displayed when its selected. s
+//
 void DisplayEngine::display_module(Engine &e, ModulePosition pos) {
 	screen_.clear();
 	const auto &entry = display_grid_[pos.value];
@@ -53,7 +54,6 @@ void DisplayEngine::display_module(Engine &e, ModulePosition pos) {
 
 	const auto &d = entry->module;
 	const auto &info = d.display_info();
-	const auto &factory = e.factory();
 
 	const auto [input_colors, output_colors] = connected_module_colors(e, pos);
 

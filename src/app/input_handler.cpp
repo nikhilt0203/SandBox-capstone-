@@ -42,61 +42,34 @@ void EditMode::on_knob_evt(App &app, const KnobEvent &evt) {
 		app.turn_module_knob(idx, delta);
 	}
 }
-static struct {
-	Pressable *pressable = nullptr;
-	ModulePosition pos{0};
-} pressable_cache;
-
-bool pressable_cached() { return pressable_cache.pressable; }
-
-void reset_pressable_cache() { pressable_cache.pressable = nullptr; }
 
 void EditMode::on_keypad_evt(App &app, const KeypadEvent &evt) {
-	const auto key_num = evt.data.key_num;
-	constexpr static auto hold_ms = 1000u;
-	const auto last_key_num = last_key_evt_->data.key_num;
-
-	if (last_key_evt_.has_value() && is_patch_action(*last_key_evt_, evt)) {
-		handle_patch_action(app, last_key_num, key_num);
-		last_key_evt_.reset();
-	}
+	const ModulePosition pos{evt.data.key_num};
 
 	auto &engine = app.engine();
-
-	const auto module_pos = ModulePosition{key_num};
-	auto module_id = engine.module_id(module_pos);
-	Pressable *pressable = nullptr;
-	if (module_id) {
-		pressable = engine.factory()[*module_id].get_if<Pressable>();
+	auto id = engine.module_id(pos);
+	if (!id) {
+		return;
 	}
 
-	switch (evt.data.edge) {
-	case sndbx::KeypadEvent::Edge::RISING_EDGE:
-		timer_.start();
-		if (module_id) {
-			app.select(module_pos);
-		}
-		if (pressable) {
-			pressable->on_rising_edge();
-			pressable_cache = {pressable, module_pos};
-		}
-		break;
+	auto &module = engine.get_module(*id);
 
-	case sndbx::KeypadEvent::Edge::FALLING_EDGE:
-		if (timer_.has_reached(hold_ms)) {
-			app.delete_module(module_pos);
-			if (module_pos == pressable_cache.pos) {
-				reset_pressable_cache();
-			}
+	if (module.holds<Pressable>()) {
+		auto &p = module.get<Pressable>();
+
+		switch (evt.data.edge) {
+		case KeypadEvent::Edge::RISING_EDGE:
+			p.on_rising_edge();
+			break;
+		case KeypadEvent::Edge::FALLING_EDGE:
+			p.on_falling_edge();
+			break;
 		}
-		if (pressable_cached() && module_pos == pressable_cache.pos) {
-			pressable_cache.pressable->on_falling_edge();
-		}
-		break;
 	}
 
-	last_key_evt_ = evt;
+	app.select(module, pos);
 }
+
 void EditMode::on_button_evt(App &app, const ButtonEvent &evt) {
 	Serial.printf("button %d pressed\n", evt.button_num);
 }
