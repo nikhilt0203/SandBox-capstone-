@@ -54,13 +54,21 @@ class DisplayEngine {
 
 	void render_frame();
 
+	void connect(ModulePosition src, ModulePosition dst);
+
 	void display_module(Engine &e, ModulePosition pos);
 
 	void add_module(Displayable &module, ModulePosition pos);
 
+	void remove_module(ModulePosition pos);
+
 	void update_module_ctrl(ModulePosition pos, std::uint8_t idx, float value);
 
   private:
+	auto get_path(ModulePosition start, ModulePosition end)
+	    -> nst::inplace_vector<std::uint8_t,
+	                           limits::grid_rows + limits::grid_cols>;
+
 	struct DisplayEntry {
 		DisplayEntry(Displayable &d) : color{d.led_color()}, module{d} {}
 		std::array<std::uint8_t, limits::max_module_ctrls> ctrl_vals{};

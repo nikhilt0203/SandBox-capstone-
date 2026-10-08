@@ -29,11 +29,17 @@ struct Color565 {
 		return (r << 11) | (g << 5) | b;
 	}
 
-	constexpr Color565 &operator*=(std::uint8_t f) noexcept {
-		r = static_cast<std::uint8_t>((r * f) & 0x1F);
-		g = static_cast<std::uint8_t>((g * f) & 0x3F);
-		b = static_cast<std::uint8_t>((b * f) & 0x1F);
+	constexpr Color565 &operator*=(float f) noexcept {
+		r = static_cast<std::uint8_t>(r * f) & 0x1F;
+		g = static_cast<std::uint8_t>(g * f) & 0x3F;
+		b = static_cast<std::uint8_t>(b * f) & 0x1F;
 		return *this;
+	}
+
+	constexpr Color565 operator*(float f) const noexcept {
+		return {static_cast<std::uint8_t>(r * f) & 0x1F,
+		        static_cast<std::uint8_t>(g * f) & 0x3F,
+		        static_cast<std::uint8_t>(b * f) & 0x1F};
 	}
 
 	explicit constexpr operator ColorRGB() const noexcept;
@@ -78,14 +84,18 @@ struct ColorRGB {
 		       static_cast<std::uint32_t>(b);
 	}
 
-	constexpr ColorRGB &operator*=(std::uint8_t f) noexcept {
+	constexpr ColorRGB &operator*=(float f) noexcept {
 		r = static_cast<std::uint8_t>(r * f);
 		g = static_cast<std::uint8_t>(g * f);
 		b = static_cast<std::uint8_t>(b * f);
 		return *this;
 	}
 
-	explicit constexpr operator Color565() const noexcept {
+	constexpr Color565 operator*(float f) const noexcept {
+		return {r * f, g * f, b * f};
+	}
+
+	constexpr operator Color565() const noexcept {
 		return Color565{static_cast<std::uint8_t>(r >> 3),
 		                static_cast<std::uint8_t>(g >> 2),
 		                static_cast<std::uint8_t>(b >> 3)};

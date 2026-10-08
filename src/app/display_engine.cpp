@@ -4,6 +4,18 @@
 namespace sndbx {
 
 namespace {
+
+// Helpers to convert between position index and row, col
+template <typename T = ModulePosition::underlying_t>
+auto to_row_col(ModulePosition pos) -> std::pair<T, T> {
+	return {pos.value / limits::grid_rows, pos.value % limits::grid_cols};
+}
+
+template <typename T = ModulePosition::underlying_t>
+auto to_index(T row, T col) -> T {
+	return row * limits::grid_rows + col;
+}
+
 using PortColors =
     nst::inplace_vector<nst::teensy::ColorRGB, limits::max_in_ports>;
 
@@ -42,8 +54,78 @@ void DisplayEngine::render_frame() {
 	led_grid_.render_frame();
 }
 
+auto DisplayEngine::get_path(ModulePosition start, ModulePosition end)
+    -> nst::inplace_vector<std::uint8_t,
+                           limits::grid_rows + limits::grid_cols> {
+	nst::inplace_vector<std::uint8_t, limits::grid_rows + limits::grid_cols>
+	    path;
+
+	const auto [end_row, end_col] = to_row_col(end);
+	auto [row, col] = to_row_col(start);
+
+	while (col != end_col) {
+		if (col > end_col) {
+			--col;
+		}
+		if (col < end_col) {
+			++col;
+		}
+		path.push_back(to_index(row, col));
+	}
+	while (row != end_row) {
+		if (row > end_row) {
+			--row;
+		}
+		if (row < end_row) {
+			++row;
+		}
+		path.push_back(to_index(row, col));
+	}
+	return path;
+}
+
+void DisplayEngine::connect(ModulePosition src, ModulePosition dst) {
+	const auto path_color =
+	    (display_grid_[src.value]->color * config::led_brightness).hex();
+
+	auto draw_path = [this, path_color](const auto &path) {
+		for (auto idx : path) {
+			led_grid_.draw_pixel(idx, path_color);
+		}
+	};
+
+	auto num_modules_crossed = [this](const auto &path) {
+		std::size_t crossings{};
+		for (auto idx : path) {
+			if (display_grid_[idx]) {
+				++crossings;
+			}
+		}
+		return crossings;
+	};
+
+	const auto path1 = get_path(src, dst);
+	const auto path1_crossings = num_modules_crossed(path1);
+
+	if (path1_crossings == 0) {
+		draw_path(path1);
+		return;
+	}
+
+	const auto path2 = get_path(dst, src);
+	const auto path2_crossings = num_modules_crossed(path1);
+
+	if (path2_crossings < path1_crossings) {
+		draw_path(path2);
+	}
+}
+
 void DisplayEngine::add_module(Displayable &module, ModulePosition pos) {
 	display_grid_[pos.value].emplace(module);
+}
+
+void DisplayEngine::remove_module(ModulePosition pos) {
+	display_grid_[pos.value].reset();
 }
 // A module should be displayed when its selected. s
 //

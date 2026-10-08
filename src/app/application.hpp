@@ -23,7 +23,7 @@ using AppStates = std::tuple<EditMode, ViewMode>;
 
 class App {
   public:
-	App(DisplayEngine &d) : display_engine_{d} {}
+	App(Engine &e, DisplayEngine &d) : engine_{e}, display_engine_{d} {}
 	// display_module might belong here
 
 	void update();
@@ -77,10 +77,10 @@ class App {
 	}
 
   private:
-	Engine engine_;
 	AppStates app_states_;
 	AppState *app_state_;
 
+	Engine &engine_;
 	DisplayEngine &display_engine_;
 
 	inline static constexpr ModuleBank module_bank =

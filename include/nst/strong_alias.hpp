@@ -11,7 +11,7 @@ namespace nst {
 template <typename T, typename Tag> struct strong_alias {
 	static_assert(std::is_trivial_v<T>, "Aliased type must be trivial.");
 
-	using underlying_type = T;
+	using underlying_t = T;
 	using tag_type = Tag;
 
 	T value{};
@@ -23,7 +23,7 @@ template <typename T, typename Tag> struct strong_alias {
 
 template <typename AliasType>
 [[nodiscard]] constexpr auto to_underlying_t(AliasType alias) {
-	return static_cast<typename AliasType::underlying_type>(alias);
+	return static_cast<typename AliasType::underlying_t>(alias);
 }
 
 } // namespace nst

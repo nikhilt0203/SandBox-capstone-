@@ -42,6 +42,8 @@ constexpr auto trellis_cols = 2U;
 constexpr auto num_encoders = 4U;
 constexpr auto num_buttons = 4U;
 constexpr auto bank_start_idx = 56U;
+constexpr auto led_brightness = 0.7f;
+constexpr auto screen_brightness = 0.7f;
 
 } // namespace sndbx::config
 

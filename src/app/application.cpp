@@ -1,30 +1,32 @@
 #include "application.hpp"
 
 #include "io/pinouts.hpp"
+#include "io/sd_card.hpp"
 #include <algorithm>
 #include <nst/hardware/rotary_encoder.hpp>
 #include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
 
 namespace sndbx {
-
 namespace {
-
+// Consumed by app
 static InputEventQueue event_queue;
 
-static auto keypad =
-    nst::teensy::make_multitrellis<pinouts::trellis_addrs>(event_queue);
+using namespace nst::teensy;
+using namespace pinouts;
 
-static auto knobs =
-    nst::teensy::make_encoder_array(pinouts::encoder_pins, event_queue);
+// Input devices that add events into the queue
+static auto keypad = make_multitrellis<trellis_addrs>(event_queue);
+static auto knobs = make_encoder_array(encoder_pins, event_queue);
+static auto buttons = make_button_array(button_pins, event_queue);
 
-static auto buttons =
-    nst::teensy::make_button_array(pinouts::button_pins, event_queue);
-
+// App core
+static Engine engine;
 static DisplayEngine display_engine{keypad.multitrellis()};
-
 //******************************************************************************
-static App application{display_engine}; // Application instance
+//
+/**/ static App application{engine, display_engine}; // Application instance
+//
 //******************************************************************************
 
 void update_inputs() {
@@ -39,12 +41,14 @@ void update_inputs() {
 	}
 }
 
+// Empty the queue and give events to the app
 void process_events() {
 	while (!event_queue.is_empty()) {
 		std::visit(application, event_queue.pop());
 	}
 }
 
+// Give the display engine the initial values of a Controllable module's params
 void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
 	// wiggle all knobs to get the initial values
 	for (std::uint8_t i{}; i < c.num_controls(); ++i) {
@@ -57,10 +61,16 @@ void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
 
 } // namespace
 
-void app::init() { Serial.begin(115200); }
-
+// App startup and main loop
 //******************************************************************************
-void app::loop() { // Main loop
+void app::init() {
+	Serial.begin(115200);
+	if (!sd_card::init()) {
+		sndbx_log_error("SD card failed.");
+	}
+}
+
+void app::loop() {
 	update_inputs();
 	process_events();
 	application.update();
@@ -98,8 +108,11 @@ bool App::create_module(ModuleType type, ModulePosition pos) {
 }
 
 bool App::delete_module(ModulePosition pos) {
-	// display
-	return engine_.delete_module(pos);
+	if (engine_.delete_module(pos)) {
+		display_engine_.remove_module(pos);
+		return true;
+	}
+	return false;
 }
 
 bool App::connect(ModulePosition src_pos, std::uint8_t output_idx,
