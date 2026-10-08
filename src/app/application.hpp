@@ -19,7 +19,7 @@ void loop();
 
 namespace sndbx {
 
-using AppModes = std::tuple<EditMode, ViewMode>;
+using AppStates = std::tuple<EditMode, ViewMode>;
 
 class App {
   public:
@@ -30,15 +30,15 @@ class App {
 
 	// Dispatch input events to the current app mode
 	void operator()(const KeypadEvent &evt) {
-		app_mode_->on_keypad_evt(*this, evt);
+		app_state_->on_keypad_evt(*this, evt);
 	}
 
 	void operator()(const KnobEvent &evt) {
-		app_mode_->on_knob_evt(*this, evt);
+		app_state_->on_knob_evt(*this, evt);
 	}
 
 	void operator()(const ButtonEvent &evt) {
-		app_mode_->on_button_evt(*this, evt);
+		app_state_->on_button_evt(*this, evt);
 	}
 
 	bool create_module(ModuleType type, ModulePosition pos);
@@ -65,38 +65,34 @@ class App {
 
 	[[nodiscard]] auto selected_pos() const { return selected_.pos; }
 
-	// [[nodiscard]] auto module_id(ModulePosition pos) const
-	//     -> std::optional<ModuleID>;
-
-	[[nodiscard]] const auto &engine() const { return engine_; }
-	[[nodiscard]] auto &engine() { return engine_; }
-
 	[[nodiscard]] auto module_type(std::size_t bank_index) const {
 		return bank_window_[bank_index].type;
 	}
 
-	template <typename Mode> void change_mode() {
-		app_mode_ = &std::get<Mode>(app_modes_);
+	[[nodiscard]] const auto &engine() const { return engine_; }
+	[[nodiscard]] auto &engine() { return engine_; }
+
+	template <class State> void change_app_state() {
+		app_state_ = &std::get<State>(app_states_);
 	}
 
   private:
 	Engine engine_;
-	AppModes app_modes_;
-	AppInputState *app_mode_;
+	AppStates app_states_;
+	AppState *app_state_;
 
 	DisplayEngine &display_engine_;
+
+	inline static constexpr ModuleBank module_bank =
+	    make_module_bank(ModuleBankTypes::index_sequence{});
+
+	nst::span<const ModuleBankEntry> bank_window_{module_bank.begin(),
+	                                              limits::grid_cols};
 
 	struct {
 		ModuleView module;
 		ModulePosition pos;
 	} selected_{};
-
-	constexpr static auto size = sizeof(ModuleView);
-
-	inline static constexpr ModuleBank module_bank =
-	    make_module_bank(ModuleBankTypes::index_sequence{});
-	nst::span<const ModuleBankEntry> bank_window_{module_bank.begin(),
-	                                              limits::grid_cols};
 };
 
 } // namespace sndbx
