@@ -127,29 +127,28 @@ void DisplayEngine::add_module(Displayable &module, ModulePosition pos) {
 void DisplayEngine::remove_module(ModulePosition pos) {
 	display_grid_[pos.value].reset();
 }
-// A module should be displayed when its selected. s
-//
+
 void DisplayEngine::display_module(Engine &engine, ModulePosition pos) {
-	screen_.clear();
 	const auto &entry = display_grid_[pos.value];
 	if (!entry) {
 		return;
 	}
 
-	const auto &d = entry->module;
-	const auto &info = d.display_info();
+	const auto &[ctrl_vals, _, module] = *entry;
+	const auto &info = module.display_info();
 
 	const auto [input_colors, output_colors] =
 	    connected_module_colors(engine, pos);
 
-	ModuleDisplay module_page{screen_.current_frame(),
-	                          d.display_text(),
+	ModuleDisplay module_page{module.display_text(),
 	                          info.ctrl_names,
-	                          entry->ctrl_vals,
 	                          info.in_names,
 	                          info.out_names,
+	                          ctrl_vals,
 	                          input_colors,
-	                          output_colors};
+	                          output_colors,
+	                          screen_.current_frame()};
+	screen_.clear();
 	module_page.draw();
 }
 

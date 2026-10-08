@@ -8,8 +8,8 @@ namespace sndbx {
 template <class Frame, std::size_t FrameWidth, std::size_t FrameHeight>
 class UIElement {
   public:
-	UIElement(Frame &frame, std::uint16_t x, std::uint16_t y,
-	          std::uint16_t width, std::uint16_t height)
+	UIElement(std::uint16_t x, std::uint16_t y, std::uint16_t width,
+	          std::uint16_t height, Frame &frame)
 	    : x_{x}, y_{y}, width_{width}, height_{height}, frame_{frame} {}
 
 	explicit UIElement(Frame &frame)

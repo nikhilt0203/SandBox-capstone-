@@ -37,7 +37,7 @@ struct ModuleDisplayInfo {
 	      description{desc} {}
 };
 
-// default display info, specialize template in each module .hpp
+// Default display info, specialize in each module header file
 template <class Module>
 inline constexpr ModuleDisplayInfo module_info = {
     {"unnamed", 0xFFFFFF}, "N/A", {}, {}, {}};

@@ -40,7 +40,7 @@ AudioError Oscillator::link(AudioGraph &graph) {
 
 void Oscillator::unlink(AudioGraph &graph) { graph.remove_node(synth_id_); }
 
-AudioEndpoint Oscillator::map(ModulePort port) const {
+AudioEndpoint Oscillator::endpoint(ModulePort port) const {
 	return audio::make_endpoint(synth_id_, 0);
 }
 

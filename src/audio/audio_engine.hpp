@@ -40,28 +40,57 @@ struct ModulePort {
 
 namespace sndbx::audio {
 
-[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
-                                        std::uint8_t graph_port) {
-	return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
-}
-
-// Interface between module and audio graph.
+// Interface between a module and the lower-level AudioGraph.
 class Patchable {
   public:
 	Patchable(std::uint8_t ins, std::uint8_t outs) : ins_{ins}, outs_{outs} {}
 	virtual ~Patchable() = default;
 
+	// create the required nodes and/or connections in the audio graph. If any
+	// operation fails, undo the previous operations, then return the error
 	[[nodiscard]] virtual auto link(AudioGraph &graph) -> AudioError = 0;
-	virtual void unlink(AudioGraph &graph) = 0;
-	[[nodiscard]] virtual auto map(ModulePort port) const -> AudioEndpoint = 0;
 
+	// remove any nodes created in link() from the graph
+	virtual void unlink(AudioGraph &graph) = 0;
+
+	// map a module port to an AudioEndpoint.
+	// depending on port.type, check that port.index < ins() or < outs() before
+	// calling
+	[[nodiscard]] virtual auto endpoint(ModulePort port) const
+	    -> AudioEndpoint = 0;
+
+	// the number of input ports
 	[[nodiscard]] std::uint8_t ins() const { return ins_; }
+
+	// the number of output ports
 	[[nodiscard]] std::uint8_t outs() const { return outs_; }
 
   private:
 	std::uint8_t ins_;
 	std::uint8_t outs_;
 };
+
+// Create an AudioEndpoint from a graph node id and port index
+[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
+                                        std::uint8_t graph_port = 0) {
+	return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
+}
+
+// helper function template for mapping a module port to an audio endpoint.
+// InputMap and OutputMap model callables that take in a port index and
+// return an AudioEndpoint.
+template <typename InputMap, typename OutputMap>
+[[nodiscard]] AudioEndpoint map_port(ModulePort port, InputMap &&in_map,
+                                     OutputMap &&out_map) {
+	switch (port.type) {
+	case ModulePort::Type::IN:
+		return in_map(port.index);
+	case ModulePort::Type::OUT:
+		return out_map(port.index);
+	default:
+		return {};
+	}
+}
 
 // connect two Patchables by port index
 inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
@@ -70,12 +99,13 @@ inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
 	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
 		return AudioError::INVALID_PORT;
 	}
-	const auto src_endpt =
-	    src.map(ModulePort{ModulePort::Type::OUT, output_idx});
-	const auto dst_endpt =
-	    dst.map(ModulePort{ModulePort::Type::IN, output_idx});
-	return graph.connect(src_endpt.id, src_endpt.port, dst_endpt.id,
-	                     dst_endpt.port);
+	const auto [src_node_id, src_node_port] =
+	    src.endpoint(ModulePort{ModulePort::Type::OUT, output_idx});
+	const auto [dst_node_id, dst_node_port] =
+	    dst.endpoint(ModulePort{ModulePort::Type::IN, output_idx});
+        
+	return graph.connect(src_node_id, src_node_port, dst_node_id,
+	                        dst_node_port);
 }
 
 // disconnect two Patchables by port index
@@ -85,12 +115,13 @@ inline AudioError disconnect(const Patchable &src, std::uint8_t output_idx,
 	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
 		return AudioError::INVALID_PORT;
 	}
-	const auto src_endpt =
-	    src.map(ModulePort{ModulePort::Type::OUT, output_idx});
-	const auto dst_endpt =
-	    dst.map(ModulePort{ModulePort::Type::IN, output_idx});
-	return graph.disconnect(src_endpt.id, src_endpt.port, dst_endpt.id,
-	                        dst_endpt.port);
+	const auto [src_node_id, src_node_port] =
+	    src.endpoint(ModulePort{ModulePort::Type::OUT, output_idx});
+	const auto [dst_node_id, dst_node_port] =
+	    dst.endpoint(ModulePort{ModulePort::Type::IN, output_idx});
+
+	return graph.disconnect(src_node_id, src_node_port, dst_node_id,
+	                        dst_node_port);
 }
 
 // Query AudioGraph processor usage

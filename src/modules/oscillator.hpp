@@ -27,7 +27,7 @@ class Oscillator : public audio::Patchable,
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	[[nodiscard]] AudioEndpoint map(ModulePort port) const override;
+	[[nodiscard]] AudioEndpoint endpoint(ModulePort port) const override;
 
 	float change_control(std::uint8_t idx, std::int8_t amt) override;
 
