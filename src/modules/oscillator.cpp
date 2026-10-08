@@ -69,6 +69,10 @@ ColoredText Oscillator::display_text() const {
 	return {wave.name, wave.color};
 }
 
+nst::teensy::ColorRGB Oscillator::led_color() const {
+	return osc_waveforms[waveform_idx_].color;
+}
+
 void Oscillator::set_defaults() {
 	frequency_ = 440.0f;
 	fine_tune_ = 0;

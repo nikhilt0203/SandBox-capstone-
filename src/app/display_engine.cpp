@@ -3,6 +3,7 @@
 
 namespace sndbx {
 
+namespace {
 using PortColors =
     nst::inplace_vector<nst::teensy::ColorRGB, limits::max_in_ports>;
 
@@ -15,13 +16,13 @@ auto connected_module_colors(Engine &e, ModulePosition pos)
 	for (const auto &c : e.connections()) {
 		if (c.dst_pos == pos) {
 			const auto id = factory[c.src_pos];
-			const auto m = factory[id];
+			const auto &m = factory[id];
 			if (auto d = m.get_if<Displayable>()) {
 				input_colors[c.input_idx] = d->led_color();
 			}
 		} else if (c.src_pos == pos) {
 			const auto id = factory[c.dst_pos];
-			const auto m = factory[id];
+			const auto &m = factory[id];
 			if (auto d = m.get_if<Displayable>()) {
 				output_colors[c.output_idx] = d->led_color();
 			}
@@ -29,6 +30,7 @@ auto connected_module_colors(Engine &e, ModulePosition pos)
 	}
 	return {input_colors, output_colors};
 }
+} // namespace
 
 DisplayEngine::DisplayEngine(Adafruit_MultiTrellis &t) : led_grid_{t} {
 	screen_.for_each_buffer(
@@ -45,7 +47,7 @@ void DisplayEngine::add_module(Displayable &module, ModulePosition pos) {
 }
 // A module should be displayed when its selected. s
 //
-void DisplayEngine::display_module(Engine &e, ModulePosition pos) {
+void DisplayEngine::display_module(Engine &engine, ModulePosition pos) {
 	screen_.clear();
 	const auto &entry = display_grid_[pos.value];
 	if (!entry) {
@@ -55,7 +57,8 @@ void DisplayEngine::display_module(Engine &e, ModulePosition pos) {
 	const auto &d = entry->module;
 	const auto &info = d.display_info();
 
-	const auto [input_colors, output_colors] = connected_module_colors(e, pos);
+	const auto [input_colors, output_colors] =
+	    connected_module_colors(engine, pos);
 
 	ModuleDisplay module_page{screen_.current_frame(),
 	                          d.display_text(),
@@ -69,8 +72,10 @@ void DisplayEngine::display_module(Engine &e, ModulePosition pos) {
 }
 
 void DisplayEngine::update_module_ctrl(ModulePosition pos, std::uint8_t idx,
-                                       std::uint8_t value) {
-	display_grid_[pos.value]->ctrl_vals[idx] = value;
+                                       float value) {
+	// scale from float 0.0 - 1.0 to byte 0 - 255
+	display_grid_[pos.value]->ctrl_vals[idx] =
+	    value * std::numeric_limits<std::uint8_t>::max();
 }
 
 } // namespace sndbx

@@ -22,6 +22,7 @@ struct KeypadEvent {
 using KnobEvent = nst::teensy::EncoderTurnEvent;
 using ButtonEvent = nst::teensy::ButtonEvent;
 
+// Application input event queue
 using InputEvent = std::variant<KeypadEvent, KnobEvent, ButtonEvent>;
 using InputEventQueue = nst::inplace_vector<InputEvent, limits::max_input_evts>;
 

@@ -3,8 +3,10 @@
 
 #include <Arduino.h>
 
+#include "app_states.hpp"
 #include "display_engine.hpp"
 #include "engine.hpp"
+#include "event.hpp"
 #include "modules/module_bank.hpp"
 #include <nst/span.hpp>
 
@@ -17,11 +19,27 @@ void loop();
 
 namespace sndbx {
 
+using AppModes = std::tuple<EditMode, ViewMode>;
+
 class App {
   public:
 	App(DisplayEngine &d) : display_engine_{d} {}
 	// display_module might belong here
+
 	void update();
+
+	// Dispatch input events to the current app mode
+	void operator()(const KeypadEvent &evt) {
+		app_mode_->on_keypad_evt(*this, evt);
+	}
+
+	void operator()(const KnobEvent &evt) {
+		app_mode_->on_knob_evt(*this, evt);
+	}
+
+	void operator()(const ButtonEvent &evt) {
+		app_mode_->on_button_evt(*this, evt);
+	}
 
 	bool create_module(ModuleType type, ModulePosition pos);
 	bool delete_module(ModulePosition pos);
@@ -53,8 +71,18 @@ class App {
 	[[nodiscard]] const auto &engine() const { return engine_; }
 	[[nodiscard]] auto &engine() { return engine_; }
 
+	[[nodiscard]] auto module_type(std::size_t bank_index) const {
+		return bank_window_[bank_index].type;
+	}
+
+	template <typename Mode> void change_mode() {
+		app_mode_ = &std::get<Mode>(app_modes_);
+	}
+
   private:
 	Engine engine_;
+	AppModes app_modes_;
+	AppInputState *app_mode_;
 
 	DisplayEngine &display_engine_;
 

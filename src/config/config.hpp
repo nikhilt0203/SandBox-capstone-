@@ -41,6 +41,7 @@ constexpr auto trellis_rows = 2U;
 constexpr auto trellis_cols = 2U;
 constexpr auto num_encoders = 4U;
 constexpr auto num_buttons = 4U;
+constexpr auto bank_start_idx = 56U;
 
 } // namespace sndbx::config
 

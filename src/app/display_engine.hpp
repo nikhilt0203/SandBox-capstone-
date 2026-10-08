@@ -62,9 +62,8 @@ class DisplayEngine {
 
   private:
 	struct DisplayEntry {
-		DisplayEntry(Displayable &d)
-		    : ctrl_vals{}, color{d.led_color()}, module{d} {}
-		std::array<std::uint8_t, limits::max_module_ctrls> ctrl_vals;
+		DisplayEntry(Displayable &d) : color{d.led_color()}, module{d} {}
+		std::array<std::uint8_t, limits::max_module_ctrls> ctrl_vals{};
 		nst::teensy::ColorRGB color;
 		Displayable &module;
 	};

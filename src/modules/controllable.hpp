@@ -15,7 +15,7 @@ class Controllable {
 
 	[[nodiscard]] auto num_controls() const { return num_ctrls_; }
 
-	// Returns the new value of the changed control
+	// Returns the new value (normalized)
 	virtual float change_control(std::uint8_t idx, std::int8_t amt) = 0;
 };
 

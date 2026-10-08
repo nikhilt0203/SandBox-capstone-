@@ -1,14 +1,10 @@
 #include "application.hpp"
 
+#include "io/pinouts.hpp"
 #include <algorithm>
 #include <nst/hardware/rotary_encoder.hpp>
 #include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
-
-#include "display_engine.hpp"
-#include "event.hpp"
-#include "input_handler.hpp"
-#include "io/pinouts.hpp"
 
 namespace sndbx {
 
@@ -31,10 +27,6 @@ static DisplayEngine display_engine{keypad.multitrellis()};
 static App application{display_engine}; // Application instance
 //******************************************************************************
 
-static InputEventHandler input_handler{application};
-
-void handle_event(const sndbx::InputEvent &e) { std::visit(input_handler, e); }
-
 void update_inputs() {
 	keypad.update();
 
@@ -49,7 +41,7 @@ void update_inputs() {
 
 void process_events() {
 	while (!event_queue.is_empty()) {
-		handle_event(event_queue.pop());
+		std::visit(application, event_queue.pop());
 	}
 }
 
@@ -132,19 +124,10 @@ bool App::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 	return engine_.disconnect_first(src_pos, dst_pos);
 }
 
-// auto App::module_id(ModulePosition pos) const -> std::optional<ModuleID> {
-// 	return engine_.module_id(pos);
-// }
-
 void App::select(ModuleView module, ModulePosition pos) {
 	selected_ = {module, pos};
 	display_engine_.display_module(engine_, pos);
 }
-
-// void App::press_module(ModulePosition pos) {
-//     engine_.module_id(pos)
-// 	engine_.get_module(engine_.module_id(pos));
-// }
 
 void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
 	if (!selected_.module.holds<Controllable>()) {
