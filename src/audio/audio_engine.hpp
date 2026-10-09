@@ -10,6 +10,7 @@
 #include "config/config.hpp"
 #include "modules/parameter.hpp"
 #include <nst/audio_graph.hpp>
+#include <type_traits>
 
 namespace sndbx {
 
@@ -84,12 +85,39 @@ template <typename InputMap, typename OutputMap>
                                      OutputMap &&out_map) {
 	switch (port.type) {
 	case ModulePort::Type::IN:
-		return in_map(port.index);
+		return std::forward<InputMap>(in_map)(port.index);
 	case ModulePort::Type::OUT:
-		return out_map(port.index);
+		return std::forward<OutputMap>(out_map)(port.index);
 	default:
+		assert(false && "Invalid port type");
 		return {};
 	}
+}
+
+// Takes a initializer list of AudioStream * and AudioNodeID & (out param)
+// pairs, adds each device to the audio graph and writes the id to the
+// corresponding out param. If any node addition fails, all nodes are removed
+// and the error is returned.
+inline AudioError add_nodes(
+    AudioGraph &graph,
+    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
+        node_data) {
+	auto nodes_added = 0U;
+	for (auto &data : node_data) {
+		auto device = data.first;
+		assert(device);
+		const auto id = graph.add_node(device);
+		if (!id) {
+			// remove ids that have been previously written
+			std::for_each_n(
+			    node_data.begin(), nodes_added,
+			    [&graph](const auto &pair) { graph.remove_node(pair.second); });
+			return id.error();
+		}
+		data.second = *id;
+		++nodes_added;
+	}
+	return AudioError::NONE;
 }
 
 // connect two Patchables by port index
@@ -103,9 +131,9 @@ inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
 	    src.endpoint(ModulePort{ModulePort::Type::OUT, output_idx});
 	const auto [dst_node_id, dst_node_port] =
 	    dst.endpoint(ModulePort{ModulePort::Type::IN, output_idx});
-        
+
 	return graph.connect(src_node_id, src_node_port, dst_node_id,
-	                        dst_node_port);
+	                     dst_node_port);
 }
 
 // disconnect two Patchables by port index

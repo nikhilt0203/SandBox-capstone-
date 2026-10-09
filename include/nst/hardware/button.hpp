@@ -62,7 +62,7 @@ template <class EventContainer> class Button {
   private:
 	EventContainer &events_;
 	nst::Pin pin_;
-	std::size_t button_num_;
+	std::uint8_t button_num_;
 	std::uint8_t last_state_{pin_.read()};
 };
 

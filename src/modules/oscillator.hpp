@@ -22,8 +22,14 @@ inline constexpr ModuleDisplayInfo module_info<Oscillator>{
 class Oscillator : public audio::Patchable,
                    public Controllable,
                    public Displayable {
+	using Self = Oscillator;
+
   public:
-	Oscillator() : Patchable{2, 1}, Controllable{4} { set_defaults(); }
+	Oscillator()
+	    : Patchable{num_ins<Self>, num_outs<Self>},
+	      Controllable{num_ctrls<Self>} {
+		set_defaults();
+	}
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
@@ -48,7 +54,7 @@ class Oscillator : public audio::Patchable,
 	void change_waveform(int amt);
 
 	ModuleParameter<float> frequency_{0.01f, 18000.0f};
-	ModuleParameter<int> fine_tune_{-50, 50};
+	ModuleParameter<std::int8_t> fine_tune_{-50, 50};
 	ModuleParameter<float> fm_depth_{0.0f, 12.0f};
 	ModuleParameter<std::size_t> waveform_idx_{0U, 6U};
 

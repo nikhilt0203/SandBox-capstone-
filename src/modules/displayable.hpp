@@ -14,9 +14,18 @@ namespace sndbx {
 class Displayable {
   public:
 	virtual ~Displayable() = default;
-	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const = 0;
-	[[nodiscard]] virtual ColoredText display_text() const = 0;
-	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const = 0;
+
+	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const {
+		return module_info<struct Default>;
+	}
+
+	[[nodiscard]] virtual ColoredText display_text() const {
+		return {"unnamed", 0xFFFFFF};
+	}
+
+	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const {
+		return 0xFFFFFF;
+	}
 };
 
 } // namespace sndbx

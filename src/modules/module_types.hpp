@@ -1,6 +1,7 @@
 #ifndef SANDBOX_MODULE_TYPES_HPP_
 #define SANDBOX_MODULE_TYPES_HPP_
 
+#include "envelope.hpp"
 #include "oscillator.hpp"
 #include <nst/object_pool.hpp>
 #include <nst/strong_alias.hpp>
@@ -11,17 +12,24 @@
 namespace sndbx {
 
 // Modules recognized by the system
-using ModuleTypes = nst::type_list<Oscillator>;
+using ModuleTypes = nst::type_list<Oscillator, Envelope>;
 
-// An integer ID for each module type, corresponding to the index where it
-// appears in the ModuleTypes type_list
+namespace limits {
+// Max instances per module, default 16
+template <typename Module> inline constexpr std::size_t max_instances = 16;
+
+template <> inline constexpr std::size_t max_instances<Oscillator> = 32;
+template <> inline constexpr std::size_t max_instances<Envelope> = 32;
+} // namespace limits
+
+// An integer ID for each module type in the ModuleTypes type list
 struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
 	using strong_alias::strong_alias;
 
-	constexpr bool operator==(const ModuleType &other) const {
+	constexpr bool operator==(const ModuleType &other) const noexcept {
 		return value == other.value;
 	}
-	constexpr bool operator!=(const ModuleType &other) const {
+	constexpr bool operator!=(const ModuleType &other) const noexcept {
 		return value != other.value;
 	}
 };
@@ -34,33 +42,25 @@ inline constexpr ModuleType module_type{ModuleTypes::index_of<T>};
 
 namespace sndbx {
 
-// Max instances per module, default 16
-namespace limits {
-template <typename Module> inline constexpr std::size_t max_instances = 16;
-
-template <> inline constexpr std::size_t max_instances<Oscillator> = 32;
-} // namespace limits
-
 namespace impl {
 
-template <typename T> auto &module_pool() {
-	static nst::object_pool<T, limits::max_instances<T>> pool;
+template <class Module> auto &module_pool() {
+	static nst::object_pool<Module, limits::max_instances<Module>> pool;
 	return pool;
 }
 
-template <typename T> static void release(void *m) {
-	module_pool<T>().release(static_cast<T *>(m));
+template <class Module> static void release(void *module) {
+	module_pool<Module>().release(static_cast<Module *>(module));
 }
 
 using ReleaseTable = std::array<void (*)(void *), ModuleTypes::size>;
 
 template <std::size_t... Is>
-static constexpr ReleaseTable make_table(std::index_sequence<Is...>) {
-	return {&release<ModuleTypes::get<Is>>...};
+inline constexpr auto make_table(std::index_sequence<Is...>) {
+	return ReleaseTable{&release<ModuleTypes::get<Is>>...};
 }
 
-inline static constexpr ReleaseTable release_table =
-    make_table(ModuleTypes::index_sequence{});
+inline constexpr auto release_table = make_table(ModuleTypes::index_sequence{});
 
 } // namespace impl
 

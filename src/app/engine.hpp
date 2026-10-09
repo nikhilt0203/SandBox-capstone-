@@ -3,19 +3,25 @@
 
 #include "audio/audio_engine.hpp"
 #include "config/config.hpp"
-#include "modules/controllable.hpp"
-#include "modules/displayable.hpp"
+#include "modules/module_interfaces.hpp"
 #include "modules/module_registry.hpp"
-#include "modules/pressable.hpp"
 #include <optional>
 
 namespace sndbx {
 
-using ModuleFactory =
-    MappedModuleRegistry<limits::max_modules, audio::Patchable, Displayable,
-                         Controllable, Pressable>;
+namespace detail {
+template <class InterfaceList> struct ToModuleViewType {};
 
-using ModuleView = ModuleFactory::value_type;
+template <class... Interfaces>
+struct ToModuleViewType<nst::type_list<Interfaces...>> {
+	using result = nst::poly_view<Interfaces...>;
+};
+} // namespace detail
+
+using ModuleView = detail::ToModuleViewType<ModuleInterfaces>::result;
+
+using ModuleFactory =
+    MappedModuleRegistry<ModuleView, limits::max_modules>;
 
 struct ModuleConnection {
 	ModulePosition src_pos;

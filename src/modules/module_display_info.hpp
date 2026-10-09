@@ -37,10 +37,19 @@ struct ModuleDisplayInfo {
 	      description{desc} {}
 };
 
-// Default display info, specialize in each module header file
+// Specialize per module in each header file
 template <class Module>
 inline constexpr ModuleDisplayInfo module_info = {
-    {"unnamed", 0xFFFFFF}, "N/A", {}, {}, {}};
+    {"unnamed", 0xFFFFFF}, "no information available", {}, {}, {}};
+
+template <class Module>
+inline constexpr auto num_ins = module_info<Module>.in_names.size();
+
+template <class Module>
+inline constexpr auto num_outs = module_info<Module>.out_names.size();
+
+template <class Module>
+inline constexpr auto num_ctrls = module_info<Module>.ctrl_names.size();
 
 } // namespace sndbx
 

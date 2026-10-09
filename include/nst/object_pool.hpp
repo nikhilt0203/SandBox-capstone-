@@ -10,7 +10,7 @@
 
 namespace nst {
 
-template <typename T, std::size_t N> class object_pool {
+template <typename T, std::size_t Capacity> class object_pool {
   public:
 	using value_type = T;
 
@@ -59,11 +59,11 @@ template <typename T, std::size_t N> class object_pool {
 
 	[[nodiscard]] std::size_t num_active() const { return num_active_; }
 
-	[[nodiscard]] static constexpr std::size_t size() { return N; }
+	[[nodiscard]] static constexpr std::size_t capacity() { return Capacity; }
 
 	[[nodiscard]] bool empty() const { return num_active_ == 0; }
 
-	[[nodiscard]] bool is_full() const { return num_active_ == N; }
+	[[nodiscard]] bool is_full() const { return num_active_ == Capacity; }
 
   private:
 	struct Slot {
@@ -74,7 +74,7 @@ template <typename T, std::size_t N> class object_pool {
 		const T *ptr() const { return reinterpret_cast<const T *>(&storage); }
 	};
 
-	std::array<Slot, N> objs_{};
+	std::array<Slot, Capacity> objs_{};
 	std::size_t num_active_{};
 };
 

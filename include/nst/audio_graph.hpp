@@ -124,8 +124,7 @@ class AudioGraph {
 
 	auto connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
 	             AudioPort dst_port) -> Error {
-		if (!(connection_pool_.num_active() < connection_pool_.size()) ||
-		    patches_.is_full()) {
+		if (connection_pool_.is_full() || patches_.is_full()) {
 			return Error::POOL_EXHAUSTED;
 		}
 
