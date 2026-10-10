@@ -1,7 +1,7 @@
 #include "application.hpp"
 
 #include "app_states.hpp"
-#include "modules/module_position.hpp"
+#include "modules/factory/module_position.hpp"
 #include <algorithm>
 #include <optional>
 

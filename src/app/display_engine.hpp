@@ -4,7 +4,7 @@
 #include "engine.hpp"
 #include "io/pinouts.hpp"
 #include "modules/displayable.hpp"
-#include "modules/module_position.hpp"
+#include "modules/factory/module_position.hpp"
 #include "ui/screen_elements.hpp"
 #include <nst/hardware/ILI9341_display.hpp>
 #include <nst/hardware/trellis_led_display.hpp>

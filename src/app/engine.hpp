@@ -4,7 +4,7 @@
 #include "audio/audio_engine.hpp"
 #include "config/config.hpp"
 #include "modules/module_interfaces.hpp"
-#include "modules/module_registry.hpp"
+#include "modules/factory/module_registry.hpp"
 #include <optional>
 
 namespace sndbx {
