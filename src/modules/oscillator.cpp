@@ -1,9 +1,9 @@
 
 #include "oscillator.hpp"
-#include "audio/audio_engine.hpp"
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
+#include "audio/audio_engine.hpp"
 
 namespace sndbx {
 
