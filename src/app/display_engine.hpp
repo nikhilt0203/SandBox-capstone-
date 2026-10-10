@@ -54,7 +54,7 @@ class DisplayEngine {
 
 	void render_frame();
 
-	void connect(ModulePosition src, ModulePosition dst);
+	void draw_connection(ModulePosition src, ModulePosition dst);
 
 	void display_module(Engine &e, ModulePosition pos);
 

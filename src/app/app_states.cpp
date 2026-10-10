@@ -32,7 +32,7 @@ void handle_patch_action(App &app, ModulePosition first,
 
 } // namespace
 
-void EditMode::on_knob_evt(App &app, const KnobEvent &evt) {
+void AppEditState::on_knob_evt(App &app, const KnobEvent &evt) {
 	const auto [idx, delta] = evt;
 
 	if (idx == 0 && last_key_evt_.has_value() &&
@@ -43,12 +43,13 @@ void EditMode::on_knob_evt(App &app, const KnobEvent &evt) {
 	}
 }
 
-void EditMode::on_keypad_evt(App &app, const KeypadEvent &evt) {
+void AppEditState::on_keypad_evt(App &app, const KeypadEvent &evt) {
 	const auto key_num = evt.data.key_num;
 	const ModulePosition pos{key_num};
 
 	auto id = app.engine().module_id(pos);
 	if (!id) {
+        last_key_evt_.reset();
 		return;
 	}
 
@@ -93,15 +94,15 @@ void EditMode::on_keypad_evt(App &app, const KeypadEvent &evt) {
 	app.select(module, pos);
 }
 
-void EditMode::on_button_evt(App &app, const ButtonEvent &evt) {
+void AppEditState::on_button_evt(App &app, const ButtonEvent &evt) {
 	Serial.printf("button %d pressed\n", evt.button_num);
 }
 
-void ViewMode::on_knob_evt(App &app, const sndbx::KnobEvent &evt) {
+void AppViewState::on_knob_evt(App &app, const sndbx::KnobEvent &evt) {
 	app.turn_module_knob(evt.encoder_num, evt.delta);
 }
 
-void ViewMode::on_keypad_evt(App &app, const sndbx::KeypadEvent &e) {}
-void ViewMode::on_button_evt(App &app, const sndbx::ButtonEvent &e) {}
+void AppViewState::on_keypad_evt(App &app, const sndbx::KeypadEvent &e) {}
+void AppViewState::on_button_evt(App &app, const sndbx::ButtonEvent &e) {}
 
 } // namespace sndbx

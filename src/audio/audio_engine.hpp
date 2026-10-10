@@ -8,7 +8,6 @@
 
 #include "audio/audio_trigger.hpp"
 #include "config/config.hpp"
-#include "modules/parameter.hpp"
 #include <nst/audio_graph.hpp>
 #include <type_traits>
 
@@ -73,7 +72,7 @@ class Patchable {
 
 // Create an AudioEndpoint from a graph node id and port index
 [[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
-                                        std::uint8_t graph_port = 0) {
+                                        std::uint8_t graph_port) {
 	return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
 }
 
@@ -118,6 +117,13 @@ inline AudioError add_nodes(
 		++nodes_added;
 	}
 	return AudioError::NONE;
+}
+
+// Overload for adding only one node
+inline auto
+add_nodes(AudioGraph &graph,
+          std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data) {
+	return add_nodes(graph, {node_data});
 }
 
 // connect two Patchables by port index

@@ -5,7 +5,7 @@
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
-#include "parameter.hpp"
+#include "module_parameter.hpp"
 
 namespace sndbx {
 
@@ -23,7 +23,6 @@ class Oscillator : public audio::Patchable,
                    public Controllable,
                    public Displayable {
 	using Self = Oscillator;
-
   public:
 	Oscillator()
 	    : Patchable{num_ins<Self>, num_outs<Self>},
@@ -38,7 +37,7 @@ class Oscillator : public audio::Patchable,
 	float change_control(std::uint8_t idx, std::int8_t amt) override;
 
 	[[nodiscard]] const ModuleDisplayInfo &display_info() const override {
-		return module_info<Oscillator>;
+		return module_info<Self>;
 	}
 
 	[[nodiscard]] ColoredText display_text() const override;

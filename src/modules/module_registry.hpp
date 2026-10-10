@@ -108,6 +108,7 @@ class MappedModuleRegistry {
 	auto make(ModulePosition pos, Args &&...args)
 	    -> nst::expected<Receipt<Module>, Error> {
 		assert(pos.value < map_.size() && "Invalid module position.");
+
 		if (registry_.size() == Capacity) {
 			return Error::CAPACITY_REACHED;
 		}
@@ -116,13 +117,15 @@ class MappedModuleRegistry {
 		if (!entry) {
 			return Error::LOCATION_OCCUPIED;
 		}
-		auto m = arena::acquire_module<Module>(std::forward<Args>(args)...);
-		if (!m) {
+
+		auto module = arena::acquire_module<Module>(std::forward<Args>(args)...);
+		if (!module) {
 			return Error::MODULE_POOL_EXHAUSTED;
 		}
-		auto new_id = registry_.add(m);
-		entry.emplace(MapEntry{*new_id, module_type<Module>, m});
-		return Receipt<Module>{*new_id, *m};
+
+		auto new_id = registry_.add(module);
+		entry.emplace(MapEntry{*new_id, module_type<Module>, module});
+		return Receipt<Module>{*new_id, *module};
 	}
 
 	bool erase(ModuleID id) {

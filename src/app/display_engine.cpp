@@ -84,7 +84,7 @@ auto DisplayEngine::get_path(ModulePosition start, ModulePosition end)
 	return path;
 }
 
-void DisplayEngine::connect(ModulePosition src, ModulePosition dst) {
+void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 	const auto path_color =
 	    (display_grid_[src.value]->color * config::led_brightness).hex();
 
@@ -104,6 +104,7 @@ void DisplayEngine::connect(ModulePosition src, ModulePosition dst) {
 		return crossings;
 	};
 
+    // prefer the path that crosses the least number of other modules
 	const auto path1 = get_path(src, dst);
 	const auto path1_crossings = num_modules_crossed(path1);
 

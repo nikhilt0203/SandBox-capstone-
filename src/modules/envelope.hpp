@@ -6,7 +6,7 @@
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
-#include "parameter.hpp"
+#include "module_parameter.hpp"
 #include "pressable.hpp"
 
 namespace sndbx {
@@ -26,7 +26,6 @@ class Envelope : public audio::Patchable,
                  public Displayable,
                  public Pressable {
 	using Self = Envelope;
-
   public:
 	Envelope()
 	    : Patchable{num_ins<Self>, num_outs<Self>},
@@ -35,7 +34,10 @@ class Envelope : public audio::Patchable,
 	void add_node(AudioGraph &graph, AudioStream *dev) {}
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override {
-		return audio::add_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
+		return audio::add_nodes(graph, {
+                {&env_, env_id_}, 
+                {&trig_, trig_id_}
+            });
 	}
 
 	void unlink(AudioGraph &graph) override {
@@ -45,10 +47,10 @@ class Envelope : public audio::Patchable,
 
 	[[nodiscard]] AudioEndpoint endpoint(ModulePort port) const override {
 		auto in_map = [this](auto in) {
-			return in == 0 ? audio::make_endpoint(env_id_)
-			               : audio::make_endpoint(trig_id_);
+			return in == 0 ? audio::make_endpoint(env_id_, 0)
+			               : audio::make_endpoint(trig_id_, 0);
 		};
-		auto out_map = [this](auto) { return audio::make_endpoint(env_id_); };
+		auto out_map = [this](auto) { return audio::make_endpoint(env_id_, 0); };
 
 		return audio::map_port(port, in_map, out_map);
 	}

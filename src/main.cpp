@@ -1,6 +1,12 @@
-#include "app/application.hpp"
+//#include "app/application.hpp"
 #include <Arduino.h>
+#include "tests.hpp"
 
-void setup() { sndbx::app::init(); }
+void setup() { 
+    audio_graph_sine_usb_test();
+    // sndbx::app::init(); }
+}
 
-void loop() { sndbx::app::loop(); }
+void loop() { 
+    //sndbx::app::loop();
+}

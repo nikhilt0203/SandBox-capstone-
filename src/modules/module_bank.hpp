@@ -6,11 +6,6 @@
 
 namespace sndbx {
 
-/*
- * Modules listed in the bank
- */
-using ModuleBankTypes = nst::type_list<Oscillator>;
-
 template <typename T,
           typename = std::enable_if_t<ModuleBankTypes::contains_v<T>>>
 inline constexpr std::size_t bank_index = ModuleBankTypes::index_of<T>;

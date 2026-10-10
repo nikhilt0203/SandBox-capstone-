@@ -164,7 +164,7 @@ class AudioGraph {
 			return Error::PATCH_NOT_FOUND;
 		}
 
-		std::for_each(begin, it, [](auto &p) { release_patch(p); });
+		std::for_each(begin, it, [this](auto &p) { release_patch(p); });
 		patches_.erase(it, end);
 		return Error::NONE;
 	}

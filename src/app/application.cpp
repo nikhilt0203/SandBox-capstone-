@@ -13,22 +13,23 @@ namespace {
 static InputEventQueue event_queue;
 
 using namespace nst::teensy;
-using namespace pinouts;
 
 // Input devices that add events into the queue
-static auto keypad = make_multitrellis<trellis_addrs>(event_queue);
-static auto knobs = make_encoder_array(encoder_pins, event_queue);
-static auto buttons = make_button_array(button_pins, event_queue);
+static auto keypad = make_multitrellis<pinouts::trellis_addrs>(event_queue);
+static auto knobs = make_encoder_array(pinouts::encoder_pins, event_queue);
+static auto buttons = make_button_array(pinouts::button_pins, event_queue);
 
 // App core
 static Engine engine;
 static DisplayEngine display_engine{keypad.multitrellis()};
+
 //******************************************************************************
 //
 /**/ static App application{engine, display_engine}; // Application instance
 //
 //******************************************************************************
 
+// Push any input events into the queue
 void update_inputs() {
 	keypad.update();
 
@@ -77,6 +78,14 @@ void app::loop() {
 }
 //******************************************************************************
 
+namespace {
+void draw_all_connections(const Engine &e, DisplayEngine &d) {
+	for (const auto &c : e.connections()) {
+		d.draw_connection(c.src_pos, c.dst_pos);
+	}
+}
+} // namespace
+
 void App::update() {
 	display_engine_.display_module(engine_, selected_.pos);
 	display_engine_.render_frame();
@@ -117,14 +126,19 @@ bool App::delete_module(ModulePosition pos) {
 
 bool App::connect(ModulePosition src_pos, std::uint8_t output_idx,
                   ModulePosition dst_pos, std::uint8_t input_idx) {
-	// do display stuff
-	return engine_.connect(src_pos, output_idx, dst_pos, input_idx);
+	if (!engine_.connect(src_pos, output_idx, dst_pos, input_idx)) {
+		return false;
+	}
+	display_engine.draw_connection(src_pos, dst_pos);
+	return true;
 }
 
 bool App::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
                      ModulePosition dst_pos, std::uint8_t input_idx) {
-	// do display stuff
-	return engine_.disconnect(src_pos, output_idx, dst_pos, input_idx);
+	if (!engine_.disconnect(src_pos, output_idx, dst_pos, input_idx)) {
+		return false;
+	}
+	draw_all_connections(engine_, display_engine_);
 }
 
 bool App::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {

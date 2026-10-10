@@ -4,7 +4,6 @@
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
-#include "parameter.hpp"
 
 namespace sndbx {
 
@@ -30,18 +29,13 @@ static constexpr std::array<Waveform, 7> osc_waveforms = {
 } // namespace
 
 AudioError Oscillator::link(AudioGraph &graph) {
-	auto id = graph.add_node(&synth_);
-	if (!id) {
-		return id.error();
-	}
-	synth_id_ = *id;
-	return AudioError::NONE;
+	return audio::add_nodes(graph, {&synth_, synth_id_});
 }
 
 void Oscillator::unlink(AudioGraph &graph) { graph.remove_node(synth_id_); }
 
 AudioEndpoint Oscillator::endpoint(ModulePort port) const {
-	return audio::make_endpoint(synth_id_, 0);
+	return audio::make_endpoint(synth_id_, port.index);
 }
 
 float Oscillator::change_control(std::uint8_t idx, std::int8_t amt) {

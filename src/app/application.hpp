@@ -19,8 +19,6 @@ void loop();
 
 namespace sndbx {
 
-using AppStates = std::tuple<EditMode, ViewMode>;
-
 class App {
   public:
 	App(Engine &e, DisplayEngine &d) : engine_{e}, display_engine_{d} {}
@@ -53,7 +51,6 @@ class App {
 	bool connect_first(ModulePosition src_pos, ModulePosition dst_pos);
 	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-	void press_module(ModulePosition pos);
 	void turn_module_knob(std::uint8_t idx, std::int8_t amt);
 
 	void rotate_bank(std::int8_t amt);
@@ -77,18 +74,17 @@ class App {
 	}
 
   private:
-	AppStates app_states_;
-	AppState *app_state_;
+	std::tuple<AppEditState, AppViewState> app_states_;
+	AppEventState *app_state_{&std::get<0>(app_states_)};
 
 	Engine &engine_;
 	DisplayEngine &display_engine_;
 
-	inline static constexpr ModuleBank module_bank =
+	inline constexpr static ModuleBank module_bank =
 	    make_module_bank(ModuleBankTypes::index_sequence{});
 
 	nst::span<const ModuleBankEntry> bank_window_{module_bank.begin(),
 	                                              limits::grid_cols};
-
 	struct {
 		ModuleView module;
 		ModulePosition pos;

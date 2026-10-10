@@ -5,6 +5,7 @@
 #include <utility>
 
 namespace nst {
+
 template <typename... Ts> struct type_list {
 	using tuple_type = std::tuple<Ts...>;
 
@@ -13,6 +14,7 @@ template <typename... Ts> struct type_list {
 
 	using index_sequence = std::index_sequence_for<Ts...>;
 
+	// from stack overflow
 	template <typename T>
 	static constexpr std::size_t index_of = []() {
 		static_assert((std::is_same_v<T, Ts> || ...), "Type not found.");
@@ -26,8 +28,11 @@ template <typename... Ts> struct type_list {
 
 	template <typename T>
 	static constexpr bool contains_v = (std::is_same_v<T, Ts> || ...);
+
+	template <typename... Us>
+	static constexpr bool contains_all_v = (contains_v<Us> && ...);
 };
 
-}; // namespace nst
+} // namespace nst
 
 #endif

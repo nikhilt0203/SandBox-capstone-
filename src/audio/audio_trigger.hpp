@@ -8,7 +8,7 @@ namespace sndbx {
 
 enum class AudioEdge { RISING_EDGE, FALLING_EDGE };
 
-// 'Triggerable' models an object where 'trigger(sndbx::AudioEdge)' is a
+// Triggerable models an type where trigger(sndbx::AudioEdge) is a
 // valid public method
 template <class Triggerable> class AudioTriggerInput : public AudioStream {
   public:

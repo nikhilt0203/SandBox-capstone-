@@ -10,15 +10,15 @@
 namespace sndbx {
 
 namespace detail {
-template <class InterfaceList> struct ToModuleViewType {};
+template <class InterfaceList> struct ToModuleView {};
 
 template <class... Interfaces>
-struct ToModuleViewType<nst::type_list<Interfaces...>> {
-	using result = nst::poly_view<Interfaces...>;
+struct ToModuleView<nst::type_list<Interfaces...>> {
+	using type = nst::poly_view<Interfaces...>;
 };
 } // namespace detail
 
-using ModuleView = detail::ToModuleViewType<ModuleInterfaces>::result;
+using ModuleView = detail::ToModuleView<ModuleInterfaces>::type;
 
 using ModuleFactory =
     MappedModuleRegistry<ModuleView, limits::max_modules>;
@@ -42,9 +42,9 @@ class Engine {
 
 	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-	bool connection_exists(ModulePosition src_pos,
+	[[nodiscard]] bool connection_exists(ModulePosition src_pos,
 	                       ModulePosition dst_pos) const;
-	bool connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
+	[[nodiscard]] bool connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
 	                       ModulePosition dst_pos,
 	                       std::uint8_t input_idx) const;
 
@@ -67,6 +67,7 @@ class Engine {
 	[[nodiscard]] auto &factory() { return factory_; }
 
 	auto &connections() { return connections_; }
+    const auto &connections() const { return connections_; }
 
   private:
 	ModuleFactory factory_;

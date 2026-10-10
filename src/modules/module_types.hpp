@@ -14,6 +14,9 @@ namespace sndbx {
 // Modules recognized by the system
 using ModuleTypes = nst::type_list<Oscillator, Envelope>;
 
+// Module types that can be created by the user
+using ModuleBankTypes = nst::type_list<Oscillator>;
+
 namespace limits {
 // Max instances per module, default 16
 template <typename Module> inline constexpr std::size_t max_instances = 16;
