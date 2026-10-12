@@ -7,7 +7,7 @@
 #include "display_engine.hpp"
 #include "engine.hpp"
 #include "event.hpp"
-#include "modules/module_bank.hpp"
+#include "modules/factory/module_bank.hpp"
 #include <nst/span.hpp>
 
 namespace sndbx::app {

@@ -1,9 +1,9 @@
 #ifndef SANDBOX_COLOR_TEXT_HPP_
 #define SANDBOX_COLOR_TEXT_HPP_
 
+#include <string_view>
 #include <cstdint>
 #include <nst/color.hpp>
-#include <string_view>
 
 // Data wrappers for text with color and/or size
 namespace sndbx {

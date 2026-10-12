@@ -1,11 +1,12 @@
 #ifndef SANDBOX_EVENT_HPP_
 #define SANDBOX_EVENT_HPP_
 
+#include <variant>
+
 #include <nst/hardware/button.hpp>
 #include <nst/hardware/rotary_encoder.hpp>
 #include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
-#include <variant>
 
 #include "config/config.hpp"
 

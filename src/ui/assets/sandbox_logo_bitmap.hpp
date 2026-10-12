@@ -1,9 +1,9 @@
 #ifndef SANDBOX_LOGO_BITMAP_HPP_
 #define SANDBOX_LOGO_BITMAP_HPP_
 
-#include <Arduino.h>
 #include <array>
 #include <cstdint>
+#include <Arduino.h>
 
 namespace sndbx::assets {
 

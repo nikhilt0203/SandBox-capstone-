@@ -5,11 +5,12 @@
 #include <cstddef>
 #include <string_view>
 #include <utility>
+#include <type_traits>
+
+#include <nst/audio_graph.hpp>
 
 #include "audio/audio_trigger.hpp"
 #include "config/config.hpp"
-#include <nst/audio_graph.hpp>
-#include <type_traits>
 
 namespace sndbx {
 

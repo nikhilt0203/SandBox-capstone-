@@ -1,12 +1,14 @@
 #ifndef SANDBOX_MODULE_DISPLAY_INFO_HPP_
 #define SANDBOX_MODULE_DISPLAY_INFO_HPP_
 
-#include "config/config.hpp"
-#include <array>
-#include <nst/color.hpp>
-#include <nst/inplace_string.hpp>
 #include <string_view>
 #include <tuple>
+#include <array>
+
+#include <nst/color.hpp>
+#include <nst/inplace_string.hpp>
+
+#include "config/config.hpp"
 
 namespace sndbx {
 

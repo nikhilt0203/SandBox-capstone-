@@ -11,7 +11,7 @@
 
 #include "module_id.hpp"
 #include "module_position.hpp"
-#include "modules/module_pools.hpp"
+#include "module_pools.hpp"
 
 namespace sndbx {
 

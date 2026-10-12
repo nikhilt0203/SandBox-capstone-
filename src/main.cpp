@@ -1,12 +1,16 @@
-//#include "app/application.hpp"
-#include <Arduino.h>
-#include "tests.hpp"
+#include "app/application.hpp"
+
+//***********************************
+// SandBox modular synthesizer 
+// Nikhil Talwalkar 2026
+//***********************************
+
+using namespace sndbx;
 
 void setup() { 
-    audio_graph_sine_usb_test();
-    // sndbx::app::init(); }
+    app::init();
 }
 
 void loop() { 
-    //sndbx::app::loop();
+    app::loop();
 }

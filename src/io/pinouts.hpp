@@ -1,9 +1,10 @@
 #ifndef SANDBOX_PINOUTS_HPP_
 #define SANDBOX_PINOUTS_HPP_
 
-#include <array>
-#include <nst/pin.hpp>
 #include <tuple>
+#include <array>
+
+#include <nst/pin.hpp>
 
 namespace sndbx::pinouts {
 

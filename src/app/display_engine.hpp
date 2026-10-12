@@ -1,16 +1,19 @@
 #ifndef SANDBOX_DISPLAY_ENGINE_HPP_
 #define SANDBOX_DISPLAY_ENGINE_HPP_
 
+#include <optional>
+#include <array>
+
+#include <nst/hardware/ILI9341_display.hpp>
+#include <nst/hardware/trellis_led_display.hpp>
+#include <nst/poly_view.hpp>
+
 #include "engine.hpp"
 #include "io/pinouts.hpp"
 #include "modules/displayable.hpp"
 #include "modules/factory/module_position.hpp"
 #include "ui/screen_elements.hpp"
-#include <nst/hardware/ILI9341_display.hpp>
-#include <nst/hardware/trellis_led_display.hpp>
-#include <nst/poly_view.hpp>
-#include <optional>
-#include <string_view>
+
 
 namespace sndbx {
 using Screen = nst::teensy::TFT;
@@ -34,14 +37,13 @@ void clear_and_draw(Display &d, Args &&...args) {
 
 template <typename Display> void clear(Display &d) { d.clear(); }
 
-inline void print(Screen &s, std::string_view text,
-                  nst::teensy::ColorRGB color = 0xFFFFFF, std::uint8_t size = 4,
+inline void print(Screen &s, ColoredText text, std::uint8_t size = 4,
                   std::uint16_t x = 0, std::uint16_t y = 0) {
 	auto &frame = s.current_frame();
-	frame.setTextColor(to_565_hex(color));
+	frame.setTextColor(to_565_hex(text.color));
 	frame.setTextSize(size);
 	frame.setCursor(x, y);
-	frame.print(text.data());
+	frame.print(text.text.data());
 }
 
 } // namespace sndbx::display

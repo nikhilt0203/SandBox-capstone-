@@ -1,13 +1,10 @@
 #ifndef SANDBOX_DISPLAYABLE_HPP_
 #define SANDBOX_DISPLAYABLE_HPP_
 
+#include <nst/color.hpp>
+
 #include "module_display_info.hpp"
 #include "ui/ui_text.hpp"
-#include <config/config.hpp>
-#include <nst/color.hpp>
-#include <nst/inplace_string.hpp>
-#include <nst/inplace_vector.hpp>
-#include <nst/strong_alias.hpp>
 
 namespace sndbx {
 

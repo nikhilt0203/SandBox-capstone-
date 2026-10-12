@@ -1,11 +1,12 @@
 #ifndef SANDBOX_SERIALIZABLE_HPP_
 #define SANDBOX_SERIALIZABLE_HPP_
 
-#include "config/config.hpp"
-#include "modules/module_display_info.hpp"
-#include "modules/module_types.hpp"
 #include <array>
 #include <cassert>
+
+#include "config/config.hpp"
+#include "modules/module_display_info.hpp"
+#include "modules/factory/module_types.hpp"
 
 namespace sndbx {
 

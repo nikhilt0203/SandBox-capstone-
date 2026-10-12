@@ -3,13 +3,14 @@
 
 #include <string_view>
 
+#include <nst/inplace_vector.hpp>
+#include <nst/hardware/ILI9341_display.hpp>
+
 #include "assets/sandbox_logo_bitmap.hpp"
 #include "config/config.hpp"
 #include "modules/module_display_info.hpp"
-#include "nst/hardware/ILI9341_display.hpp"
 #include "ui/ui_element.hpp"
 #include "ui/ui_text.hpp"
-#include <nst/inplace_vector.hpp>
 
 namespace sndbx {
 

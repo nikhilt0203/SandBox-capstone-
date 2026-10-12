@@ -1,11 +1,12 @@
 #ifndef SANDBOX_ENGINE_HPP_
 #define SANDBOX_ENGINE_HPP_
 
+#include <optional>
+
 #include "audio/audio_engine.hpp"
 #include "config/config.hpp"
 #include "modules/module_interfaces.hpp"
 #include "modules/factory/module_registry.hpp"
-#include <optional>
 
 namespace sndbx {
 

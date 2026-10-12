@@ -1,9 +1,6 @@
 #ifndef SANDBOX_CONFIG_HPP_
 #define SANDBOX_CONFIG_HPP_
 
-#include <cstddef>
-#include <nst/strong_alias.hpp>
-
 namespace sndbx::limits {
 
 inline constexpr auto max_audio_graph_nodes = 128U;

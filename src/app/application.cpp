@@ -1,11 +1,13 @@
 #include "application.hpp"
 
-#include "io/pinouts.hpp"
-#include "io/sd_card.hpp"
 #include <algorithm>
+
 #include <nst/hardware/rotary_encoder.hpp>
 #include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
+
+#include "io/pinouts.hpp"
+#include "io/sd_card.hpp"
 
 namespace sndbx {
 namespace {
@@ -62,7 +64,7 @@ void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
 
 } // namespace
 
-// App startup and main loop
+// App startup
 //******************************************************************************
 void app::init() {
 	Serial.begin(115200);
@@ -71,6 +73,7 @@ void app::init() {
 	}
 }
 
+// Main loop
 void app::loop() {
 	update_inputs();
 	process_events();
