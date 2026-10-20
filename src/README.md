@@ -86,9 +86,9 @@ we forward any errors to the caller of link() and clean up partial successes. If
     //          Module output 0 -> amp output  0
     assert(port.index == 0);
     switch (port.type) {
-      case ModulePort::Type::IN:
+      case ModulePortType::IN:
         return audio::make_endpoint(synth_id_, 0);
-      case ModulePort::Type::OUT: 
+      case ModulePortType::OUT: 
         return audio::make_endpoint(amp_id_, 0); 
     }
   }

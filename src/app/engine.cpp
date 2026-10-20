@@ -89,9 +89,9 @@ bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	if (AudioError::NONE != audio::connect(*modules->first, output_idx,
-	                                       *modules->second, input_idx,
-	                                       audio_graph_)) {
+	if (!is_success(audio::connect(*modules->first, output_idx,
+	                               *modules->second, input_idx,
+	                               audio_graph_))) {
 		return false;
 	}
 
@@ -114,9 +114,9 @@ bool Engine::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	if (AudioError::NONE != audio::disconnect(*modules->first, output_idx,
-	                                          *modules->second, input_idx,
-	                                          audio_graph_)) {
+	if (!is_success(audio::disconnect(*modules->first, output_idx,
+	                                  *modules->second, input_idx,
+	                                  audio_graph_))) {
 		return false;
 	}
 
@@ -135,12 +135,11 @@ std::optional<ModuleID> Engine::create_module(ModuleType type,
 	}
 
 	const auto id = factory_[pos];
-	auto &module = factory_[id];
 
-	// initialize audio if module has an audio component
+	// link to audio graph if module is Patchable, delete module if failure
+	auto &module = factory_[id];
 	if (module.holds<audio::Patchable>() &&
-	    (AudioError::NONE !=
-	     module.get<audio::Patchable>().link(audio_graph_))) {
+	    !is_success(module.get<audio::Patchable>().link(audio_graph_))) {
 		factory_.erase(id);
 		return std::nullopt;
 	}

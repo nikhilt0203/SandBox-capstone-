@@ -15,7 +15,7 @@ class TFT {
 	static constexpr std::size_t width = 320;
 	static constexpr std::size_t height = 240;
 
-	TFT(Pin cs_pin, Pin dc_pin) : tft_(cs_pin.value, dc_pin.value) {
+	TFT(Pin cs_pin, Pin dc_pin) : tft_(cs_pin.num, dc_pin.num) {
 		tft_.begin();
 		tft_.setRotation(3);
 		tft_.fillScreen(0);
@@ -54,7 +54,7 @@ class TFT {
 
 	[[nodiscard]] GFXcanvas16 &current_frame() { return *double_buffer_[0]; }
 
-	template <typename U> void for_each_buffer(U &&f) {
+	template <typename Func> void for_each_buffer(Func &&f) {
 		for (auto b : double_buffer_) {
 			f(b);
 		}

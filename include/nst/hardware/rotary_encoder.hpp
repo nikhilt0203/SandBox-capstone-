@@ -17,14 +17,14 @@ struct EncoderTurnEvent {
 
 namespace detail {
 
-template <typename EventContainer>
+template <class EventContainer>
 inline constexpr bool can_hold_encoder_events_v =
     std::is_constructible_v<typename EventContainer::value_type,
                             EncoderTurnEvent>;
 
 } // namespace detail
 
-template <typename EventContainer> class RotaryEncoder {
+template <class EventContainer> class RotaryEncoder {
 	static_assert(
 	    detail::can_hold_encoder_events_v<EventContainer>,
 	    "Container must hold EncoderTurnEvent or another convertible type.");
@@ -32,12 +32,11 @@ template <typename EventContainer> class RotaryEncoder {
   public:
 	RotaryEncoder(nst::Pin pin1, nst::Pin pin2, std::uint8_t encoder_num,
 	              EventContainer &events)
-	    : encoder_{static_cast<std::uint8_t>(pin1),
-	               static_cast<std::uint8_t>(pin2)},
-	      events_{events}, encoder_num_{encoder_num} {}
+	    : encoder_{pin1.num, pin2.num}, events_{events},
+	      encoder_num_{encoder_num} {}
 
 	void update() {
-		const auto cur_pos = read();
+		const int cur_pos = read();
 		const auto delta = cur_pos - old_pos_;
 
 		const std::int8_t steps = delta / 4;

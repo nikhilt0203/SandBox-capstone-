@@ -46,8 +46,10 @@ struct AudioNodeID : public nst::strong_alias<std::uint32_t, AudioNodeID> {
 template <class AudioDevice> struct AudioNodeHandle {
 	AudioNodeID id;
 	AudioDevice *device;
+
 	const AudioDevice *operator->() const { return device; }
 	AudioDevice *operator->() { return device; }
+	operator AudioNodeID() const { return id; }
 };
 
 struct AudioNode {
@@ -253,6 +255,33 @@ class AudioGraph {
 	nst::inplace_vector<AudioPatch, PatchCapacity> patches_;
 	nst::object_pool<::AudioConnection, PatchCapacity> connection_pool_;
 };
+
+
+template <std::size_t N, std::size_t P>
+[[nodiscard]] inline auto processor_usage(const AudioGraph<N, P> &graph) {
+	float sum{};
+	for (const auto &n : graph.nodes()) {
+		sum += n.device->processorUsage();
+	}
+	return sum;
+}
+
+template <std::size_t N, std::size_t P>
+[[nodiscard]] inline auto processor_usage_max(const AudioGraph<N, P> &graph) {
+	float sum{};
+	for (const auto &n : graph.nodes()) {
+		sum += n.device->processorUsageMax();
+	}
+	return sum;
+}
+
+template <std::size_t N, std::size_t P>
+inline void processor_usage_max_reset(AudioGraph<N,P> &graph) {
+	for (const auto &n : graph.nodes()) {
+		n.device->processorUsageMaxReset();
+	}
+}
+
 
 } // namespace nst::teensy
 

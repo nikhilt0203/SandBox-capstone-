@@ -5,27 +5,28 @@
 #include <cassert>
 
 #include "config/config.hpp"
-#include "modules/module_display_info.hpp"
 #include "modules/factory/module_types.hpp"
+#include "modules/module_display_info.hpp"
 
 namespace sndbx {
 
-struct SerializationBuffer {
-	std::array<std::byte, limits::serialization_buffer_max> data{};
-
-	void write(std::byte *b, std::size_t n) {
-		assert(data.size() - size_ >= n);
+struct SerializationBuffer
+    : public std::array<std::byte, limits::serialization_buffer_max> {
+  public:
+	using std::array<std::byte, limits::serialization_buffer_max>::array;
+	constexpr void push(std::byte *b, std::size_t n) noexcept {
+		assert(this->max_size() - size_ >= n);
 		for (std::size_t i{}; i < n; ++i) {
-			data[size_++] = b[i];
+			this->operator[](size_++) = b[i];
 		}
 	}
 
-	void write(std::byte b) {
-		assert(size_ != data.size());
-		data[size_++] = b;
+	constexpr void push(std::byte b) noexcept {
+		assert(size_ != this->max_size());
+		this->operator[](size_++) = b;
 	}
 
-	[[nodiscard]] const auto size() const { return size_; }
+	[[nodiscard]] constexpr auto size() const noexcept { return size_; }
 
   private:
 	std::size_t size_{};
@@ -34,7 +35,7 @@ struct SerializationBuffer {
 // Probably don't need this, state lives in systems
 class Serializable {
 	virtual ~Serializable() = default;
-	virtual void serialize_to(SerializationBuffer &) const = 0;
+	virtual void serialize(SerializationBuffer &sb) const = 0;
 };
 
 } // namespace sndbx

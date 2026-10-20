@@ -5,24 +5,23 @@
 
 #include "audio/audio_engine.hpp"
 #include "config/config.hpp"
-#include "modules/module_interfaces.hpp"
 #include "modules/factory/module_registry.hpp"
+#include "modules/module_interfaces.hpp"
 
 namespace sndbx {
 
 namespace detail {
-template <class InterfaceList> struct ToModuleView {};
+template <class InterfaceList> struct MakeModuleViewType {};
 
 template <class... Interfaces>
-struct ToModuleView<nst::type_list<Interfaces...>> {
+struct MakeModuleViewType<nst::type_list<Interfaces...>> {
 	using type = nst::poly_view<Interfaces...>;
 };
 } // namespace detail
 
-using ModuleView = detail::ToModuleView<ModuleInterfaces>::type;
+using ModuleView = detail::MakeModuleViewType<ModuleInterfaces>::type;
 
-using ModuleFactory =
-    MappedModuleRegistry<ModuleView, limits::max_modules>;
+using ModuleFactory = MappedModuleRegistry<ModuleView, limits::max_modules>;
 
 struct ModuleConnection {
 	ModulePosition src_pos;
@@ -43,16 +42,18 @@ class Engine {
 
 	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
-	[[nodiscard]] bool connection_exists(ModulePosition src_pos,
-	                       ModulePosition dst_pos) const;
-	[[nodiscard]] bool connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
-	                       ModulePosition dst_pos,
-	                       std::uint8_t input_idx) const;
-
-	[[nodiscard]] auto create_module(ModuleType type, ModulePosition pos)
+	auto create_module(ModuleType type, ModulePosition pos)
 	    -> std::optional<ModuleID>;
 
-	[[nodiscard]] bool delete_module(ModulePosition pos);
+	bool delete_module(ModulePosition pos);
+
+	[[nodiscard]] bool connection_exists(ModulePosition src_pos,
+	                                     ModulePosition dst_pos) const;
+
+	[[nodiscard]] bool connection_exists(ModulePosition src_pos,
+	                                     std::uint8_t output_idx,
+	                                     ModulePosition dst_pos,
+	                                     std::uint8_t input_idx) const;
 
 	[[nodiscard]] auto module_id(ModulePosition pos) const
 	    -> std::optional<ModuleID> {
@@ -67,8 +68,8 @@ class Engine {
 	[[nodiscard]] const auto &factory() const { return factory_; }
 	[[nodiscard]] auto &factory() { return factory_; }
 
-	auto &connections() { return connections_; }
-    const auto &connections() const { return connections_; }
+	[[nodiscard]] auto &connections() { return connections_; }
+	[[nodiscard]] const auto &connections() const { return connections_; }
 
   private:
 	ModuleFactory factory_;

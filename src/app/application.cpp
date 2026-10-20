@@ -53,12 +53,9 @@ void process_events() {
 
 // Give the display engine the initial values of a Controllable module's params
 void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
-	// wiggle all knobs to get the initial values
-	for (std::uint8_t i{}; i < c.num_controls(); ++i) {
-		d.update_module_ctrl(pos, i, c.change_control(i, 1));
-	}
-	for (std::uint8_t i{}; i < c.num_controls(); ++i) {
-		d.update_module_ctrl(pos, i, c.change_control(i, -1));
+	for (std::size_t i{}; i < c.num_controls(); ++i) {
+		const ControlChange dummy{i, 0};
+		d.update_module_ctrl(pos, i, c.change_control(dummy));
 	}
 }
 
@@ -108,7 +105,7 @@ bool App::create_module(ModuleType type, ModulePosition pos) {
 		return false;
 	}
 
-	nst::poly_view<Displayable, Controllable> module = engine_.get_module(*id);
+	auto &module = engine_.get_module(*id);
 
 	if (auto d = module.get_if<Displayable>()) {
 		display_engine_.add_module(*d, pos);
@@ -116,6 +113,7 @@ bool App::create_module(ModuleType type, ModulePosition pos) {
 	if (auto c = module.get_if<Controllable>()) {
 		populate_ctrl_vals(display_engine_, *c, pos);
 	}
+
 	return true;
 }
 
@@ -142,6 +140,7 @@ bool App::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 	draw_all_connections(engine_, display_engine_);
+	return true;
 }
 
 bool App::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
@@ -167,7 +166,8 @@ void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
 	if (idx < c.num_controls()) {
 		return;
 	}
-	const auto new_val = c.change_control(idx, amt);
+	const ControlChange cc{idx, amt};
+	const auto new_val = c.change_control(cc);
 	display_engine_.update_module_ctrl(selected_.pos, idx, new_val);
 	display_engine_.display_module(engine_, selected_.pos);
 }

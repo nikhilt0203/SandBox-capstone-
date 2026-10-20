@@ -12,9 +12,8 @@ class UIElement {
 	          std::uint16_t height, Frame &frame)
 	    : x_{x}, y_{y}, width_{width}, height_{height}, frame_{frame} {}
 
-	explicit UIElement(Frame &frame)
-	    : x_{0}, y_{0}, width_{FrameWidth}, height_{FrameHeight},
-	      frame_{frame} {}
+	explicit UIElement(std::uint16_t width, std::uint16_t height, Frame &frame)
+	    : x_{}, y_{}, width_{width}, height_{height}, frame_{frame} {}
 
 	[[nodiscard]] auto x() const { return x_; }
 	[[nodiscard]] auto y() const { return y_; }
@@ -61,10 +60,10 @@ class UIElement {
 	[[nodiscard]] static constexpr auto frame_height() { return FrameHeight; }
 
   protected:
-	std::uint16_t x_;
-	std::uint16_t y_;
-	std::uint16_t width_;
-	std::uint16_t height_;
+	std::uint16_t x_{};
+	std::uint16_t y_{};
+	std::uint16_t width_{};
+	std::uint16_t height_{};
 	Frame &frame_;
 };
 

@@ -1,8 +1,8 @@
 #ifndef SANDBOX_DISPLAY_ENGINE_HPP_
 #define SANDBOX_DISPLAY_ENGINE_HPP_
 
-#include <optional>
 #include <array>
+#include <optional>
 
 #include <nst/hardware/ILI9341_display.hpp>
 #include <nst/hardware/trellis_led_display.hpp>
@@ -13,7 +13,6 @@
 #include "modules/displayable.hpp"
 #include "modules/factory/module_position.hpp"
 #include "ui/screen_elements.hpp"
-
 
 namespace sndbx {
 using Screen = nst::teensy::TFT;
@@ -37,8 +36,8 @@ void clear_and_draw(Display &d, Args &&...args) {
 
 template <typename Display> void clear(Display &d) { d.clear(); }
 
-inline void print(Screen &s, ColoredText text, std::uint8_t size = 4,
-                  std::uint16_t x = 0, std::uint16_t y = 0) {
+inline void print(Screen &s, ColoredText text, std::uint32_t size = 4,
+                  std::uint32_t x = 0, std::uint32_t y = 0) {
 	auto &frame = s.current_frame();
 	frame.setTextColor(to_565_hex(text.color));
 	frame.setTextSize(size);
@@ -58,13 +57,13 @@ class DisplayEngine {
 
 	void draw_connection(ModulePosition src, ModulePosition dst);
 
-	void display_module(Engine &e, ModulePosition pos);
+	void display_module(const Engine &e, ModulePosition pos);
 
 	void add_module(Displayable &module, ModulePosition pos);
 
 	void remove_module(ModulePosition pos);
 
-	void update_module_ctrl(ModulePosition pos, std::uint8_t idx, float value);
+	void update_module_ctrl(ModulePosition pos, std::size_t idx, float value);
 
   private:
 	auto get_path(ModulePosition start, ModulePosition end)

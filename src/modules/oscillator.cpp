@@ -5,8 +5,6 @@
 #include "displayable.hpp"
 #include "module_display_info.hpp"
 
-namespace sndbx {
-
 namespace {
 struct Waveform {
 	constexpr Waveform(std::string_view name, short id,
@@ -18,7 +16,7 @@ struct Waveform {
 	nst::teensy::ColorRGB color;
 };
 
-static constexpr std::array<Waveform, 7> osc_waveforms = {
+inline constexpr std::array<Waveform, 7> osc_waveforms = {
     Waveform{"sine", WAVEFORM_SINE, 0x0FF00},
     Waveform{"square", WAVEFORM_SQUARE, 0xFF000},
     Waveform{"saw", WAVEFORM_SAWTOOTH, 0xFF00F},
@@ -26,7 +24,10 @@ static constexpr std::array<Waveform, 7> osc_waveforms = {
     Waveform{"pulse", WAVEFORM_PULSE, 0x00832},
     Waveform{"rev saw", WAVEFORM_SAWTOOTH_REVERSE, 0xB817E},
     Waveform{"s&h noise", WAVEFORM_SAMPLE_HOLD, 0x09F77}};
+
 } // namespace
+
+namespace sndbx {
 
 AudioError Oscillator::link(AudioGraph &graph) {
 	return audio::add_nodes(graph, {&synth_, synth_id_});
@@ -38,22 +39,18 @@ AudioEndpoint Oscillator::endpoint(ModulePort port) const {
 	return audio::make_endpoint(synth_id_, port.index);
 }
 
-float Oscillator::change_control(std::uint8_t idx, std::int8_t amt) {
-	assert(idx < num_controls());
+float Oscillator::change_control(ControlChange c) {
+	assert(c.index < num_controls());
 
-	switch (idx) {
+	switch (c.index) {
 	case 0:
-		coarse_tune(amt);
-		return frequency_.ratio();
+		return ratio(coarse_tune_ *= powf(1.08f, c.amt));
 	case 1:
-		fine_tune(amt);
-		return fine_tune_.ratio();
+		return ratio(fine_tune_ += c.amt);
 	case 2:
-		fm_adjust(amt);
-		return fm_depth_.ratio();
+		return ratio(fm_ctrl_ += 0.25f * c.amt);
 	case 3:
-		change_waveform(amt);
-		return waveform_idx_.ratio();
+		return ratio(waveform_ctrl_ += c.amt);
 	}
 	return 0;
 }
@@ -74,37 +71,24 @@ void Oscillator::set_defaults() {
 	waveform_idx_ = 0;
 }
 
-void Oscillator::coarse_tune(int amt) {
-	frequency_ *= powf(1.08f, amt);
-	synth_.frequency(frequency_ + fine_tune_);
+void Oscillator::update_frequency() {
+	synth_.frequency(frequency_ + fine_tune_offset_);
 }
 
-void Oscillator::fine_tune(int amt) {
-	fine_tune_ += amt;
-	synth_.frequency(frequency_ + fine_tune_);
-}
+void Oscillator::update_fm_depth() { synth_.frequencyModulation(fm_depth_); }
 
-void Oscillator::fm_adjust(int amt) {
-	fm_depth_ += 0.25f * amt;
-	synth_.frequencyModulation(fm_depth_);
-}
-
-void Oscillator::set_waveform(std::size_t waveform) {
-	waveform_idx_ = waveform;
+void Oscillator::update_waveform() {
 	synth_.begin(osc_waveforms[waveform_idx_].id);
 }
 
-void Oscillator::change_waveform(int amt) {
-	int total = osc_waveforms.size();
-	const auto wrapped_idx =
-	    ((static_cast<int>(waveform_idx_) + amt) % total + total) % total;
-	set_waveform(wrapped_idx);
+void Oscillator::init_synth() {
+	update_fm_depth();
+	update_frequency();
+	update_waveform();
 }
 
-void Oscillator::init_synth() {
-	synth_.frequency(frequency_);
-	synth_.frequencyModulation(fm_depth_);
-	set_waveform(waveform_idx_);
+CtrlFmtStr waveform_ctrl_formatter(float f) {
+	return CtrlFmtStr{osc_waveforms[f * osc_waveforms.max_size()].name};
 }
 
 } // namespace sndbx

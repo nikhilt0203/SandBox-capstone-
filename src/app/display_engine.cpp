@@ -19,13 +19,13 @@ auto to_index(T row, T col) -> T {
 using PortColors =
     nst::inplace_vector<nst::teensy::ColorRGB, limits::max_in_ports>;
 
-auto connected_module_colors(Engine &e, ModulePosition pos)
+auto connected_module_colors(const Engine &e, ModulePosition pos)
     -> std::pair<PortColors, PortColors> {
-	const auto &factory = e.factory();
+	auto &factory = e.factory();
 	PortColors input_colors;
 	PortColors output_colors;
 
-	for (const auto &c : e.connections()) {
+	for (auto &c : e.connections()) {
 		if (c.dst_pos == pos) {
 			const auto id = factory[c.src_pos];
 			const auto &m = factory[id];
@@ -104,7 +104,7 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 		return crossings;
 	};
 
-    // prefer the path that crosses the least number of other modules
+	// prefer the path that crosses the least number of other modules
 	const auto path1 = get_path(src, dst);
 	const auto path1_crossings = num_modules_crossed(path1);
 
@@ -129,7 +129,7 @@ void DisplayEngine::remove_module(ModulePosition pos) {
 	display_grid_[pos.value].reset();
 }
 
-void DisplayEngine::display_module(Engine &engine, ModulePosition pos) {
+void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 	const auto &entry = display_grid_[pos.value];
 	if (!entry) {
 		return;
@@ -141,19 +141,26 @@ void DisplayEngine::display_module(Engine &engine, ModulePosition pos) {
 	const auto [input_colors, output_colors] =
 	    connected_module_colors(engine, pos);
 
-	ModuleDisplay module_page{module.display_text(),
-	                          info.ctrl_names,
-	                          info.in_names,
-	                          info.out_names,
-	                          ctrl_vals,
-	                          input_colors,
-	                          output_colors,
-	                          screen_.current_frame()};
+	ModuleControlValues values;
+	auto &fmtrs = info.ctrl_fmt;
+	for (std::size_t i{}; i < ctrl_vals.size(); ++i) {
+		auto format = fmtrs[i];
+		values.emplace_back(format(ctrl_vals[i]));
+	}
+
+	ui::ModuleDisplay module_page{module.display_text(),
+	                              info.ctrl_names,
+	                              info.in_names,
+	                              info.out_names,
+	                              ctrl_vals,
+	                              input_colors,
+	                              output_colors,
+	                              screen_.current_frame()};
 	screen_.clear();
 	module_page.draw();
 }
 
-void DisplayEngine::update_module_ctrl(ModulePosition pos, std::uint8_t idx,
+void DisplayEngine::update_module_ctrl(ModulePosition pos, std::size_t idx,
                                        float value) {
 	// scale from float 0.0 - 1.0 to byte 0 - 255
 	display_grid_[pos.value]->ctrl_vals[idx] =

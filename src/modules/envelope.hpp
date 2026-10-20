@@ -10,22 +10,24 @@
 #include "pressable.hpp"
 
 namespace sndbx {
-
 class Envelope;
 
 template <>
 inline constexpr ModuleDisplayInfo module_info<Envelope>{
     {"envelope", 0xFFFF00},
     "applies an envelope to the input signal",
+    {"attack", "decay", "sustain", "release"},
     {"in", "trg"},
     {"out"},
-    {"attack", "decay", "sustain", "release"}};
+    {ctrl_formatter<MillisFormat>, ctrl_formatter<MillisFormat>,
+     ctrl_formatter<MillisFormat>, ctrl_formatter<MillisFormat>}};
 
 class Envelope : public audio::Patchable,
                  public Controllable,
                  public Displayable,
                  public Pressable {
 	using Self = Envelope;
+
   public:
 	Envelope()
 	    : Patchable{num_ins<Self>, num_outs<Self>},
@@ -34,10 +36,7 @@ class Envelope : public audio::Patchable,
 	void add_node(AudioGraph &graph, AudioStream *dev) {}
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override {
-		return audio::add_nodes(graph, {
-                {&env_, env_id_}, 
-                {&trig_, trig_id_}
-            });
+		return audio::add_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
 	}
 
 	void unlink(AudioGraph &graph) override {
@@ -50,25 +49,25 @@ class Envelope : public audio::Patchable,
 			return in == 0 ? audio::make_endpoint(env_id_, 0)
 			               : audio::make_endpoint(trig_id_, 0);
 		};
-		auto out_map = [this](auto) { return audio::make_endpoint(env_id_, 0); };
+		auto out_map = [this](auto) {
+			return audio::make_endpoint(env_id_, 0);
+		};
 
 		return audio::map_port(port, in_map, out_map);
 	}
 
-	float change_control(std::uint8_t idx, std::int8_t amt) override {
-		switch (idx) {
+	float change_control(ControlChange c) override {
+		assert(c.index < num_controls());
+		// return controls_[c.index].change(c.amt);
+		switch (c.index) {
 		case 0:
-			change_attack(amt);
-			return attack_ms_.ratio();
+			return ratio(attack_ctrl_ += 5 * c.amt);
 		case 1:
-			change_decay(amt);
-			return decay_ms_.ratio();
+			return ratio(decay_ctrl_ += 5 * c.amt);
 		case 2:
-			change_sustain(amt);
-			return sustain_ms_.ratio();
+			return ratio(sustain_ctrl_ += 0.05f * c.amt);
 		case 3:
-			change_release(amt);
-			return release_ms_.ratio();
+			return ratio(release_ctrl_ += 5 * c.amt);
 		}
 		return 0;
 	}
@@ -96,19 +95,25 @@ class Envelope : public audio::Patchable,
 	}
 
 	void on_rising_edge() override { trigger(AudioEdge::RISING_EDGE); }
-
 	void on_falling_edge() override { trigger(AudioEdge::FALLING_EDGE); }
 
-  protected:
-	void change_attack(int ms) { env_.attack(attack_ms_ += ms); }
-	void change_decay(int ms) { env_.decay(decay_ms_ += ms); }
-	void change_sustain(int ms) { env_.sustain(decay_ms_ += ms); }
-	void change_release(int ms) { env_.release(decay_ms_ += ms); }
+  public:
+	void update_attack() { env_.attack(attack_ms_); }
+	void update_decay() { env_.decay(decay_ms_); }
+	void update_sustain() { env_.sustain(sustain_ms_); }
+	void update_release() { env_.release(release_ms_); }
 
-	ModuleParameter<float> attack_ms_{0.0f, 500.0f, 10.0f};
-	ModuleParameter<float> decay_ms_{0.0f, 500.0f, 35.0f};
-	ModuleParameter<float> sustain_ms_{0.0f, 1.0f, 0.0f};
-	ModuleParameter<float> release_ms_{0.0f, 500.0f, 100.0f};
+	using Parameter = ModuleParameter<float>;
+	Parameter attack_ms_{0.0f, 500.0f, 10.0f};
+	Parameter decay_ms_{0.0f, 500.0f, 35.0f};
+	Parameter sustain_ms_{0.0f, 1.0f, 0.0f};
+	Parameter release_ms_{0.0f, 500.0f, 100.0f};
+
+	using Control = ModuleControl<Self, Parameter>;
+	Control attack_ctrl_{*this, attack_ms_, &Self::update_attack};
+	Control decay_ctrl_{*this, decay_ms_, &Self::update_decay};
+	Control sustain_ctrl_{*this, sustain_ms_, &Self::update_sustain};
+	Control release_ctrl_{*this, release_ms_, &Self::update_release};
 
 	AudioEffectEnvelope env_;
 	nst::teensy::AudioNodeID env_id_;

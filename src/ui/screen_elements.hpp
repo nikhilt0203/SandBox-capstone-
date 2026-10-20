@@ -3,8 +3,8 @@
 
 #include <string_view>
 
-#include <nst/inplace_vector.hpp>
 #include <nst/hardware/ILI9341_display.hpp>
+#include <nst/inplace_vector.hpp>
 
 #include "assets/sandbox_logo_bitmap.hpp"
 #include "config/config.hpp"
@@ -17,18 +17,17 @@ namespace sndbx {
 using ScreenElement =
     UIElement<GFXcanvas16, limits::screen_width_px, limits::screen_height_px>;
 
-//===============================================================================================
-//  General colored sizable text
-//===============================================================================================
+namespace ui {
 class Text : public ScreenElement {
   public:
 	Text(SizedColoredText data, std::uint16_t x, std::uint16_t y,
 	     GFXcanvas16 &frame)
 	    : ScreenElement{x, y, 0, 0, frame}, text_{data.text.data()},
 	      color_565_{to_565_hex(data.color)}, size_{data.size} {
-		int16_t X, Y; // discard results
 		frame.setTextSize(size_);
-		frame.getTextBounds(text_, x_, y_, &X, &Y, &width_, &height_);
+		int16_t x_ignore, y_ignore;
+		frame.getTextBounds(text_, x_, y_, &x_ignore, &y_ignore, &width_,
+		                    &height_);
 		height_ = max_text_height();
 	}
 
@@ -60,17 +59,14 @@ class Text : public ScreenElement {
 
 	const char *text_;
 	std::uint16_t color_565_;
-	std::uint8_t size_;
+	std::size_t size_;
 };
-
-//===============================================================================================
-// Error text display
-//===============================================================================================
 
 class ErrorDisplay : public ScreenElement {
   public:
 	ErrorDisplay(std::string_view text, GFXcanvas16 &frame)
-	    : ScreenElement{frame}, text_{{text, 0xFFFFFF, 1}, 0, 120, frame} {
+	    : ScreenElement{frame_width(), frame_height(), frame_},
+	      text_{{text, 0xFFFFFF, 1}, 0, 120, frame} {
 		text_.center_x();
 	}
 
@@ -82,9 +78,7 @@ class ErrorDisplay : public ScreenElement {
   private:
 	Text text_;
 };
-//===============================================================================================
-// 565 color bitmap
-//===============================================================================================
+
 class Bitmap : public ScreenElement {
   public:
 	Bitmap(const std::uint16_t *bitmap565, std::uint16_t width,
@@ -98,12 +92,9 @@ class Bitmap : public ScreenElement {
 	const std::uint16_t *data_;
 };
 
-//===============================================================================================
-// Startup splash screen bitmap
-//===============================================================================================
-
 struct SplashScreen : public ScreenElement {
-	SplashScreen(GFXcanvas16 &frame) : ScreenElement{frame} {}
+	SplashScreen(GFXcanvas16 &frame)
+	    : ScreenElement{frame_width(), frame_height(), frame} {}
 
 	void draw() const {
 		Bitmap splash{assets::sandbox_logo_bitmap.data(),
@@ -116,9 +107,6 @@ struct SplashScreen : public ScreenElement {
 	}
 };
 
-//===============================================================================================
-//  Labeled knob with variable turn amount
-//===============================================================================================
 class Knob : public ScreenElement {
   public:
 	static constexpr std::uint8_t radius = 25;
@@ -131,14 +119,9 @@ class Knob : public ScreenElement {
 	      percent_turned_{percent_turned}, label_{label} {}
 
 	void draw() const {
-		constexpr static std::uint16_t label_color = ILI9341_LIGHTGREY;
-		constexpr static std::uint16_t border_color = ILI9341_WHITE;
-		constexpr static std::uint16_t inner_color = ILI9341_DARKGREY;
-		constexpr static std::uint16_t mark_color = ILI9341_WHITE;
-
 		// Knob
-		frame_.drawCircle(x_, y_, Knob::radius, border_color);
-		frame_.drawCircle(x_, y_, 10, inner_color);
+		frame_.drawCircle(x_, y_, Knob::radius, ILI9341_WHITE);
+		frame_.drawCircle(x_, y_, 10, ILI9341_DARKGREY);
 
 		constexpr static int min_rotation = 120;
 		constexpr static int max_rotation = 420;
@@ -153,7 +136,7 @@ class Knob : public ScreenElement {
 		const std::int16_t mark_x = x_ + std::cos(angle) * offset;
 		const std::int16_t mark_y = y_ + std::sin(angle) * offset;
 
-		frame_.fillCircle(mark_x, mark_y, mark_radius, mark_color);
+		frame_.fillCircle(mark_x, mark_y, mark_radius, ILI9341_WHITE);
 
 		// Knob label
 
@@ -169,7 +152,7 @@ class Knob : public ScreenElement {
 		text_y = y_ + Knob::radius + y_offset;
 
 		frame_.setCursor(text_x, text_y);
-		frame_.setTextColor(label_color);
+		frame_.setTextColor(ILI9341_LIGHTGREY);
 		frame_.print(label_.data());
 	}
 
@@ -192,10 +175,6 @@ class PortsDisplay : public ScreenElement {
 	}
 
 	void draw() const {
-		if (labels_.size() == 0) {
-			return;
-		}
-
 		for (std::size_t i{}; i < std::min(labels_.size(), colors_.size());
 		     ++i) {
 			int x = x_ + i * (square_width + spacing_px);
@@ -240,7 +219,7 @@ class ModuleDisplay : public ScreenElement {
 	    const nst::vector_8U<nst::teensy::ColorRGB> &in_colors,
 	    const nst::vector_8U<nst::teensy::ColorRGB> &out_colors,
 	    GFXcanvas16 &frame)
-	    : ScreenElement{frame},
+	    : ScreenElement{frame_width(), frame_height(), frame},
 	      name_{{name.text, name.color, name_size}, 0, 65, frame},
 	      ctrl_labels_{ctrl_labels}, ctrl_vals_{ctrl_vals},
 	      inputs_{in_names, in_colors, 30, 25, frame},
@@ -310,7 +289,7 @@ class BankDisplayPage : public ScreenElement {
   public:
 	BankDisplayPage(std::string_view name, std::string_view description,
 	                std::uint32_t color, GFXcanvas16 &frame)
-	    : ScreenElement{frame},
+	    : ScreenElement{frame_width(), frame_height(), frame_},
 	      module_name_{
 	          {name, color, module_name_size}, x(), module_name_y, frame},
 	      description_{
@@ -360,7 +339,7 @@ class PatchDisplayPage : public ScreenElement {
 	PatchDisplayPage(ColoredText src_name, ColoredText dst_name,
 	                 ColoredText src_port, ColoredText dst_port,
 	                 GFXcanvas16 &frame)
-	    : ScreenElement(frame),
+	    : ScreenElement{frame_width(), frame_height(), frame},
 	      src_name_{{src_name.text, src_name.color, 2}, x(), 50, frame},
 	      dst_name_{{dst_name.text, src_name.color, 2}, x(), 150, frame},
 	      src_port_name_{{src_port.text, src_port.color, 1}, 15, y(), frame},
@@ -424,7 +403,8 @@ class OscilloscopeFrame : public ScreenElement {
 
   public:
 	OscilloscopeFrame(const SampleBuffer &buffer, GFXcanvas16 &frame)
-	    : ScreenElement{frame}, buffer_{buffer} {}
+	    : ScreenElement{frame_width(), frame_height(), frame}, buffer_{buffer} {
+	}
 
 	void draw() const {
 		frame_.fillScreen(0);
@@ -567,6 +547,7 @@ class KeyboardElement : public ScreenElement {
 	Text cur_text_;
 };
 
+} // namespace ui
 } // namespace sndbx
 
 #endif

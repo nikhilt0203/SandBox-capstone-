@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <string_view>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 #include <nst/audio_graph.hpp>
 
@@ -19,13 +19,18 @@ using AudioGraph = nst::teensy::AudioGraph<limits::max_audio_graph_nodes,
 
 using AudioError = nst::teensy::AudioGraphError;
 
+[[nodiscard]] inline constexpr bool is_success(AudioError e) {
+	return e == AudioError::NONE;
+}
+
 struct AudioEndpoint {
 	nst::teensy::AudioNodeID id;
 	nst::teensy::AudioPort port;
 };
 
 struct ModulePort {
-	enum class Type : std::uint8_t { IN, OUT } type;
+	enum class Type : std::uint8_t { IN, OUT };
+	Type type;
 	std::uint8_t index;
 
 	constexpr bool operator==(const ModulePort &other) const {
@@ -98,17 +103,16 @@ template <typename InputMap, typename OutputMap>
 // pairs, adds each device to the audio graph and writes the id to the
 // corresponding out param. If any node addition fails, all nodes are removed
 // and the error is returned.
-inline AudioError add_nodes(
+[[nodiscard]] inline AudioError add_nodes(
     AudioGraph &graph,
     std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
         node_data) {
-	auto nodes_added = 0U;
+	int nodes_added{};
 	for (auto &data : node_data) {
 		auto device = data.first;
 		assert(device);
 		const auto id = graph.add_node(device);
 		if (!id) {
-			// remove ids that have been previously written
 			std::for_each_n(
 			    node_data.begin(), nodes_added,
 			    [&graph](const auto &pair) { graph.remove_node(pair.second); });
@@ -121,7 +125,7 @@ inline AudioError add_nodes(
 }
 
 // Overload for adding only one node
-inline auto
+[[nodiscard]] inline auto
 add_nodes(AudioGraph &graph,
           std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data) {
 	return add_nodes(graph, {node_data});
@@ -134,13 +138,12 @@ inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
 	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
 		return AudioError::INVALID_PORT;
 	}
-	const auto [src_node_id, src_node_port] =
-	    src.endpoint(ModulePort{ModulePort::Type::OUT, output_idx});
-	const auto [dst_node_id, dst_node_port] =
-	    dst.endpoint(ModulePort{ModulePort::Type::IN, output_idx});
+	const auto [out_id, out_port] =
+	    src.endpoint({ModulePort::Type::OUT, output_idx});
+	const auto [in_id, in_port] =
+	    dst.endpoint({ModulePort::Type::IN, input_idx});
 
-	return graph.connect(src_node_id, src_node_port, dst_node_id,
-	                     dst_node_port);
+	return graph.connect(out_id, out_port, in_id, in_port);
 }
 
 // disconnect two Patchables by port index
@@ -150,36 +153,12 @@ inline AudioError disconnect(const Patchable &src, std::uint8_t output_idx,
 	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
 		return AudioError::INVALID_PORT;
 	}
-	const auto [src_node_id, src_node_port] =
-	    src.endpoint(ModulePort{ModulePort::Type::OUT, output_idx});
-	const auto [dst_node_id, dst_node_port] =
-	    dst.endpoint(ModulePort{ModulePort::Type::IN, output_idx});
+	const auto [out_id, out_port] =
+	    src.endpoint({ModulePort::Type::OUT, output_idx});
+	const auto [in_id, in_port] =
+	    dst.endpoint({ModulePort::Type::IN, input_idx});
 
-	return graph.disconnect(src_node_id, src_node_port, dst_node_id,
-	                        dst_node_port);
-}
-
-// Query AudioGraph processor usage
-[[nodiscard]] inline float processor_usage(AudioGraph &graph) {
-	float sum{};
-	for (const auto &n : graph.nodes()) {
-		sum += n.device->processorUsage();
-	}
-	return sum;
-}
-
-[[nodiscard]] inline float processor_usage_max(AudioGraph &graph) {
-	float sum{};
-	for (const auto &n : graph.nodes()) {
-		sum += n.device->processorUsageMax();
-	}
-	return sum;
-}
-
-inline void processor_usage_max_reset(AudioGraph &graph) {
-	for (const auto &n : graph.nodes()) {
-		n.device->processorUsageMaxReset();
-	}
+	return graph.disconnect(out_id, out_port, in_id, in_port);
 }
 
 } // namespace sndbx::audio
