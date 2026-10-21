@@ -58,16 +58,16 @@ class Envelope : public audio::Patchable,
 
 	float change_control(ControlChange c) override {
 		assert(c.index < num_controls());
-		// return controls_[c.index].change(c.amt);
+
 		switch (c.index) {
 		case 0:
-			return ratio(attack_ctrl_ += 5 * c.amt);
+			return attack_ctrl_.change(*this, attack_ms_, c.amt);
 		case 1:
-			return ratio(decay_ctrl_ += 5 * c.amt);
+			return decay_ctrl_.change(*this, decay_ms_, c.amt);
 		case 2:
-			return ratio(sustain_ctrl_ += 0.05f * c.amt);
+			return sustain_ctrl_.change(*this, sustain_ms_, c.amt);
 		case 3:
-			return ratio(release_ctrl_ += 5 * c.amt);
+			return release_ctrl_.change(*this, release_ms_, c.amt);
 		}
 		return 0;
 	}
@@ -104,16 +104,22 @@ class Envelope : public audio::Patchable,
 	void update_release() { env_.release(release_ms_); }
 
 	using Parameter = ModuleParameter<float>;
+	using Control = ModuleControl<Self, Parameter>;
+
+	constexpr static auto curve_1 = [](float v, int x) { return v + 5 * x; };
+	constexpr static auto curve_2 = [](float v, int x) {
+		return v + 0.25f * x;
+	};
+
 	Parameter attack_ms_{0.0f, 500.0f, 10.0f};
 	Parameter decay_ms_{0.0f, 500.0f, 35.0f};
 	Parameter sustain_ms_{0.0f, 1.0f, 0.0f};
 	Parameter release_ms_{0.0f, 500.0f, 100.0f};
 
-	using Control = ModuleControl<Self, Parameter>;
-	Control attack_ctrl_{*this, attack_ms_, &Self::update_attack};
-	Control decay_ctrl_{*this, decay_ms_, &Self::update_decay};
-	Control sustain_ctrl_{*this, sustain_ms_, &Self::update_sustain};
-	Control release_ctrl_{*this, release_ms_, &Self::update_release};
+	Control attack_ctrl_{curve_1, &Self::update_attack};
+	Control decay_ctrl_{curve_1, &Self::update_decay};
+	Control sustain_ctrl_{curve_2, &Self::update_sustain};
+	Control release_ctrl_{curve_1, &Self::update_release};
 
 	AudioEffectEnvelope env_;
 	nst::teensy::AudioNodeID env_id_;

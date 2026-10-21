@@ -44,13 +44,13 @@ float Oscillator::change_control(ControlChange c) {
 
 	switch (c.index) {
 	case 0:
-		return ratio(coarse_tune_ *= powf(1.08f, c.amt));
+		return coarse_tune_.change(*this, frequency_, c.amt);
 	case 1:
-		return ratio(fine_tune_ += c.amt);
+		return fine_tune_.change(*this, fine_tune_offset_, c.amt);
 	case 2:
-		return ratio(fm_ctrl_ += 0.25f * c.amt);
+		return fm_ctrl_.change(*this, fm_depth_, c.amt);
 	case 3:
-		return ratio(waveform_ctrl_ += c.amt);
+		return waveform_ctrl_.change(*this, waveform_idx_, c.amt);
 	}
 	return 0;
 }
@@ -66,7 +66,7 @@ nst::teensy::ColorRGB Oscillator::led_color() const {
 
 void Oscillator::set_defaults() {
 	frequency_ = 440.0f;
-	fine_tune_ = 0;
+	fine_tune_offset_ = 0;
 	fm_depth_ = 8.25f;
 	waveform_idx_ = 0;
 }

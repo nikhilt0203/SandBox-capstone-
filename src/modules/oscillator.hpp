@@ -58,24 +58,29 @@ class Oscillator : public audio::Patchable,
 	AudioSynthWaveformModulated synth_;
 	nst::teensy::AudioNodeID synth_id_;
 
-	ModuleParameter<float> frequency_{0.01f, 18000.0f};
-	ModuleParameter<int> fine_tune_offset_{-50, 50};
-	ModuleParameter<float> fm_depth_{0.0f, 12.0f};
-	ModuleParameter<std::size_t, WrapAtBounds> waveform_idx_{0U, 6U};
+	ModuleParameter<float> frequency_{0.01f, 18000.0f, 440.0f};
+	ModuleParameter<int> fine_tune_offset_{-50, 50, 0};
+	ModuleParameter<float> fm_depth_{0.0f, 12.0f, 8.25f};
+	ModuleParameter<std::size_t, WrapAtBounds> waveform_idx_{0, 6, 0};
 
-	ModuleControl<Self, decltype(frequency_)> coarse_tune_{
-	    *this, frequency_, &Self::update_frequency};
+	struct FmCoeff {
+		constexpr static float value{0.25};
+	};
 
-	ModuleControl<Self, decltype(fine_tune_offset_)> fine_tune_{
-	    *this, fine_tune_offset_, &Self::update_frequency};
+	constexpr static ModuleControl<Self, decltype(frequency_)> coarse_tune_{
+	    [](float v, int x) { return v * powf(1.08f, x); },
+	    &Self::update_frequency};
 
-	ModuleControl<Self, decltype(fm_depth_)> fm_ctrl_{*this, fm_depth_,
-	                                                  &Self::update_fm_depth};
+	constexpr static ModuleControl<Self, decltype(fine_tune_offset_)>
+	    fine_tune_{linear_curve<int>, &Self::update_frequency};
 
-	ModuleControl<Self, decltype(waveform_idx_)> waveform_ctrl_{
-	    *this, waveform_idx_, &Self::update_waveform};
+	constexpr static ModuleControl<Self, decltype(fm_depth_)> fm_ctrl_{
+	    linear_curve<float, FmCoeff>, &Self::update_fm_depth};
+
+	constexpr static ModuleControl<Self, decltype(waveform_idx_)>
+	    waveform_ctrl_{linear_curve<std::size_t>, &Self::update_waveform};
+
 };
-
 } // namespace sndbx
 
 #endif

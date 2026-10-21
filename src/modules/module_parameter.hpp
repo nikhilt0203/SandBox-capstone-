@@ -5,8 +5,8 @@
 
 namespace sndbx {
 
-struct WrapAtBounds {};
 struct ClampAtBounds {};
+struct WrapAtBounds {};
 
 template <typename T, typename BoundsPolicy = ClampAtBounds,
           typename = std::enable_if_t<std::is_arithmetic_v<T>>>
@@ -14,7 +14,8 @@ class ModuleParameter {
   public:
 	using value_type = T;
 
-	constexpr ModuleParameter(T min, T max) : value_{}, min_{min}, max_{max} {}
+	constexpr ModuleParameter(T min, T max)
+	    : value_{min}, min_{min}, max_{max} {}
 
 	constexpr ModuleParameter(T min, T max, T initial) noexcept
 	    : value_{initial}, min_{min}, max_{max} {}
@@ -60,14 +61,16 @@ class ModuleParameter {
 		       static_cast<float>(max_ - min_);
 	}
 
-	[[nodiscard]] constexpr auto range() const noexcept { return max_ - min_; }
-
   private:
 	constexpr void set(T val) noexcept {
-		if constexpr (std::is_same_v<WrapAtBounds, BoundsPolicy>) {
-			value_ =
-			    (((value_ + val) - min_) % range() + range()) % range() + min_;
-		} else if constexpr (std::is_same_v<ClampAtBounds, BoundsPolicy>) {
+		if constexpr (std::is_same_v<BoundsPolicy, WrapAtBounds>) {
+			const auto lower = static_cast<long long>(min_);
+			const auto upper = static_cast<long long>(max_);
+			const long long range = upper - lower + 1;
+			const long long shifted = static_cast<long long>(val) - lower;
+			const long long wrapped = ((shifted % range) + range) % range;
+			value_ = static_cast<T>(wrapped + lower);
+		} else if constexpr (std::is_same_v<BoundsPolicy, ClampAtBounds>) {
 			if (val < min_) {
 				value_ = min_;
 			} else if (val > max_) {
@@ -83,61 +86,37 @@ class ModuleParameter {
 	T max_;
 };
 
-template <class Module, class Parameter> class ModuleControl {
+template <class Module, typename Parameter> class ModuleControl {
 	using T = typename Parameter::value_type;
-	using OnChange = void (Module::*)();
+	using OnUpdate = void (Module::*)();
+	using Op = T (*)(T, int);
 
   public:
-	constexpr ModuleControl(Module &module, Parameter &param, OnChange func)
-	    : param_{param}, module_{module}, update_func_{func} {}
+	constexpr ModuleControl(Op op, OnUpdate func)
+	    : op_{op}, update_func_{func} {}
 
-	constexpr ModuleControl() = delete;
-	constexpr ModuleControl(ModuleControl &&) = delete;
-	constexpr ModuleControl(const ModuleControl &) = delete;
-	constexpr ModuleControl &operator=(const ModuleControl &) = delete;
-
-	constexpr auto &operator=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p = v; });
-	}
-
-	constexpr auto &operator+=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p += v; });
-	}
-
-	constexpr auto &operator-=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p -= v; });
-	}
-
-	constexpr auto &operator*=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p *= v; });
-	}
-
-	constexpr auto &operator/=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p /= v; });
-	}
-
-	constexpr auto &operator%=(T rhs) noexcept {
-		return update_if_changed(rhs, [](auto &p, auto v) { return p %= v; });
+	float change(Module &module, Parameter &param, int x) const {
+		const auto old = param.value();
+		param = op_(param, x);
+		if (old != param) {
+			(module.*update_func_)();
+		}
+		return param.ratio();
 	}
 
   private:
-	template <typename Op> constexpr auto &update_if_changed(T rhs, Op &&op) {
-		const auto old = param_.value();
-		op(param_, rhs);
-		if (old != param_) {
-			(module_.*update_func_)();
-		}
-		return *this;
-	}
-
-	[[nodiscard]] friend float ratio(const ModuleControl &c) {
-		return c.param_.ratio();
-	}
-
-	Parameter &param_;
-	Module &module_;
-	OnChange update_func_;
+	Op op_;
+	OnUpdate update_func_;
 };
+
+struct DefaultCoeff {
+	inline static constexpr int value{1};
+};
+
+template <typename T, typename Coeff = DefaultCoeff>
+[[nodiscard]] inline constexpr T linear_curve(T v, int x) {
+	return v + x * Coeff::value;
+}
 
 } // namespace sndbx
 
