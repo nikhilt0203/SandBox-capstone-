@@ -59,9 +59,9 @@ class DisplayEngine {
 
 	void display_module(const Engine &e, ModulePosition pos);
 
-	void add_module(Displayable &module, ModulePosition pos);
+	void add_module(const Displayable &module, ModulePosition pos);
 
-	void remove_module(ModulePosition pos);
+	void reset(ModulePosition pos);
 
 	void update_module_ctrl(ModulePosition pos, std::size_t idx, float value);
 
@@ -71,10 +71,10 @@ class DisplayEngine {
 	                           limits::grid_rows + limits::grid_cols>;
 
 	struct DisplayEntry {
-		DisplayEntry(Displayable &d) : color{d.led_color()}, module{d} {}
+		DisplayEntry(const Displayable &m) : color{m.led_color()}, module{m} {}
 		std::array<std::uint8_t, limits::max_module_ctrls> ctrl_vals{};
 		nst::teensy::ColorRGB color;
-		Displayable &module;
+		const Displayable &module;
 	};
 
 	std::array<std::optional<DisplayEntry>, limits::grid_size> display_grid_{};

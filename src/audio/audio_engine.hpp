@@ -28,10 +28,11 @@ struct AudioEndpoint {
 	nst::teensy::AudioPort port;
 };
 
+enum class PortType : std::uint8_t { IN, OUT };
+
 struct ModulePort {
-	enum class Type : std::uint8_t { IN, OUT };
-	Type type;
-	std::uint8_t index;
+	PortType type;
+	std::uint8_t index{};
 
 	constexpr bool operator==(const ModulePort &other) const {
 		return this->type == other.type && this->index == other.index;
@@ -59,16 +60,11 @@ class Patchable {
 	// remove any nodes created in link() from the graph
 	virtual void unlink(AudioGraph &graph) = 0;
 
-	// map a module port to an AudioEndpoint.
-	// depending on port.type, check that port.index < ins() or < outs() before
-	// calling
-	[[nodiscard]] virtual auto endpoint(ModulePort port) const
+	// map a module port to an AudioEndpoint
+	[[nodiscard]] virtual auto patch_point(ModulePort port) const
 	    -> AudioEndpoint = 0;
 
-	// the number of input ports
 	[[nodiscard]] std::uint8_t ins() const { return ins_; }
-
-	// the number of output ports
 	[[nodiscard]] std::uint8_t outs() const { return outs_; }
 
   private:
@@ -77,21 +73,21 @@ class Patchable {
 };
 
 // Create an AudioEndpoint from a graph node id and port index
-[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
-                                        std::uint8_t graph_port) {
+[[nodiscard]] inline auto make_patch_point(nst::teensy::AudioNodeID id,
+                                           std::uint8_t graph_port) {
 	return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
 }
 
-// helper function template for mapping a module port to an audio endpoint.
+// helper function template for mapping a module port to an audio patch_point.
 // InputMap and OutputMap model callables that take in a port index and
 // return an AudioEndpoint.
 template <typename InputMap, typename OutputMap>
 [[nodiscard]] AudioEndpoint map_port(ModulePort port, InputMap &&in_map,
                                      OutputMap &&out_map) {
 	switch (port.type) {
-	case ModulePort::Type::IN:
+	case PortType::IN:
 		return std::forward<InputMap>(in_map)(port.index);
-	case ModulePort::Type::OUT:
+	case PortType::OUT:
 		return std::forward<OutputMap>(out_map)(port.index);
 	default:
 		assert(false && "Invalid port type");
@@ -111,11 +107,11 @@ template <typename InputMap, typename OutputMap>
 	for (auto &data : node_data) {
 		auto device = data.first;
 		assert(device);
-		const auto id = graph.add_node(device);
+		const auto id = graph.add(device);
 		if (!id) {
 			std::for_each_n(
 			    node_data.begin(), nodes_added,
-			    [&graph](const auto &pair) { graph.remove_node(pair.second); });
+			    [&graph](const auto &pair) { graph.remove(pair.second); });
 			return id.error();
 		}
 		data.second = *id;
@@ -135,28 +131,24 @@ add_nodes(AudioGraph &graph,
 inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
                           const Patchable &dst, std::uint8_t input_idx,
                           AudioGraph &graph) {
-	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
-		return AudioError::INVALID_PORT;
-	}
+	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+
 	const auto [out_id, out_port] =
-	    src.endpoint({ModulePort::Type::OUT, output_idx});
-	const auto [in_id, in_port] =
-	    dst.endpoint({ModulePort::Type::IN, input_idx});
+	    src.patch_point({PortType::OUT, output_idx});
+	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
 
 	return graph.connect(out_id, out_port, in_id, in_port);
 }
 
 // disconnect two Patchables by port index
-inline AudioError disconnect(const Patchable &src, std::uint8_t output_idx,
-                             const Patchable &dst, std::uint8_t input_idx,
-                             AudioGraph &graph) {
-	if (output_idx >= src.outs() || input_idx >= dst.ins()) {
-		return AudioError::INVALID_PORT;
-	}
+inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
+                       const Patchable &dst, std::uint8_t input_idx,
+                       AudioGraph &graph) {
+	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+
 	const auto [out_id, out_port] =
-	    src.endpoint({ModulePort::Type::OUT, output_idx});
-	const auto [in_id, in_port] =
-	    dst.endpoint({ModulePort::Type::IN, input_idx});
+	    src.patch_point({PortType::OUT, output_idx});
+	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
 
 	return graph.disconnect(out_id, out_port, in_id, in_port);
 }

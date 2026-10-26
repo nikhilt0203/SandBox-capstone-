@@ -51,19 +51,12 @@ void process_events() {
 	}
 }
 
-// Give the display engine the initial values of a Controllable module's params
-void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
-	for (std::size_t i{}; i < c.num_controls(); ++i) {
-		const ControlChange dummy{i, 0};
-		d.update_module_ctrl(pos, i, c.change_control(dummy));
-	}
-}
-
 } // namespace
 
 // App startup
 //******************************************************************************
 void app::init() {
+	AudioMemory(500);
 	Serial.begin(115200);
 	if (!sd_card::init()) {
 		sndbx_log_error("SD card failed.");
@@ -82,6 +75,13 @@ namespace {
 void draw_all_connections(const Engine &e, DisplayEngine &d) {
 	for (const auto &c : e.connections()) {
 		d.draw_connection(c.src_pos, c.dst_pos);
+	}
+}
+// Give the display engine the initial values of a Controllable module's params
+void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
+	for (std::size_t i{}; i < c.num_controls(); ++i) {
+		const ControlChange dummy{i, 0};
+		d.update_module_ctrl(pos, i, c.change_control(dummy));
 	}
 }
 } // namespace
@@ -107,19 +107,19 @@ bool App::create_module(ModuleType type, ModulePosition pos) {
 
 	auto &module = engine_.get_module(*id);
 
-	if (auto d = module.get_if<Displayable>()) {
-		display_engine_.add_module(*d, pos);
-	}
-	if (auto c = module.get_if<Controllable>()) {
-		populate_ctrl_vals(display_engine_, *c, pos);
-	}
+	nst::invoke_if<Displayable>(module, [this, pos](const auto &m) {
+		display_engine_.add_module(m, pos);
+	});
+	nst::invoke_if<Controllable>(module, [this, pos](auto &m) {
+		populate_ctrl_vals(display_engine_, m, pos);
+	});
 
 	return true;
 }
 
 bool App::delete_module(ModulePosition pos) {
 	if (engine_.delete_module(pos)) {
-		display_engine_.remove_module(pos);
+		display_engine_.reset(pos);
 		return true;
 	}
 	return false;
@@ -136,7 +136,7 @@ bool App::connect(ModulePosition src_pos, std::uint8_t output_idx,
 
 bool App::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
                      ModulePosition dst_pos, std::uint8_t input_idx) {
-	if (!engine_.disconnect(src_pos, output_idx, dst_pos, input_idx)) {
+	if (engine_.disconnect(src_pos, output_idx, dst_pos, input_idx)) {
 		return false;
 	}
 	draw_all_connections(engine_, display_engine_);

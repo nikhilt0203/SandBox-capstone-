@@ -1,6 +1,7 @@
 #ifndef SANDBOX_PARAMETER_HPP_
 #define SANDBOX_PARAMETER_HPP_
 
+#include "curves.hpp"
 #include <type_traits>
 
 namespace sndbx {
@@ -8,9 +9,10 @@ namespace sndbx {
 struct ClampAtBounds {};
 struct WrapAtBounds {};
 
-template <typename T, typename BoundsPolicy = ClampAtBounds,
-          typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+template <typename T, typename BoundsPolicy = ClampAtBounds>
 class ModuleParameter {
+	static_assert(std::is_arithmetic_v<T>);
+
   public:
 	using value_type = T;
 
@@ -86,37 +88,29 @@ class ModuleParameter {
 	T max_;
 };
 
-template <class Module, typename Parameter> class ModuleControl {
-	using T = typename Parameter::value_type;
-	using OnUpdate = void (Module::*)();
-	using Op = T (*)(T, int);
+// Holds a curve function ptr and a member function ptr for when the parameter
+// value changes
+template <class Module, typename T> class ModuleControl {
+	using OnParamChange = void (Module::*)();
+	using ParamCurve = T (*)(T, int);
+	ParamCurve curve;
+	OnParamChange update;
 
   public:
-	constexpr ModuleControl(Op op, OnUpdate func)
-	    : op_{op}, update_func_{func} {}
+	constexpr ModuleControl(ParamCurve curve, OnParamChange update)
+	    : curve{curve}, update{update} {}
 
-	float change(Module &module, Parameter &param, int x) const {
+	template <typename BoundsPolicy>
+	constexpr float change(Module &m, ModuleParameter<T, BoundsPolicy> &param,
+	                       int delta) const {
 		const auto old = param.value();
-		param = op_(param, x);
+		param = curve(param, delta);
 		if (old != param) {
-			(module.*update_func_)();
+			(m.*update)();
 		}
 		return param.ratio();
 	}
-
-  private:
-	Op op_;
-	OnUpdate update_func_;
 };
-
-struct DefaultCoeff {
-	inline static constexpr int value{1};
-};
-
-template <typename T, typename Coeff = DefaultCoeff>
-[[nodiscard]] inline constexpr T linear_curve(T v, int x) {
-	return v + x * Coeff::value;
-}
 
 } // namespace sndbx
 

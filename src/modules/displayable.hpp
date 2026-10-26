@@ -23,10 +23,6 @@ class Displayable {
 	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const {
 		return 0xFFFFFF;
 	}
-
-	[[nodiscard]] virtual CtrlFmtStr control_info(std::size_t i) const {
-		return "";
-	}
 };
 
 } // namespace sndbx

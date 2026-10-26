@@ -10,7 +10,7 @@
 
 namespace sndbx {
 
-// Modules recognized by the system
+// Modules recognized by the system *add to the end, old saved pa
 using ModuleTypes = nst::type_list<Oscillator, Envelope>;
 
 // Module types that can be created by the user

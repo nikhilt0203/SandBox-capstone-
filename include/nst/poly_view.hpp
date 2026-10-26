@@ -51,7 +51,7 @@ template <class... PossibleBases> class poly_view {
 
 	template <class...> friend class poly_view;
 
-	constexpr poly_view() = default;
+	constexpr poly_view() noexcept = default;
 
 	// Construct a poly_view from a Derived ptr
 	template <class Derived>
@@ -67,8 +67,8 @@ template <class... PossibleBases> class poly_view {
 	// Construct a poly_view with a smaller subset of base types from another
 	// poly_view
 	template <class... OtherBases>
-	constexpr poly_view(const poly_view<OtherBases...> &view_superset) noexcept
-	    : ptrs_{std::get<PossibleBases *>(view_superset.ptrs_)...} {
+	constexpr poly_view(const poly_view<OtherBases...> &superset) noexcept
+	    : ptrs_{std::get<PossibleBases *>(superset.ptrs_)...} {
 		using other = poly_view<OtherBases...>;
 		static_assert((other::template contains_base_v<PossibleBases> && ...),
 		              "New poly_view must only contain types contained in old"

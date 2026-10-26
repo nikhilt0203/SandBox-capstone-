@@ -10,13 +10,12 @@
 #include "nst/strong_alias.hpp"
 
 #include "module_id.hpp"
-#include "module_position.hpp"
 #include "module_pools.hpp"
+#include "module_position.hpp"
 
 namespace sndbx {
 
-template <class NonOwningModuleView, std::size_t Capacity>
-class ModuleRegistry {
+template <class ModuleView, std::size_t Capacity> class ModuleRegistry {
   public:
 	template <class Module>
 	[[nodiscard]] auto add(Module *m) -> std::optional<ModuleID> {
@@ -79,15 +78,14 @@ class ModuleRegistry {
 		                          : std::distance(ids_.begin(), it);
 	}
 
-	nst::inplace_vector<NonOwningModuleView, Capacity> modules_;
+	nst::inplace_vector<ModuleView, Capacity> modules_;
 	nst::inplace_vector<ModuleID, Capacity> ids_;
 };
 
 // Module storage. A module's ModuleID can be retrieved with the module's
-// ModulePosition, and its underlying NonOwningModuleView (template param) can
+// ModulePosition, and its underlying ModuleView (template param) can
 // be queried with its ModuleID.
-template <class NonOwningModuleView, std::size_t Capacity>
-class MappedModuleRegistry {
+template <class ModuleView, std::size_t Capacity> class MappedModuleRegistry {
   public:
 	template <class Module> struct Receipt {
 		ModuleID id;
@@ -103,7 +101,7 @@ class MappedModuleRegistry {
 	// Creates a Module at the given position.
 	// When successful, the expected type contains a receipt with a
 	// reference to the new module and its id. Otherwise, it contains
-	// the nested Error enum
+	// an error code
 	template <class Module, typename... Args>
 	auto make(ModulePosition pos, Args &&...args)
 	    -> nst::expected<Receipt<Module>, Error> {
@@ -118,7 +116,8 @@ class MappedModuleRegistry {
 			return Error::LOCATION_OCCUPIED;
 		}
 
-		auto module = arena::acquire_module<Module>(std::forward<Args>(args)...);
+		auto module =
+		    arena::acquire_module<Module>(std::forward<Args>(args)...);
 		if (!module) {
 			return Error::MODULE_POOL_EXHAUSTED;
 		}
@@ -142,9 +141,8 @@ class MappedModuleRegistry {
 		return true;
 	}
 
-	// returns nullptr if not found
-	[[nodiscard]] auto get_module(ModuleID id) const
-	    -> const NonOwningModuleView * {
+	// nullptr if not found
+	[[nodiscard]] auto get_module(ModuleID id) const -> const ModuleView * {
 		auto it = registry_.find(id);
 		if (it == registry_.cend()) {
 			return nullptr;
@@ -152,8 +150,8 @@ class MappedModuleRegistry {
 		return it;
 	}
 
-	// returns nullptr if not found
-	[[nodiscard]] auto get_module(ModuleID id) -> NonOwningModuleView * {
+	// nullptr if not found
+	[[nodiscard]] auto get_module(ModuleID id) -> ModuleView * {
 		auto it = registry_.find(id);
 		if (it == registry_.end()) {
 			return nullptr;
@@ -171,12 +169,12 @@ class MappedModuleRegistry {
 		return entry->id;
 	}
 
-	// retrieve the module with the given id. id must be valid
+	// id must be valid
 	[[nodiscard]] const auto &operator[](ModuleID id) const {
 		return registry_[id];
 	}
 
-	// retrieve the module with the given id. id must be valid
+	// id must be valid
 	[[nodiscard]] auto &operator[](ModuleID id) { return registry_[id]; }
 
 	// retrieve the id of the module at the given position. a module
@@ -195,8 +193,14 @@ class MappedModuleRegistry {
 		return entry->type;
 	}
 
-	// the number of modules that can be stored
 	[[nodiscard]] constexpr static auto capacity() { return Capacity; }
+
+	[[nodiscard]] auto begin() { return registry_.begin(); }
+	[[nodiscard]] auto end() { return registry_.end(); }
+	[[nodiscard]] const auto cbegin() const { return registry_.cbegin(); }
+	[[nodiscard]] const auto cend() const { return registry_.cend(); }
+	[[nodiscard]] const auto begin() const { return cbegin(); }
+	[[nodiscard]] const auto end() const { return cend(); }
 
   private:
 	struct MapEntry {
@@ -206,7 +210,7 @@ class MappedModuleRegistry {
 	};
 	using Map = std::array<std::optional<MapEntry>, capacity()>;
 
-	ModuleRegistry<NonOwningModuleView, capacity()> registry_{};
+	ModuleRegistry<ModuleView, capacity()> registry_{};
 	Map map_{};
 };
 

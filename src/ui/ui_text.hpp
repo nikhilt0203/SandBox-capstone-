@@ -13,9 +13,7 @@ struct ColoredText {
 	nst::teensy::ColorRGB color{};
 };
 
-struct SizedColoredText {
-	std::string_view text{};
-	nst::teensy::ColorRGB color{};
+struct SizedColoredText : public ColoredText {
 	std::size_t size{};
 };
 

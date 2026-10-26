@@ -26,19 +26,6 @@ class App {
 
 	void update();
 
-	// Dispatch input events to the current app mode
-	void operator()(const KeypadEvent &evt) {
-		app_state_->on_keypad_evt(*this, evt);
-	}
-
-	void operator()(const KnobEvent &evt) {
-		app_state_->on_knob_evt(*this, evt);
-	}
-
-	void operator()(const ButtonEvent &evt) {
-		app_state_->on_button_evt(*this, evt);
-	}
-
 	bool create_module(ModuleType type, ModulePosition pos);
 	bool delete_module(ModulePosition pos);
 
@@ -68,6 +55,13 @@ class App {
 
 	[[nodiscard]] const auto &engine() const { return engine_; }
 	[[nodiscard]] auto &engine() { return engine_; }
+
+	// Dispatch input events to the current app mode
+	void operator()(KeypadEvent evt) { app_state_->on_keypad_evt(*this, evt); }
+
+	void operator()(KnobEvent evt) { app_state_->on_knob_evt(*this, evt); }
+
+	void operator()(ButtonEvent evt) { app_state_->on_button_evt(*this, evt); }
 
 	template <class State> void change_app_state() {
 		app_state_ = &std::get<State>(app_states_);

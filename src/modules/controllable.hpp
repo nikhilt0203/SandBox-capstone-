@@ -1,22 +1,19 @@
 #ifndef SANDBOX_CONTROLLABLE_HPP_
 #define SANDBOX_CONTROLLABLE_HPP_
 
-#include "config/config.hpp"
+#include "control_change.hpp"
 #include <cstdint>
 
 namespace sndbx {
 
-struct ControlChange {
-	std::size_t index;
-	int amt;
-};
-
 class Controllable {
   public:
-	Controllable(std::size_t num_ctrls) : num_ctrls_{num_ctrls} {}
+	explicit Controllable(std::size_t num_ctrls) : num_ctrls_{num_ctrls} {}
 	virtual ~Controllable() = default;
 
-	[[nodiscard]] std::size_t num_controls() const { return num_ctrls_; }
+	[[nodiscard]] std::size_t num_controls() const noexcept {
+		return num_ctrls_;
+	}
 
 	// Returns the new value (normalized)
 	virtual float change_control(ControlChange cc) = 0;

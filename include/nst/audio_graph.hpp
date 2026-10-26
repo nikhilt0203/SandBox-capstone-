@@ -63,19 +63,18 @@ struct AudioPatch {
 	AudioPort src_port;
 	AudioNodeID dst_id;
 	AudioPort dst_port;
-	::AudioConnection *connection;
+	::AudioConnection connection;
 
 	AudioPatch(AudioNode src, AudioPort src_port, AudioNode dst,
-	           AudioPort dst_port, ::AudioConnection *c)
+	           AudioPort dst_port)
 	    : src_id{src.id}, src_port{src_port}, dst_id{dst.id},
-	      dst_port{dst_port}, connection{c} {
-		c->connect(*src.device, *src_port, *dst.device, *dst_port);
-	}
+	      dst_port{dst_port},
+	      connection{*src.device, *src_port, *dst.device, *dst_port} {}
 };
 
 enum class AudioGraphError {
 	NONE,
-	POOL_EXHAUSTED,
+	PATCHES_EXHAUSTED,
 	PATCH_ALREADY_EXISTS,
 	NODE_NOT_FOUND,
 	PATCH_NOT_FOUND,
@@ -90,26 +89,14 @@ class AudioGraph {
   public:
 	using Error = AudioGraphError;
 
-	auto add_node(::AudioStream *device) -> nst::expected<AudioNodeID, Error> {
+	auto add(::AudioStream *device) -> nst::expected<AudioNodeID, Error> {
 		if (nodes_.is_full()) {
 			return Error::GRAPH_FULL;
 		}
 		return emplace_and_get_id(device);
 	}
 
-	template <class T, typename... Args>
-	auto emplace_node(Args &&...args)
-	    -> nst::expected<AudioNodeHandle<T>, Error> {
-		static_assert(std::is_base_of_v<::AudioStream, T>);
-		if (nodes_.is_full()) {
-			return Error::GRAPH_FULL;
-		}
-		const auto device = new T(std::forward<Args>(args)...);
-		const auto id = emplace_and_get_id(device);
-		return AudioNodeHandle<T>{id, device};
-	}
-
-	bool remove_node(AudioNodeID id) {
+	bool remove(AudioNodeID id) {
 		auto it = find_node(id);
 		if (it == nodes_.end()) {
 			return false;
@@ -124,10 +111,10 @@ class AudioGraph {
 		return true;
 	}
 
-	auto connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	             AudioPort dst_port) -> Error {
-		if (connection_pool_.is_full() || patches_.is_full()) {
-			return Error::POOL_EXHAUSTED;
+	Error connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
+	              AudioPort dst_port) {
+		if (patches_.is_full()) {
+			return Error::PATCHES_EXHAUSTED;
 		}
 
 		if (find_patch(src_id, src_port, dst_id, dst_port) != patches_.end()) {
@@ -140,47 +127,58 @@ class AudioGraph {
 			return Error::NODE_NOT_FOUND;
 		}
 
-		emplace_patch(*src, src_port, *dst, dst_port);
+		patches_.emplace_back(*src, src_port, *dst, dst_port);
 		return Error::NONE;
 	}
 
-	auto disconnect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	                AudioPort dst_port) -> Error {
+	// Connect two nodes on port 0
+	Error connect(AudioNodeID src_id, AudioNodeID dst_id) {
+		return connect(src_id, AudioPort{0}, dst_id, AudioPort{0});
+	}
+
+	bool disconnect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
+	                AudioPort dst_port) {
 		auto it = find_patch(src_id, src_port, dst_id, dst_port);
 		if (it == patches_.end()) {
-			return Error::PATCH_NOT_FOUND;
+			return false;
 		}
-		release_patch(*it);
 		patches_.erase(it);
-		return Error::NONE;
+		return true;
 	}
 
-	auto disconnect(AudioNodeID src_id, AudioNodeID dst_id) -> Error {
-		const auto begin = patches_.begin();
-		const auto end = patches_.end();
-
-		auto it = std::partition(begin, end, [src_id, dst_id](const auto &p) {
-			return p.src_id == src_id && p.dst_id == dst_id;
-		});
-		if (it == begin) {
-			return Error::PATCH_NOT_FOUND;
+	// Remove the first connection found between src and dst
+	bool disconnect(AudioNodeID src_id, AudioNodeID dst_id) {
+		auto it = std::find_if(
+		    patches_.begin(), patches_.end(), [src_id, dst_id](const auto &p) {
+			    return p.src_id == src_id && p.dst_id == dst_id;
+		    });
+		if (it == patches_.end()) {
+			return false;
 		}
-
-		std::for_each(begin, it, [this](auto &p) { release_patch(p); });
-		patches_.erase(it, end);
-		return Error::NONE;
+		patches_.erase(it);
+		return true;
 	}
 
-	[[nodiscard]] AudioStream &operator[](AudioNodeID id) {
-		auto it = find_node(id);
-		assert(it != nodes_.end());
-		return *it->device;
+	[[nodiscard]] float processor_usage() {
+		float sum{};
+		for (const auto n : nodes_) {
+			sum += n.device->processorUsage();
+		}
+		return sum;
 	}
 
-	[[nodiscard]] const AudioStream &operator[](AudioNodeID id) const {
-		auto it = find_node(id);
-		assert(it != nodes_.end());
-		return *it->device;
+	[[nodiscard]] float processor_usage_max() {
+		float sum{};
+		for (const auto n : nodes_) {
+			sum += n.device->processorUsageMax();
+		}
+		return sum;
+	}
+
+	void processor_usage_max_reset() {
+		for (const auto n : nodes_) {
+			n.device->processorUsageMaxReset();
+		}
 	}
 
 	[[nodiscard]] const auto &nodes() const { return nodes_; }
@@ -189,18 +187,6 @@ class AudioGraph {
 	[[nodiscard]] auto &patches() { return patches_; }
 
   private:
-	void emplace_patch(AudioNode src, AudioPort src_port, AudioNode dst,
-	                   AudioPort dst_port) {
-		const auto c = connection_pool_.acquire();
-		assert(c);
-		patches_.emplace_back(src, src_port, dst, dst_port, c);
-	}
-
-	void release_patch(AudioPatch &p) {
-		p.connection->disconnect();
-		connection_pool_.release(p.connection);
-	}
-
 	auto find_node(AudioNodeID id) {
 		return std::find_if(nodes_.begin(), nodes_.end(),
 		                    [id](const auto &n) { return n.id == id; });
@@ -214,7 +200,7 @@ class AudioGraph {
 	auto find_patch(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
 	                AudioPort dst_port) const {
 		return std::find_if(
-		    patches_.cbegin(), patches_.cend(), [&](const auto &p) {
+		    patches_.cbegin(), patches_.cend(), [=](const auto &p) {
 			    return src_id == p.src_id && src_port == p.src_port &&
 			           dst_id == p.dst_id && dst_port == p.dst_port;
 		    });
@@ -222,7 +208,7 @@ class AudioGraph {
 
 	auto find_patch(AudioNodeID src_id, AudioNodeID dst_id) const {
 		return std::find_if(patches_.cbegin(), patches_.end(),
-		                    [&](const auto &p) {
+		                    [=](const auto &p) {
 			                    return src_id == p.src_id && dst_id == p.dst_id;
 		                    });
 	}
@@ -230,8 +216,7 @@ class AudioGraph {
 	auto find_patch(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
 	                AudioPort dst_port) {
 		return std::find_if(
-		    patches_.begin(), patches_.end(),
-		    [src_id, src_port, dst_id, dst_port](const auto &p) {
+		    patches_.begin(), patches_.end(), [=](const auto &p) {
 			    return src_id == p.src_id && src_port == p.src_port &&
 			           dst_id == p.dst_id && dst_port == p.dst_port;
 		    });
@@ -253,35 +238,7 @@ class AudioGraph {
 
 	nst::inplace_vector<AudioNode, NodeCapacity> nodes_;
 	nst::inplace_vector<AudioPatch, PatchCapacity> patches_;
-	nst::object_pool<::AudioConnection, PatchCapacity> connection_pool_;
 };
-
-
-template <std::size_t N, std::size_t P>
-[[nodiscard]] inline auto processor_usage(const AudioGraph<N, P> &graph) {
-	float sum{};
-	for (const auto &n : graph.nodes()) {
-		sum += n.device->processorUsage();
-	}
-	return sum;
-}
-
-template <std::size_t N, std::size_t P>
-[[nodiscard]] inline auto processor_usage_max(const AudioGraph<N, P> &graph) {
-	float sum{};
-	for (const auto &n : graph.nodes()) {
-		sum += n.device->processorUsageMax();
-	}
-	return sum;
-}
-
-template <std::size_t N, std::size_t P>
-inline void processor_usage_max_reset(AudioGraph<N,P> &graph) {
-	for (const auto &n : graph.nodes()) {
-		n.device->processorUsageMaxReset();
-	}
-}
-
 
 } // namespace nst::teensy
 

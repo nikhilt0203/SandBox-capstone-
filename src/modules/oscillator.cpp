@@ -33,24 +33,24 @@ AudioError Oscillator::link(AudioGraph &graph) {
 	return audio::add_nodes(graph, {&synth_, synth_id_});
 }
 
-void Oscillator::unlink(AudioGraph &graph) { graph.remove_node(synth_id_); }
+void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
-AudioEndpoint Oscillator::endpoint(ModulePort port) const {
-	return audio::make_endpoint(synth_id_, port.index);
+AudioEndpoint Oscillator::patch_point(ModulePort port) const {
+	return audio::make_patch_point(synth_id_, port.index);
 }
 
-float Oscillator::change_control(ControlChange c) {
-	assert(c.index < num_controls());
+float Oscillator::change_control(ControlChange cc) {
+	assert(cc.index < num_controls());
 
-	switch (c.index) {
+	switch (cc.index) {
 	case 0:
-		return coarse_tune_.change(*this, frequency_, c.amt);
+		return coarse_ctrl.change(*this, frequency_, cc.delta);
 	case 1:
-		return fine_tune_.change(*this, fine_tune_offset_, c.amt);
+		return fine_ctrl.change(*this, fine_tune_offset_, cc.delta);
 	case 2:
-		return fm_ctrl_.change(*this, fm_depth_, c.amt);
+		return fm_ctrl.change(*this, fm_depth_, cc.delta);
 	case 3:
-		return waveform_ctrl_.change(*this, waveform_idx_, c.amt);
+		return waveform_ctrl.change(*this, waveform_idx_, cc.delta);
 	}
 	return 0;
 }
@@ -82,9 +82,10 @@ void Oscillator::update_waveform() {
 }
 
 void Oscillator::init_synth() {
-	update_fm_depth();
+	synth_.begin(osc_waveforms[waveform_idx_].id);
+	synth_.amplitude(0.5);
 	update_frequency();
-	update_waveform();
+	update_fm_depth();
 }
 
 CtrlFmtStr waveform_ctrl_formatter(float f) {

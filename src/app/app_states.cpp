@@ -10,7 +10,7 @@ namespace sndbx {
 // helpers
 namespace {
 
-bool is_patch_action(const KeypadEvent &first, const KeypadEvent &second) {
+bool is_patch_action(const KeypadEvent &first, KeypadEvent second) {
 	constexpr static auto timeout_ms = 1500u;
 	const auto key_num1 = first.data.key_num;
 	const auto key_num2 = second.data.key_num;
@@ -32,7 +32,7 @@ void handle_patch_action(App &app, ModulePosition first,
 
 } // namespace
 
-void AppEditState::on_knob_evt(App &app, const KnobEvent &evt) {
+void AppEditState::on_knob_evt(App &app, KnobEvent evt) {
 	const auto [idx, delta] = evt;
 
 	if (idx == 0 && last_key_evt_.has_value() &&
@@ -43,13 +43,13 @@ void AppEditState::on_knob_evt(App &app, const KnobEvent &evt) {
 	}
 }
 
-void AppEditState::on_keypad_evt(App &app, const KeypadEvent &evt) {
+void AppEditState::on_keypad_evt(App &app, KeypadEvent evt) {
 	const auto key_num = evt.data.key_num;
 	const ModulePosition pos{key_num};
 
 	auto id = app.engine().module_id(pos);
 	if (!id) {
-        last_key_evt_.reset();
+		last_key_evt_.reset();
 		return;
 	}
 
@@ -94,15 +94,15 @@ void AppEditState::on_keypad_evt(App &app, const KeypadEvent &evt) {
 	app.select(module, pos);
 }
 
-void AppEditState::on_button_evt(App &app, const ButtonEvent &evt) {
+void AppEditState::on_button_evt(App &app, ButtonEvent evt) {
 	Serial.printf("button %d pressed\n", evt.button_num);
 }
 
-void AppViewState::on_knob_evt(App &app, const sndbx::KnobEvent &evt) {
+void AppViewState::on_knob_evt(App &app, KnobEvent evt) {
 	app.turn_module_knob(evt.encoder_num, evt.delta);
 }
 
-void AppViewState::on_keypad_evt(App &app, const sndbx::KeypadEvent &e) {}
-void AppViewState::on_button_evt(App &app, const sndbx::ButtonEvent &e) {}
+void AppViewState::on_keypad_evt(App &app, KeypadEvent evt) {}
+void AppViewState::on_button_evt(App &app, ButtonEvent evt) {}
 
 } // namespace sndbx

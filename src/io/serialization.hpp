@@ -32,7 +32,7 @@ struct SerializationBuffer
 	std::size_t size_{};
 };
 
-// Probably don't need this, state lives in systems
+// Probably don't need this, state lives in the systems
 class Serializable {
 	virtual ~Serializable() = default;
 	virtual void serialize(SerializationBuffer &sb) const = 0;

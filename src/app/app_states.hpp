@@ -12,27 +12,27 @@ class App;
 
 struct AppEventState {
 	virtual ~AppEventState() = default;
-	virtual void on_knob_evt(App &app, const KnobEvent &evt) = 0;
-	virtual void on_keypad_evt(App &app, const KeypadEvent &evt) = 0;
-	virtual void on_button_evt(App &app, const ButtonEvent &evt) = 0;
+	virtual void on_knob_evt(App &, KnobEvent) = 0;
+	virtual void on_keypad_evt(App &, KeypadEvent evt) = 0;
+	virtual void on_button_evt(App &, ButtonEvent evt) = 0;
 };
 
 class AppEditState final : public AppEventState {
   public:
-	void on_knob_evt(App &app, const KnobEvent &evt) override;
-	void on_keypad_evt(App &app, const KeypadEvent &evt) override;
-	void on_button_evt(App &app, const ButtonEvent &evt) override;
+	void on_knob_evt(App &, KnobEvent) override;
+	void on_keypad_evt(App &, KeypadEvent) override;
+	void on_button_evt(App &, ButtonEvent) override;
 
   private:
 	Timer timer_;
-	std::optional<sndbx::KeypadEvent> last_key_evt_{};
+	std::optional<KeypadEvent> last_key_evt_{};
 };
 
 class AppViewState final : public AppEventState {
   public:
-	void on_knob_evt(App &app, const KnobEvent &evt) override;
-	void on_keypad_evt(App &app, const KeypadEvent &evt) override;
-	void on_button_evt(App &app, const ButtonEvent &evt) override;
+	void on_knob_evt(App &, KnobEvent) override;
+	void on_keypad_evt(App &, KeypadEvent) override;
+	void on_button_evt(App &, ButtonEvent) override;
 };
 
 } // namespace sndbx

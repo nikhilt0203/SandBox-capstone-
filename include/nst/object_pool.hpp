@@ -15,7 +15,6 @@ template <typename T, std::size_t Capacity> class object_pool {
 	using value_type = T;
 
 	object_pool() = default;
-
 	~object_pool() { clear(); }
 
 	object_pool(const object_pool &) = delete;
@@ -38,7 +37,7 @@ template <typename T, std::size_t Capacity> class object_pool {
 		assert(obj != nullptr);
 
 		for (auto &slot : objs_) {
-			if (slot.ptr() != obj) {
+			if (slot.ptr() == obj) {
 				obj->~T();
 				slot.active = false;
 				--num_active_;

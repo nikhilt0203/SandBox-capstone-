@@ -114,9 +114,8 @@ bool Engine::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	if (!is_success(audio::disconnect(*modules->first, output_idx,
-	                                  *modules->second, input_idx,
-	                                  audio_graph_))) {
+	if (!audio::disconnect(*modules->first, output_idx, *modules->second,
+	                       input_idx, audio_graph_)) {
 		return false;
 	}
 

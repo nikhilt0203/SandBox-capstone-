@@ -56,7 +56,7 @@ if any node addition fails. The node IDs are passed as an output parameter.
 
     The two patch points are the input of "synth" and the output of "amp," and the synths
     are connected . map() defines the mapping
-    between the logical module port and the actual point in the audio graph. The first field in the endpoint is the AudioStream's audio graph id, and the second field is the AudioStream port number that should be used. 
+    between the logical module port and the actual point in the audio graph. The first field in the patch_point is the AudioStream's audio graph id, and the second field is the AudioStream port number that should be used. 
     port.type indicates whether the query is for an input or an output. 
    
 ```cpp
@@ -68,9 +68,9 @@ if any node addition fails. The node IDs are passed as an output parameter.
         assert(port.index == 0);
         switch (port.type) {
         case ModulePortType::IN:
-            return audio::make_endpoint(synth_id_, 0);
+            return audio::make_patch_point(synth_id_, 0);
         case ModulePortType::OUT: 
-            return audio::make_endpoint(amp_id_, 0); 
+            return audio::make_patch_point(amp_id_, 0); 
         }
     }
 ```

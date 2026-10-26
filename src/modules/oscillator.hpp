@@ -32,11 +32,12 @@ class Oscillator : public audio::Patchable,
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {
 		set_defaults();
+		init_synth();
 	}
 
 	[[nodiscard]] AudioError link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	[[nodiscard]] AudioEndpoint endpoint(ModulePort port) const override;
+	[[nodiscard]] AudioEndpoint patch_point(ModulePort port) const override;
 
 	float change_control(ControlChange c) override;
 
@@ -50,10 +51,33 @@ class Oscillator : public audio::Patchable,
   protected:
 	void init_synth();
 	void set_defaults();
-
 	void update_frequency();
 	void update_fm_depth();
 	void update_waveform();
+
+	struct CoarseCurveCoeff {
+		constexpr static auto value{1.08f};
+	};
+	struct FMCurveCoeff {
+		constexpr static auto value{0.25f};
+	};
+
+	constexpr static auto coarse_curve = curves::exp<float, CoarseCurveCoeff>;
+	constexpr static auto fine_curve = curves::linear<int>;
+	constexpr static auto fm_curve = curves::linear<float, FMCurveCoeff>;
+	constexpr static auto wave_curve = curves::linear<std::size_t>;
+
+	constexpr static auto coarse_ctrl =
+	    ModuleControl{coarse_curve, &Self::update_frequency};
+
+	constexpr static auto fine_ctrl =
+	    ModuleControl{fine_curve, &Self::update_frequency};
+
+	constexpr static auto fm_ctrl =
+	    ModuleControl{fm_curve, &Self::update_fm_depth};
+
+	constexpr static auto waveform_ctrl =
+	    ModuleControl{wave_curve, &Self::update_waveform};
 
 	AudioSynthWaveformModulated synth_;
 	nst::teensy::AudioNodeID synth_id_;
@@ -62,25 +86,8 @@ class Oscillator : public audio::Patchable,
 	ModuleParameter<int> fine_tune_offset_{-50, 50, 0};
 	ModuleParameter<float> fm_depth_{0.0f, 12.0f, 8.25f};
 	ModuleParameter<std::size_t, WrapAtBounds> waveform_idx_{0, 6, 0};
-
-	struct FmCoeff {
-		constexpr static float value{0.25};
-	};
-
-	constexpr static ModuleControl<Self, decltype(frequency_)> coarse_tune_{
-	    [](float v, int x) { return v * powf(1.08f, x); },
-	    &Self::update_frequency};
-
-	constexpr static ModuleControl<Self, decltype(fine_tune_offset_)>
-	    fine_tune_{linear_curve<int>, &Self::update_frequency};
-
-	constexpr static ModuleControl<Self, decltype(fm_depth_)> fm_ctrl_{
-	    linear_curve<float, FmCoeff>, &Self::update_fm_depth};
-
-	constexpr static ModuleControl<Self, decltype(waveform_idx_)>
-	    waveform_ctrl_{linear_curve<std::size_t>, &Self::update_waveform};
-
 };
+
 } // namespace sndbx
 
 #endif

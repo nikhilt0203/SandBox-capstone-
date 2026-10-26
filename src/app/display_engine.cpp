@@ -121,11 +121,11 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 	}
 }
 
-void DisplayEngine::add_module(Displayable &module, ModulePosition pos) {
+void DisplayEngine::add_module(const Displayable &module, ModulePosition pos) {
 	display_grid_[pos.value].emplace(module);
 }
 
-void DisplayEngine::remove_module(ModulePosition pos) {
+void DisplayEngine::reset(ModulePosition pos) {
 	display_grid_[pos.value].reset();
 }
 
