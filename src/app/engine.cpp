@@ -20,7 +20,7 @@ std::optional<ModuleID> create_module_impl(ModuleFactory factory,
 	};
 
 	std::optional<ModuleID> ret{};
-	// short circuits if 'type' is valid + .make() succeeds
+	// short circuits on success
 	((ModuleType{Is} == type &&
 	  (ret = to_optional_id(factory.make<ModuleTypes::get<Is>>(pos)))) ||
 	 ...);

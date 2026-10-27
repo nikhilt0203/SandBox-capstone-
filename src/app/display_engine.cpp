@@ -141,12 +141,12 @@ void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 	const auto [input_colors, output_colors] =
 	    connected_module_colors(engine, pos);
 
-	ModuleControlValues values;
-	auto &fmtrs = info.ctrl_fmt;
-	for (std::size_t i{}; i < ctrl_vals.size(); ++i) {
-		auto format = fmtrs[i];
-		values.emplace_back(format(ctrl_vals[i]));
-	}
+	// ModuleControlValues values;
+	// auto &fmtrs = info.ctrl_fmt;
+	// for (std::size_t i{}; i < ctrl_vals.size(); ++i) {
+	// 	auto format = fmtrs[i];
+	// 	values.emplace_back(format(ctrl_vals[i]));
+	// }
 
 	ui::ModuleDisplay module_page{module.display_text(),
 	                              info.ctrl_names,

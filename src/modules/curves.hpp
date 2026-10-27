@@ -6,14 +6,15 @@
 
 namespace sndbx::curves {
 
+#define CURVE_CONSTANT(name, val)                                              \
+	struct name {                                                              \
+		constexpr static auto value{val};                                      \
+	}
+
 namespace detail {
-struct IdentityCoeff {
-	inline static constexpr int value{1};
-};
+CURVE_CONSTANT(IdentityCoeff, 1);
 } // namespace detail
 
-// 'Coeff' models a type with static member 'value' holding the value
-// of the coefficient
 template <typename T, class Coeff = detail::IdentityCoeff,
           typename = std::enable_if_t<!std::is_same_v<Coeff, int>>>
 [[nodiscard]] inline constexpr T linear(T value, int delta) {
@@ -32,17 +33,17 @@ template <typename T, int Coeff>
 	return value + delta * Coeff;
 }
 
-template <typename T, class Coeff = detail::IdentityCoeff,
-          typename = std::enable_if_t<!std::is_same_v<Coeff, int>>>
-[[nodiscard]] inline constexpr T log(T value, int delta) {
-	static_assert(std::is_arithmetic_v<decltype(Coeff::value)>);
-	if (delta == 0) {
-		return value;
-	}
-	return std::log(value + delta) * Coeff::value;
-}
+// template <typename T, typename Coeff = detail::IdentityCoeff,
+//           typename = std::enable_if_t<!std::is_same_v<Coeff, int>>>
+// [[nodiscard]] inline constexpr T log(T value, int delta) {
+// 	static_assert(std::is_arithmetic_v<decltype(Coeff::value)>);
+// 	if (delta == 0) {
+// 		return value;
+// 	}
+// 	return std::log(value + delta) * Coeff::value;
+// }
 
-template <typename T, int Coeff>
+template <typename T, auto Coeff = 1>
 [[nodiscard]] inline constexpr T log(T value, int delta) {
 	if (delta == 0) {
 		return value;
@@ -50,7 +51,7 @@ template <typename T, int Coeff>
 	return std::log(value + delta) * Coeff;
 }
 
-template <typename T, class Base = detail::IdentityCoeff,
+template <typename T, typename Base = detail::IdentityCoeff,
           typename = std::enable_if_t<!std::is_same_v<Base, int>>>
 [[nodiscard]] inline constexpr T exp(T value, int delta) {
 	static_assert(std::is_arithmetic_v<decltype(Base::value)>);
@@ -66,6 +67,23 @@ template <typename T, int Base>
 		return value;
 	}
 	return std::pow(static_cast<T>(Base), static_cast<T>(value + delta));
+}
+
+template <typename T, typename Coeff = detail::IdentityCoeff,
+          typename = std::enable_if_t<!std::is_same_v<Coeff, int>>>
+[[nodiscard]] inline constexpr T sqrt(T value, int delta) {
+	if (delta == 0) {
+		return value;
+	}
+	return std::sqrt(value + delta) * Coeff::value;
+}
+
+template <typename T, int Coeff>
+[[nodiscard]] inline constexpr T sqrt(T value, int delta) {
+	if (delta == 0) {
+		return value;
+	}
+	return std::sqrt(value + static_cast<T>(delta)) * Coeff;
 }
 
 } // namespace sndbx::curves

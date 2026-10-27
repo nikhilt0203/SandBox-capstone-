@@ -6,6 +6,27 @@
 
 namespace sndbx {
 
+namespace detail {
+template <typename T> inline constexpr auto wrap(T value, T min, T max) {
+	const auto lower = static_cast<long long>(min);
+	const auto upper = static_cast<long long>(max);
+	const long long range = upper - lower + 1;
+	const long long shifted = static_cast<long long>(value) - lower;
+	const long long wrapped = ((shifted % range) + range) % range;
+	return static_cast<T>(wrapped + lower);
+}
+
+template <typename T> inline constexpr auto clamp(T val, T min, T max) {
+	if (val < min) {
+		return min;
+	} else if (val > max) {
+		return max;
+	} else {
+		return val;
+	}
+}
+} // namespace detail
+
 struct ClampAtBounds {};
 struct WrapAtBounds {};
 
@@ -22,9 +43,13 @@ class ModuleParameter {
 	constexpr ModuleParameter(T min, T max, T initial) noexcept
 	    : value_{initial}, min_{min}, max_{max} {}
 
-	[[nodiscard]] constexpr T min() const { return min_; }
-	[[nodiscard]] constexpr T max() const { return max_; }
+	[[nodiscard]] constexpr auto min() const { return min_; }
+	[[nodiscard]] constexpr auto max() const { return max_; }
 	[[nodiscard]] constexpr auto value() const noexcept { return value_; }
+	[[nodiscard]] constexpr auto ratio() const noexcept {
+		return (static_cast<float>(value_) - static_cast<float>(min_)) /
+		       static_cast<float>(max_ - min_);
+	}
 
 	constexpr operator T() const noexcept { return value_; }
 
@@ -58,28 +83,12 @@ class ModuleParameter {
 		return *this;
 	}
 
-	[[nodiscard]] constexpr auto ratio() const noexcept {
-		return (static_cast<float>(value_) - static_cast<float>(min_)) /
-		       static_cast<float>(max_ - min_);
-	}
-
   private:
 	constexpr void set(T val) noexcept {
 		if constexpr (std::is_same_v<BoundsPolicy, WrapAtBounds>) {
-			const auto lower = static_cast<long long>(min_);
-			const auto upper = static_cast<long long>(max_);
-			const long long range = upper - lower + 1;
-			const long long shifted = static_cast<long long>(val) - lower;
-			const long long wrapped = ((shifted % range) + range) % range;
-			value_ = static_cast<T>(wrapped + lower);
+			value_ = detail::wrap(val, min_, max_);
 		} else if constexpr (std::is_same_v<BoundsPolicy, ClampAtBounds>) {
-			if (val < min_) {
-				value_ = min_;
-			} else if (val > max_) {
-				value_ = max_;
-			} else {
-				value_ = val;
-			}
+			value_ = detail::clamp(val, min_, max_);
 		}
 	}
 

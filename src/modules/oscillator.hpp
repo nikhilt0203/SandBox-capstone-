@@ -19,8 +19,8 @@ inline constexpr ModuleDisplayInfo module_info<Oscillator>{
     {"coarse", "fine", "fm", "type"},
     {"in", "fm"},
     {"out"},
-    {ctrl_formatter<HertzFormat>, ctrl_formatter<HertzFormat>,
-     ctrl_formatter<OctavesFormat>, waveform_ctrl_formatter}};
+    {ctrl_format<FHertz>, ctrl_format<FHertz>,
+     ctrl_format<FOctaves>, waveform_ctrl_formatter}};
 
 class Oscillator : public audio::Patchable,
                    public Controllable,
@@ -55,16 +55,16 @@ class Oscillator : public audio::Patchable,
 	void update_fm_depth();
 	void update_waveform();
 
-	struct CoarseCurveCoeff {
+	struct coarse_coeff {
 		constexpr static auto value{1.08f};
 	};
-	struct FMCurveCoeff {
+	struct fm_coeff {
 		constexpr static auto value{0.25f};
 	};
 
-	constexpr static auto coarse_curve = curves::exp<float, CoarseCurveCoeff>;
+	constexpr static auto coarse_curve = curves::exp<float, coarse_coeff>;
 	constexpr static auto fine_curve = curves::linear<int>;
-	constexpr static auto fm_curve = curves::linear<float, FMCurveCoeff>;
+	constexpr static auto fm_curve = curves::linear<float, fm_coeff>;
 	constexpr static auto wave_curve = curves::linear<std::size_t>;
 
 	constexpr static auto coarse_ctrl =

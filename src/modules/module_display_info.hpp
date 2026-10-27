@@ -20,7 +20,7 @@ using ModulePortNames = std::array<ModulePortName, limits::max_in_ports>;
 
 using ModuleControlNames =
     std::array<ModuleControlName, limits::max_module_ctrls>;
-
+    
 using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
                              nst::teensy::ColorRGB>;
 
@@ -32,12 +32,7 @@ using ControlFormatters =
 
 using ModuleControlValues =
     nst::inplace_vector<CtrlFmtStr, limits::max_module_ctrls>;
-
-template <typename... Ts>
-[[nodiscard]] inline constexpr auto to_array(Ts... params) noexcept {
-	return std::array<float, limits::max_module_ctrls>{params.ratio()...};
-}
-
+    
 struct ModuleDisplayInfo {
 	ModulePortNames in_names;
 	ModulePortNames out_names;
@@ -72,33 +67,29 @@ inline constexpr auto format_ctrl(float value, FormatPolicy fp) {
 	return str;
 }
 
-struct DefaultFormat {};
-template <>
-inline constexpr auto format_ctrl<DefaultFormat>(float value, DefaultFormat) {
+struct FDefault {};
+template <> inline constexpr auto format_ctrl<FDefault>(float value, FDefault) {
 	return to_str(value);
 }
 
-struct HertzFormat {};
-template <>
-inline constexpr auto format_ctrl<HertzFormat>(float value, HertzFormat) {
+struct FHertz {};
+template <> inline constexpr auto format_ctrl<FHertz>(float value, FHertz) {
 	return format(value, " hz");
 }
 
-struct OctavesFormat {};
-template <>
-inline constexpr auto format_ctrl<OctavesFormat>(float value, OctavesFormat) {
+struct FOctaves {};
+template <> inline constexpr auto format_ctrl<FOctaves>(float value, FOctaves) {
 	return format(value, " 8ve");
 }
 
-struct MillisFormat {};
-template <>
-inline constexpr auto format_ctrl<MillisFormat>(float value, MillisFormat) {
+struct FMillis {};
+template <> inline constexpr auto format_ctrl<FMillis>(float value, FMillis) {
 	return format(value, " ms");
 }
 
 // Formats the control value into a string according to the FormatPolicy
-template <typename FormatPolicy = DefaultFormat>
-inline constexpr auto ctrl_formatter(float value) {
+template <typename FormatPolicy = FDefault>
+inline constexpr auto ctrl_format(float value) {
 	return format_ctrl(value, FormatPolicy{});
 }
 
@@ -107,7 +98,7 @@ template <class Module> inline constexpr ControlFormatters ctrl_fmt{};
 
 template <class Module>
 inline constexpr ModuleDisplayInfo module_info = {
-    {"unnamed", 0xFFFFFF}, "no information available", {}, {}, {}, {}};
+    {"unnamed", 0xFFFFFF}, "unknown", {}, {}, {}, {}};
 
 template <class Module>
 inline constexpr auto num_ins = module_info<Module>.in_names.size();

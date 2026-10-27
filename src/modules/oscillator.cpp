@@ -4,6 +4,7 @@
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
+#include <nst/audio_guard.hpp>
 
 namespace {
 struct Waveform {
@@ -36,12 +37,11 @@ AudioError Oscillator::link(AudioGraph &graph) {
 void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
 AudioEndpoint Oscillator::patch_point(ModulePort port) const {
-	return audio::make_patch_point(synth_id_, port.index);
+	return audio::make_endpoint(synth_id_, port.index);
 }
 
 float Oscillator::change_control(ControlChange cc) {
 	assert(cc.index < num_controls());
-
 	switch (cc.index) {
 	case 0:
 		return coarse_ctrl.change(*this, frequency_, cc.delta);
@@ -52,7 +52,6 @@ float Oscillator::change_control(ControlChange cc) {
 	case 3:
 		return waveform_ctrl.change(*this, waveform_idx_, cc.delta);
 	}
-	return 0;
 }
 
 ColoredText Oscillator::display_text() const {
@@ -82,6 +81,7 @@ void Oscillator::update_waveform() {
 }
 
 void Oscillator::init_synth() {
+	nst::teensy::AudioGuard lock{};
 	synth_.begin(osc_waveforms[waveform_idx_].id);
 	synth_.amplitude(0.5);
 	update_frequency();

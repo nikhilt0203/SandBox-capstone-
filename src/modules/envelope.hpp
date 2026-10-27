@@ -19,8 +19,8 @@ inline constexpr ModuleDisplayInfo module_info<Envelope>{
     {"attack", "decay", "sustain", "release"},
     {"in", "trg"},
     {"out"},
-    {ctrl_formatter<MillisFormat>, ctrl_formatter<MillisFormat>,
-     ctrl_formatter<MillisFormat>, ctrl_formatter<MillisFormat>}};
+    {ctrl_format<FMillis>, ctrl_format<FMillis>, ctrl_format<FMillis>,
+     ctrl_format<FMillis>}};
 
 class Envelope : public audio::Patchable,
                  public Controllable,
@@ -33,9 +33,7 @@ class Envelope : public audio::Patchable,
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {}
 
-	void add_node(AudioGraph &graph, AudioStream *dev) {}
-
-	[[nodiscard]] AudioError link(AudioGraph &graph) override {
+	AudioError link(AudioGraph &graph) override {
 		return audio::add_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
 	}
 
@@ -44,44 +42,38 @@ class Envelope : public audio::Patchable,
 		graph.remove(trig_id_);
 	}
 
-	[[nodiscard]] AudioEndpoint patch_point(ModulePort port) const override {
-		auto in_map = [this](auto in) {
-			return in == 0 ? audio::make_patch_point(env_id_, 0)
-			               : audio::make_patch_point(trig_id_, 0);
-		};
-		auto out_map = [this](auto) {
-			return audio::make_patch_point(env_id_, 0);
-		};
-
-		return audio::map_port(port, in_map, out_map);
+	AudioEndpoint patch_point(ModulePort port) const override {
+		using namespace audio;
+		return map_port(
+		    port,
+		    [this](auto in) {
+			    return in == 0 ? make_endpoint(env_id_, 0)
+			                   : make_endpoint(trig_id_, 0);
+		    },
+		    [this](auto out) { return make_endpoint(env_id_, 0); });
 	}
 
 	float change_control(ControlChange c) override {
 		assert(c.index < num_controls());
-
 		switch (c.index) {
 		case 0:
-			return attack_ctrl_.change(*this, attack_ms_, c.delta);
+			return attack_ctrl.change(*this, attack_ms_, c.delta);
 		case 1:
-			return decay_ctrl_.change(*this, decay_ms_, c.delta);
+			return decay_ctrl.change(*this, decay_ms_, c.delta);
 		case 2:
-			return sustain_ctrl_.change(*this, sustain_ms_, c.delta);
+			return sustain_ctrl.change(*this, sustain_ms_, c.delta);
 		case 3:
-			return release_ctrl_.change(*this, release_ms_, c.delta);
+			return release_ctrl.change(*this, release_ms_, c.delta);
 		}
 		return 0;
 	}
 
-	[[nodiscard]] const ModuleDisplayInfo &display_info() const override {
+	const ModuleDisplayInfo &display_info() const override {
 		return module_info<Envelope>;
 	}
 
-	[[nodiscard]] ColoredText display_text() const override {
-		return {"envelope", 0xFFFF00};
-	}
-	[[nodiscard]] nst::teensy::ColorRGB led_color() const override {
-		return 0xFFFF00;
-	}
+	ColoredText display_text() const override { return {"envelope", 0xFFFF00}; }
+	nst::teensy::ColorRGB led_color() const override { return 0xFFFF00; }
 
 	void trigger(AudioEdge e) {
 		switch (e) {
@@ -103,35 +95,36 @@ class Envelope : public audio::Patchable,
 	void update_sustain() { env_.sustain(sustain_ms_); }
 	void update_release() { env_.release(release_ms_); }
 
-	struct SustainCoeff {
-		constexpr static auto value{0.25f};
-	};
-
-	constexpr static auto ms_curve = curves::linear<float, 5>;
-	constexpr static auto sustain_curve = curves::linear<float, SustainCoeff>;
-
-	constexpr static auto attack_ctrl_ =
-	    ModuleControl{ms_curve, &Self::update_attack};
-
-	constexpr static auto decay_ctrl_ =
-	    ModuleControl{ms_curve, &Self::update_decay};
-
-	constexpr static auto sustain_ctrl_ =
-	    ModuleControl{sustain_curve, &Self::update_sustain};
-
-	constexpr static auto release_ctrl_ =
-	    ModuleControl{ms_curve, &Self::update_release};
-
 	AudioEffectEnvelope env_;
 	AudioTriggerInput<Envelope> trig_{*this};
 	nst::teensy::AudioNodeID env_id_;
 	nst::teensy::AudioNodeID trig_id_;
 
 	using Parameter = ModuleParameter<float>;
+
 	Parameter attack_ms_{0.0f, 500.0f, 10.0f};
 	Parameter decay_ms_{0.0f, 500.0f, 35.0f};
 	Parameter sustain_ms_{0.0f, 1.0f, 0.0f};
 	Parameter release_ms_{0.0f, 500.0f, 100.0f};
+
+	struct sustain_coeff {
+		constexpr static auto value{0.25f};
+	};
+
+	constexpr static auto ms_curve = curves::linear<float, 5>;
+	constexpr static auto sustain_curve = curves::linear<float, sustain_coeff>;
+
+	constexpr static auto attack_ctrl =
+	    ModuleControl{ms_curve, &Self::update_attack};
+
+	constexpr static auto decay_ctrl =
+	    ModuleControl{ms_curve, &Self::update_decay};
+
+	constexpr static auto sustain_ctrl =
+	    ModuleControl{sustain_curve, &Self::update_sustain};
+
+	constexpr static auto release_ctrl =
+	    ModuleControl{ms_curve, &Self::update_release};
 };
 
 } // namespace sndbx

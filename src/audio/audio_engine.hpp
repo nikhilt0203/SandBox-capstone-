@@ -2,9 +2,7 @@
 #define SANDBOX_AUDIO_ENGINE_HPP_
 
 #include <algorithm>
-#include <cstddef>
 #include <string_view>
-#include <type_traits>
 #include <utility>
 
 #include <nst/audio_graph.hpp>
@@ -28,7 +26,7 @@ struct AudioEndpoint {
 	nst::teensy::AudioPort port;
 };
 
-enum class PortType : std::uint8_t { IN, OUT };
+enum class PortType { IN, OUT };
 
 struct ModulePort {
 	PortType type;
@@ -73,9 +71,9 @@ class Patchable {
 };
 
 // Create an AudioEndpoint from a graph node id and port index
-[[nodiscard]] inline auto make_patch_point(nst::teensy::AudioNodeID id,
-                                           std::uint8_t graph_port) {
-	return AudioEndpoint{id, nst::teensy::AudioPort{graph_port}};
+[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
+                                        std::uint8_t node_port) {
+	return AudioEndpoint{id, nst::teensy::AudioPort{node_port}};
 }
 
 // helper function template for mapping a module port to an audio patch_point.

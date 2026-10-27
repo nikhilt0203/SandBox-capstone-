@@ -17,11 +17,12 @@ class Displayable {
 	}
 
 	[[nodiscard]] virtual ColoredText display_text() const {
-		return {"unnamed", 0xFFFFFF};
+		const auto name = display_info().name;
+		return ColoredText{name.first.view(), name.second};
 	}
 
 	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const {
-		return 0xFFFFFF;
+		return display_info().name.second;
 	}
 };
 
