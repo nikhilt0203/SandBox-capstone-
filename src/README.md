@@ -1,13 +1,13 @@
 
 Creating a module that can be used with the audio system:
 
-1. Derive from sndbx::audio::Patchable and pass the number of inputs and outputs to its constructor. 
+1. Derive from sndbx::Patchable and pass the number of inputs and outputs to its constructor. 
    This example is for a sine wave with an FM input and adjustable volume. 
 
 ```cpp
     using namespace sndbx;
 
-    class MyModule : public audio::Patchable {
+    class MyModule : public Patchable {
         AudioSynthWaveformModulated synth_;
         AudioGraph::NodeID synth_id_;
         AudioAmplifier amp_;

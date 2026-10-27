@@ -1,11 +1,11 @@
 #ifndef SANDBOX_OSCILLATOR_HPP_
 #define SANDBOX_OSCILLATOR_HPP_
 
-#include "audio/audio_engine.hpp"
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
 #include "module_parameter.hpp"
+#include "patchable.hpp"
 
 namespace sndbx {
 class Oscillator;
@@ -19,12 +19,10 @@ inline constexpr ModuleDisplayInfo module_info<Oscillator>{
     {"coarse", "fine", "fm", "type"},
     {"in", "fm"},
     {"out"},
-    {ctrl_format<FHertz>, ctrl_format<FHertz>,
-     ctrl_format<FOctaves>, waveform_ctrl_formatter}};
+    {ctrl_format<FHertz>, ctrl_format<FHertz>, ctrl_format<FOctaves>,
+     waveform_ctrl_formatter}};
 
-class Oscillator : public audio::Patchable,
-                   public Controllable,
-                   public Displayable {
+class Oscillator : public Patchable, public Controllable, public Displayable {
 	using Self = Oscillator;
 
   public:

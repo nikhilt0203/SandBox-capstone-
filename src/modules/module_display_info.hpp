@@ -30,9 +30,6 @@ using CtrlFmtStr = nst::inplace_string<8>;
 using ControlFormatters =
     std::array<CtrlFmtStr (*)(float), limits::max_module_ctrls>;
 
-using ModuleControlValues =
-    nst::inplace_vector<CtrlFmtStr, limits::max_module_ctrls>;
-    
 struct ModuleDisplayInfo {
 	ModulePortNames in_names;
 	ModulePortNames out_names;

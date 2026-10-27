@@ -1,5 +1,6 @@
 #include "engine.hpp"
 
+#include "modules/patchable.hpp"
 #include <algorithm>
 #include <tuple>
 
@@ -52,21 +53,48 @@ auto find_connection(const Container &c, ModulePosition src_pos,
 }
 
 auto get_patchable_pair(ModuleFactory factory, ModuleID src, ModuleID dst)
-    -> std::optional<
-        std::pair<const audio::Patchable *, const audio::Patchable *>> {
+    -> std::optional<std::pair<const Patchable *, const Patchable *>> {
 	auto m1 = factory.get_module(src);
-	if (!m1 || !m1->holds<audio::Patchable>()) {
+	if (!m1 || !m1->holds<Patchable>()) {
 		return std::nullopt;
 	}
 	auto m2 = factory.get_module(dst);
-	if (!m2 || !m2->holds<audio::Patchable>()) {
+	if (!m2 || !m2->holds<Patchable>()) {
 		return std::nullopt;
 	}
-	return std::make_pair(static_cast<const audio::Patchable *>(*m1),
-	                      static_cast<const audio::Patchable *>(*m2));
+	return std::make_pair(static_cast<const Patchable *>(*m1),
+	                      static_cast<const Patchable *>(*m2));
 }
 
 } // namespace
+
+namespace audio {
+
+inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
+                          const Patchable &dst, std::uint8_t input_idx,
+                          AudioGraph &graph) {
+	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+
+	const auto [out_id, out_port] =
+	    src.patch_point({PortType::OUT, output_idx});
+	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
+
+	return graph.connect(out_id, out_port, in_id, in_port);
+}
+
+inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
+                       const Patchable &dst, std::uint8_t input_idx,
+                       AudioGraph &graph) {
+	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+
+	const auto [out_id, out_port] =
+	    src.patch_point({PortType::OUT, output_idx});
+	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
+
+	return graph.disconnect(out_id, out_port, in_id, in_port);
+}
+
+} // namespace audio
 
 bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
                      ModulePosition dst_pos, std::uint8_t input_idx) {
@@ -137,8 +165,8 @@ std::optional<ModuleID> Engine::create_module(ModuleType type,
 
 	// link to audio graph if module is Patchable, delete module if failure
 	auto &module = factory_[id];
-	if (module.holds<audio::Patchable>() &&
-	    !is_success(module.get<audio::Patchable>().link(audio_graph_))) {
+	if (module.holds<Patchable>() &&
+	    !is_success(module.get<Patchable>().link(audio_graph_))) {
 		factory_.erase(id);
 		return std::nullopt;
 	}
@@ -201,8 +229,8 @@ bool Engine::delete_module(ModulePosition pos) {
 
 	// remove from audio system if module has an audio component
 	auto &module = factory_[*id];
-	if (module.holds<audio::Patchable>()) {
-		module.get<audio::Patchable>().unlink(audio_graph_);
+	if (module.holds<Patchable>()) {
+		module.get<Patchable>().unlink(audio_graph_);
 	}
 
 	factory_.erase(*id);

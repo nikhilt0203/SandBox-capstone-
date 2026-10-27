@@ -1,12 +1,12 @@
 #ifndef SANDBOX_ENVELOPE_HPP_
 #define SANDBOX_ENVELOPE_HPP_
 
-#include "audio/audio_engine.hpp"
 #include "audio/audio_trigger.hpp"
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
 #include "module_parameter.hpp"
+#include "patchable.hpp"
 #include "pressable.hpp"
 
 namespace sndbx {
@@ -22,7 +22,7 @@ inline constexpr ModuleDisplayInfo module_info<Envelope>{
     {ctrl_format<FMillis>, ctrl_format<FMillis>, ctrl_format<FMillis>,
      ctrl_format<FMillis>}};
 
-class Envelope : public audio::Patchable,
+class Envelope : public Patchable,
                  public Controllable,
                  public Displayable,
                  public Pressable {
@@ -33,67 +33,27 @@ class Envelope : public audio::Patchable,
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {}
 
-	AudioError link(AudioGraph &graph) override {
-		return audio::add_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
-	}
+	AudioError link(AudioGraph &graph) override;
+	void unlink(AudioGraph &graph) override;
+	AudioEndpoint patch_point(ModulePort port) const override;
 
-	void unlink(AudioGraph &graph) override {
-		graph.remove(env_id_);
-		graph.remove(trig_id_);
-	}
+	float change_control(ControlChange c) override;
 
-	AudioEndpoint patch_point(ModulePort port) const override {
-		using namespace audio;
-		return map_port(
-		    port,
-		    [this](auto in) {
-			    return in == 0 ? make_endpoint(env_id_, 0)
-			                   : make_endpoint(trig_id_, 0);
-		    },
-		    [this](auto out) { return make_endpoint(env_id_, 0); });
-	}
+	const ModuleDisplayInfo &display_info() const override;
 
-	float change_control(ControlChange c) override {
-		assert(c.index < num_controls());
-		switch (c.index) {
-		case 0:
-			return attack_ctrl.change(*this, attack_ms_, c.delta);
-		case 1:
-			return decay_ctrl.change(*this, decay_ms_, c.delta);
-		case 2:
-			return sustain_ctrl.change(*this, sustain_ms_, c.delta);
-		case 3:
-			return release_ctrl.change(*this, release_ms_, c.delta);
-		}
-		return 0;
-	}
+	ColoredText display_text() const override;
+	nst::teensy::ColorRGB led_color() const override;
 
-	const ModuleDisplayInfo &display_info() const override {
-		return module_info<Envelope>;
-	}
+	void trigger(AudioEdge e);
 
-	ColoredText display_text() const override { return {"envelope", 0xFFFF00}; }
-	nst::teensy::ColorRGB led_color() const override { return 0xFFFF00; }
+	void on_rising_edge() override;
+	void on_falling_edge() override;
 
-	void trigger(AudioEdge e) {
-		switch (e) {
-		case AudioEdge::RISING_EDGE:
-			env_.noteOn();
-			break;
-		case AudioEdge::FALLING_EDGE:
-			env_.noteOff();
-			break;
-		}
-	}
-
-	void on_rising_edge() override { trigger(AudioEdge::RISING_EDGE); }
-	void on_falling_edge() override { trigger(AudioEdge::FALLING_EDGE); }
-
-  public:
-	void update_attack() { env_.attack(attack_ms_); }
-	void update_decay() { env_.decay(decay_ms_); }
-	void update_sustain() { env_.sustain(sustain_ms_); }
-	void update_release() { env_.release(release_ms_); }
+  private:
+	void update_attack();
+	void update_decay();
+	void update_sustain();
+	void update_release();
 
 	AudioEffectEnvelope env_;
 	AudioTriggerInput<Envelope> trig_{*this};

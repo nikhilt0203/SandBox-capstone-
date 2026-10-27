@@ -1,13 +1,11 @@
 #ifndef SANDBOX_MIXER_HPP_
 #define SANDBOX_MIXER_HPP_
 
-#include "audio/audio_engine.hpp"
-#include "audio/audio_trigger.hpp"
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
 #include "module_parameter.hpp"
-#include "pressable.hpp"
+#include "patchable.hpp"
 
 namespace sndbx {
 class Mixer;
@@ -22,15 +20,13 @@ inline constexpr ModuleDisplayInfo module_info<Mixer>{
     {ctrl_format<FMillis>, ctrl_format<FMillis>, ctrl_format<FMillis>,
      ctrl_format<FMillis>}};
 
-class Mixer : public audio::Patchable, public Controllable, public Displayable {
+class Mixer : public Patchable, public Controllable, public Displayable {
 	using Self = Mixer;
 
   public:
 	Mixer()
 	    : Patchable{num_ins<Self>, num_outs<Self>},
-	      Controllable{num_ctrls<Self>} {
-		channel_gains_.fill(default_gain);
-	}
+	      Controllable{num_ctrls<Self>} {}
 
 	AudioError link(AudioGraph &graph) override {
 		return audio::add_nodes(graph, {&mix_, mix_id_});
@@ -39,14 +35,7 @@ class Mixer : public audio::Patchable, public Controllable, public Displayable {
 	void unlink(AudioGraph &graph) override { graph.remove(mix_id_); }
 
 	AudioEndpoint patch_point(ModulePort port) const override {
-		using namespace audio;
-		return map_port(
-		    port,
-		    [this](auto in) {
-			    return in == 0 ? make_endpoint(env_id_, 0)
-			                   : make_endpoint(trig_id_, 0);
-		    },
-		    [this](auto out) { return make_endpoint(env_id_, 0); });
+		return audio::make_endpoint(mix_id_, port.index);
 	}
 
 	float change_control(ControlChange c) override {
@@ -54,26 +43,39 @@ class Mixer : public audio::Patchable, public Controllable, public Displayable {
 		return gain_ctrl.change(*this, channel_gains_[c.index], c.delta);
 	}
 
-	[[nodiscard]] const ModuleDisplayInfo &display_info() const override {
-		return module_info<Mixer>;
+	const ModuleDisplayInfo &display_info() const override {
+		return module_info<Self>;
 	}
 
-  public:
+  private:
 	void update_gains() {
-		for (std::size_t ch{}; ch < channel_gains_.max_size(); ++ch) {
+		for (std::size_t ch{}; ch < channel_gains_.size(); ++ch) {
 			mix_.gain(ch, channel_gains_[ch]);
 		}
 	}
 
-	AudioMixer4 mix_;
-	nst::teensy::AudioNodeID mix_id_;
+	constexpr static auto channels = num_ins<Self>;
+	using ChannelGains = std::array<ModuleParameter<float>, channels>;
 
 	constexpr static auto default_gain = ModuleParameter{0.0f, 1.0f, 0.5f};
-	std::array<ModuleParameter<float>, num_ins<Self>> channel_gains_;
+
+	template <std::size_t... Is>
+	static ChannelGains make_gain_params_impl(std::index_sequence<Is...>) {
+		ChannelGains{(((void)Is, default_gain))...};
+	}
+
+	static ChannelGains make_gain_params() {
+		return make_gain_params_impl(std::make_index_sequence<channels>{});
+	}
 
 	struct gain_coeff {
 		constexpr static auto value{1.1f};
 	};
+
+	AudioMixer4 mix_;
+	nst::teensy::AudioNodeID mix_id_;
+
+	ChannelGains channel_gains_{make_gain_params()};
 
 	constexpr static auto gain_ctrl =
 	    ModuleControl{curves::linear<float, gain_coeff>, &Self::update_gains};

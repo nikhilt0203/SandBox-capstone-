@@ -3,7 +3,7 @@
 
 #include <optional>
 
-#include "audio/audio_engine.hpp"
+#include "audio.hpp"
 #include "config/config.hpp"
 #include "io/serialization.hpp"
 #include "modules/factory/module_registry.hpp"
