@@ -25,7 +25,6 @@ template <typename... Ts> struct type_list {
 	template <typename T>
 	static constexpr std::size_t index_of = []() {
 		static_assert(type_list::contains_v<T>, "Type not contained.");
-		bool found = false;
 		std::size_t index{};
 		(((++index, std::is_same_v<T, Ts>)) || ...);
 		return index - 1;

@@ -70,7 +70,8 @@ template <typename InputMap, typename OutputMap>
 	case PortType::OUT:
 		return std::forward<OutputMap>(out_map)(port.index);
 	}
-	return nst::unreachable{};
+	nst::unreachable{};
+	return null_endpoint;
 }
 
 // Takes a initializer list of AudioStream * and AudioNodeID & (out param)
