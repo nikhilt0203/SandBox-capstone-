@@ -12,24 +12,23 @@ void Envelope::unlink(AudioGraph &graph) {
 }
 
 AudioEndpoint Envelope::patch_point(ModulePort port) const {
-	using namespace audio;
+	auto in_map = [this](const auto in) {
+		switch (in) {
+		case 0:
+			return audio::make_endpoint(env_id_);
+		case 1:
+			return audio::make_endpoint(env_id_);
+		}
+		nst::unreachable{};
+		return audio::null_endpoint;
+	};
 
-	return map_port(
-	    port,
-	    [this](auto in) {
-		    switch (in) {
-		    case 0:
-			    return make_endpoint(env_id_);
-		    case 1:
-			    return make_endpoint(env_id_);
-		    }
-		    nst::unreachable{};
-		    return null_endpoint;
-	    },
-	    [this](auto out) {
-		    assert(out == 0);
-		    return make_endpoint(env_id_);
-	    });
+	auto out_map = [this](const auto out) {
+		assert(out == 0);
+		return audio::make_endpoint(env_id_);
+	};
+
+	return audio::map_port(port, in_map, out_map);
 }
 
 float Envelope::change_control(ControlChange c) {

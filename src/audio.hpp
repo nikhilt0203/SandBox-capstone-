@@ -5,7 +5,7 @@
 #include <string_view>
 #include <utility>
 
-#include <nst/audio_graph.hpp>
+#include <nst/teensy/audio_graph.hpp>
 #include <nst/unreachable.hpp>
 
 #include "audio/audio_trigger.hpp"
@@ -48,6 +48,7 @@ namespace sndbx::audio {
 
 void init();
 
+// Invalid AudioEndpoint for unreachable return paths
 inline constexpr AudioEndpoint null_endpoint{nst::teensy::AudioNodeID{-1},
                                              nst::teensy::AudioPort{0}};
 

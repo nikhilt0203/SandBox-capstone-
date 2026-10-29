@@ -17,8 +17,7 @@ inline constexpr ModuleDisplayInfo module_info<Mixer>{
     {"gain 1", "gain 2", "gain 3", "gain 4"},
     {"1", "2", "3", "4"},
     {"out"},
-    {ctrl_format<FMillis>, ctrl_format<FMillis>, ctrl_format<FMillis>,
-     ctrl_format<FMillis>}};
+    {ctrl_format, ctrl_format, ctrl_format, ctrl_format}};
 
 class Mixer : public Patchable, public Controllable, public Displayable {
 	using Self = Mixer;
@@ -45,14 +44,10 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	using ChannelGains = std::array<ModuleParameter<float>, channels>;
 
 	template <std::size_t... Is>
-	static ChannelGains make_gain_params_impl(std::index_sequence<Is...>) {
-		ChannelGains{(((void)Is, default_gain))...};
+	static ChannelGains make_gain_params(std::index_sequence<Is...>) {
+		return ChannelGains{(((void)Is, default_gain))...};
 	}
-
-	static ChannelGains make_gain_params() {
-		return make_gain_params_impl(std::make_index_sequence<channels>{});
-	}
-
+    
 	struct gain_coeff {
 		constexpr static auto value{1.1f};
 	};
@@ -60,7 +55,8 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	AudioMixer4 mix_;
 	nst::teensy::AudioNodeID mix_id_;
 
-	ChannelGains channel_gains_{make_gain_params()};
+	ChannelGains channel_gains_{
+	    make_gain_params(std::make_index_sequence<channels>{})};
 
 	constexpr static auto gain_ctrl =
 	    ModuleControl{curves::linear<float, gain_coeff>, &Self::update_gains};

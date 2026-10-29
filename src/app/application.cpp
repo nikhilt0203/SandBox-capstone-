@@ -2,9 +2,9 @@
 
 #include <algorithm>
 
-#include <nst/hardware/rotary_encoder.hpp>
-#include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
+#include <nst/teensy/rotary_encoder.hpp>
+#include <nst/teensy/trellis.hpp>
 
 #include "io/pinouts.hpp"
 #include "io/sd_card.hpp"

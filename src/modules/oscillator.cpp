@@ -4,7 +4,7 @@
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
-#include <nst/audio_guard.hpp>
+#include <nst/teensy/audio_guard.hpp>
 
 namespace {
 struct Waveform {
@@ -76,7 +76,7 @@ void Oscillator::update_waveform() {
 }
 
 void Oscillator::init_synth() {
-	nst::teensy::AudioGuard lock{};
+	nst::teensy::AudioGuard guard{};
 	synth_.begin(osc_waveforms[waveform_idx_].id);
 	synth_.amplitude(0.5);
 	update_frequency();

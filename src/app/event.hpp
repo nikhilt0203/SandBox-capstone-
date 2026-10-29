@@ -3,10 +3,10 @@
 
 #include <variant>
 
-#include <nst/hardware/button.hpp>
-#include <nst/hardware/rotary_encoder.hpp>
-#include <nst/hardware/trellis.hpp>
 #include <nst/inplace_vector.hpp>
+#include <nst/teensy/button.hpp>
+#include <nst/teensy/rotary_encoder.hpp>
+#include <nst/teensy/trellis.hpp>
 
 #include "config/config.hpp"
 

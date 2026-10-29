@@ -3,8 +3,8 @@
 
 #include <string_view>
 
-#include <nst/hardware/ILI9341_display.hpp>
 #include <nst/inplace_vector.hpp>
+#include <nst/teensy/ILI9341_display.hpp>
 
 #include "assets/sandbox_logo_bitmap.hpp"
 #include "config/config.hpp"

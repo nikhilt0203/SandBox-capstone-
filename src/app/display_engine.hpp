@@ -4,8 +4,8 @@
 #include <array>
 #include <optional>
 
-#include <nst/hardware/ILI9341_display.hpp>
-#include <nst/hardware/trellis_led_display.hpp>
+#include <nst/teensy/ILI9341_display.hpp>
+#include <nst/teensy/trellis_led_display.hpp>
 #include <nst/poly_view.hpp>
 
 #include "engine.hpp"

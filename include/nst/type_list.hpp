@@ -14,16 +14,6 @@ template <typename... Ts> struct type_list {
 
 	using index_sequence = std::index_sequence_for<Ts...>;
 
-	// from stack overflow
-	template <typename T>
-	static constexpr std::size_t index_of = []() {
-		static_assert((std::is_same_v<T, Ts> || ...), "Type not found.");
-		bool found = false;
-		std::size_t index{};
-		((!found ? (++index, found = std::is_same_v<T, Ts>) : 0), ...);
-		return index - 1;
-	}();
-
 	static constexpr std::size_t size = sizeof...(Ts);
 
 	template <typename T>
@@ -31,6 +21,15 @@ template <typename... Ts> struct type_list {
 
 	template <typename... Us>
 	static constexpr bool contains_all_v = (contains_v<Us> && ...);
+
+	template <typename T>
+	static constexpr std::size_t index_of = []() {
+		static_assert(type_list::contains_v<T>, "Type not contained.");
+		bool found = false;
+		std::size_t index{};
+		(((++index, std::is_same_v<T, Ts>)) || ...);
+		return index - 1;
+	}();
 };
 
 } // namespace nst
