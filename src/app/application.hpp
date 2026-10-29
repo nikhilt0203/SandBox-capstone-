@@ -2,13 +2,13 @@
 #define SANDBOX_APP_HPP_
 
 #include <Arduino.h>
+#include <nst/span.hpp>
 
 #include "app_states.hpp"
 #include "display_engine.hpp"
 #include "engine.hpp"
 #include "event.hpp"
 #include "modules/factory/module_bank.hpp"
-#include <nst/span.hpp>
 
 namespace sndbx::app {
 

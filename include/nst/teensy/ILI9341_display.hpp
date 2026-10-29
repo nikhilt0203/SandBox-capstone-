@@ -15,7 +15,7 @@ class TFT {
 	static constexpr std::size_t width = 320;
 	static constexpr std::size_t height = 240;
 
-	TFT(Pin cs_pin, Pin dc_pin) : tft_(cs_pin.num, dc_pin.num) {
+	TFT(nst::pin cs_pin, nst::pin dc_pin) : tft_(cs_pin.num, dc_pin.num) {
 		tft_.begin();
 		tft_.setRotation(3);
 		tft_.fillScreen(0);
@@ -53,7 +53,12 @@ class TFT {
 	void clear() { current_frame().fillScreen(0); }
 
 	[[nodiscard]] GFXcanvas16 &current_frame() { return *double_buffer_[0]; }
+	[[nodiscard]] const GFXcanvas16 &current_frame() const {
+		return *double_buffer_[0];
+	}
 
+	// Applies a function that takes a GFXcanvas16& as an argument to both
+	// frame buffers
 	template <typename Func> void for_each_buffer(Func &&f) {
 		for (auto b : double_buffer_) {
 			f(b);
@@ -64,7 +69,6 @@ class TFT {
 
   private:
 	Adafruit_ILI9341 tft_;
-
 	GFXcanvas16 buffer1_{width, height};
 	GFXcanvas16 buffer2_{width, height};
 	std::array<GFXcanvas16 *, 2> double_buffer_{&buffer1_, &buffer2_};

@@ -6,13 +6,13 @@
 
 namespace nst {
 
-struct Pin {
+struct pin {
 	std::uint8_t num;
 
-	constexpr Pin(std::uint8_t num) : num{num} {}
-	std::uint8_t read() const { return digitalRead(num); }
-	void write(std::uint8_t val) { digitalWrite(num, val); }
-	void pin_mode(std::uint8_t mode) { pinMode(num, mode); }
+	constexpr pin(std::uint8_t num) : num{num} {}
+	std::uint8_t read() const;
+	void write(std::uint8_t val);
+	void pin_mode(std::uint8_t mode);
 };
 
 } // namespace nst

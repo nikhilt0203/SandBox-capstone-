@@ -8,6 +8,7 @@
 #include "io/serialization.hpp"
 #include "modules/factory/module_registry.hpp"
 #include "modules/module_interfaces.hpp"
+
 namespace sndbx {
 
 namespace detail {

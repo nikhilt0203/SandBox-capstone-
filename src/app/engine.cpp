@@ -1,8 +1,9 @@
 #include "engine.hpp"
 
-#include "modules/patchable.hpp"
 #include <algorithm>
 #include <tuple>
+
+#include "modules/patchable.hpp"
 
 namespace sndbx {
 
@@ -13,11 +14,10 @@ template <std::size_t... Is>
 std::optional<ModuleID> create_module_impl(ModuleFactory factory,
                                            ModuleType type, ModulePosition pos,
                                            std::index_sequence<Is...>) {
-	auto to_optional_id = [](const auto &exp) -> std::optional<ModuleID> {
-		if (exp) {
-			return exp->id;
-		}
-		return std::nullopt;
+	// create optional out of expected, discarding the error code if held
+	auto to_optional_id = [](const auto &expected) {
+		using Ret = std::optional<ModuleID>;
+		return expected ? Ret{expected->id} : Ret{std::nullopt};
 	};
 
 	std::optional<ModuleID> ret{};

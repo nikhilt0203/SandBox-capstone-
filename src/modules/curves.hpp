@@ -6,13 +6,10 @@
 
 namespace sndbx::curves {
 
-#define CURVE_CONSTANT(name, val)                                              \
-	struct name {                                                              \
-		constexpr static auto value{val};                                      \
-	}
-
 namespace detail {
-CURVE_CONSTANT(IdentityCoeff, 1);
+struct IdentityCoeff {
+	constexpr static auto value{1};
+};
 } // namespace detail
 
 template <typename T, class Coeff = detail::IdentityCoeff,

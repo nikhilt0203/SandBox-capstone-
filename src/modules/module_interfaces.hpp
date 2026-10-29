@@ -1,12 +1,12 @@
 #ifndef SANDBOX_MODULE_INTERFACES_HPP_
 #define SANDBOX_MODULE_INTERFACES_HPP_
 
-#include "audio.hpp"
+#include <nst/type_list.hpp>
+
 #include "modules/controllable.hpp"
 #include "modules/displayable.hpp"
+#include "modules/patchable.hpp"
 #include "modules/pressable.hpp"
-
-#include <nst/type_list.hpp>
 
 namespace sndbx {
 

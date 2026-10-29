@@ -30,7 +30,7 @@ template <class EventContainer> class RotaryEncoder {
 	    "Container must hold EncoderTurnEvent or another convertible type.");
 
   public:
-	RotaryEncoder(nst::Pin pin1, nst::Pin pin2, std::uint8_t encoder_num,
+	RotaryEncoder(nst::pin pin1, nst::pin pin2, std::uint8_t encoder_num,
 	              EventContainer &events)
 	    : encoder_{pin1.num, pin2.num}, events_{events},
 	      encoder_num_{encoder_num} {}
@@ -63,7 +63,7 @@ template <class EventContainer> class RotaryEncoder {
 };
 
 template <std::size_t N>
-using EncoderPins = std::array<std::pair<nst::Pin, nst::Pin>, N>;
+using EncoderPins = std::array<std::pair<nst::pin, nst::pin>, N>;
 
 namespace detail {
 template <std::size_t N, typename EventContainer, std::size_t... Is>

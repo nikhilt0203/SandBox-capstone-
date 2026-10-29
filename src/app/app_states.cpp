@@ -1,9 +1,9 @@
-#include "application.hpp"
-
 #include "app_states.hpp"
-#include "modules/factory/module_position.hpp"
-#include <algorithm>
+
 #include <optional>
+
+#include "application.hpp"
+#include "modules/factory/module_position.hpp"
 
 namespace sndbx {
 

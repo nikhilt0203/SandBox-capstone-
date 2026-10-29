@@ -31,7 +31,7 @@ template <class EventContainer> class Button {
 	    "Container must store ButtonEvent or another convertible type.");
 
   public:
-	constexpr Button(nst::Pin pin, std::uint8_t button_num,
+	constexpr Button(nst::pin pin, std::uint8_t button_num,
 	                 EventContainer &events)
 	    : events_{events}, pin_{pin}, button_num_{button_num} {}
 
@@ -61,7 +61,7 @@ template <class EventContainer> class Button {
 
   private:
 	EventContainer &events_;
-	nst::Pin pin_;
+	nst::pin pin_;
 	std::uint8_t button_num_;
 	std::uint8_t last_state_{pin_.read()};
 };
@@ -70,7 +70,7 @@ namespace detail {
 
 template <std::size_t N, typename EventContainer, std::size_t... Is>
 inline constexpr auto
-make_button_array_impl(const std::array<nst::Pin, N> &pins,
+make_button_array_impl(const std::array<nst::pin, N> &pins,
                        EventContainer &events, std::index_sequence<Is...>) {
 	return std::array{Button{pins[Is], Is, events}...};
 }
@@ -81,7 +81,7 @@ template <std::size_t N, typename EventContainer,
           typename = std::enable_if_t<
               detail::can_hold_button_events_v<EventContainer>>>
 [[nodiscard]] inline constexpr auto
-make_button_array(const std::array<nst::Pin, N> &pins,
+make_button_array(const std::array<nst::pin, N> &pins,
                   EventContainer &event_queue) {
 	static_assert(
 	    detail::can_hold_button_events_v<EventContainer>,

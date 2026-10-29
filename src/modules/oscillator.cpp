@@ -1,10 +1,11 @@
-
 #include "oscillator.hpp"
+
+#include <nst/teensy/audio_guard.hpp>
+
 #include "audio.hpp"
 #include "controllable.hpp"
 #include "displayable.hpp"
 #include "module_display_info.hpp"
-#include <nst/teensy/audio_guard.hpp>
 
 namespace {
 struct Waveform {

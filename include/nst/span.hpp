@@ -1,6 +1,8 @@
 #ifndef NST_SPAN_HPP_
 #define NST_SPAN_HPP_
 
+#include <cassert>
+
 namespace nst {
 
 template <typename T> class span {

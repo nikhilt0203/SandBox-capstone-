@@ -1,4 +1,5 @@
 #include "display_engine.hpp"
+
 #include "Fonts/FreeSansBoldOblique9pt7b.h"
 
 namespace sndbx {
