@@ -17,7 +17,7 @@ AudioEndpoint Envelope::patch_point(ModulePort port) const {
 		case 0:
 			return audio::make_endpoint(env_id_);
 		case 1:
-			return audio::make_endpoint(env_id_);
+			return audio::make_endpoint(trig_id_);
 		}
 		nst::unreachable{};
 		return audio::null_endpoint;

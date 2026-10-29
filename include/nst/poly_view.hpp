@@ -102,24 +102,24 @@ template <class... PossibleBases> class poly_view {
 	}
 
 	template <class Base, typename = std::enable_if_t<!std::is_pointer_v<Base>>>
-	[[nodiscard]] explicit constexpr operator Base &() noexcept {
+	[[nodiscard]] constexpr explicit operator Base &() noexcept {
 		assert(holds<Base>());
 		return *unchecked_get<Base *>();
 	}
 
 	template <class Base, typename = std::enable_if_t<!std::is_pointer_v<Base>>>
-	[[nodiscard]] explicit constexpr operator const Base &() const noexcept {
+	[[nodiscard]] constexpr explicit operator const Base &() const noexcept {
 		assert(holds<Base>());
 		return *unchecked_get<Base *>();
 	}
 
 	template <class Base>
-	[[nodiscard]] explicit constexpr operator const Base *() const noexcept {
+	[[nodiscard]] constexpr explicit operator const Base *() const noexcept {
 		return unchecked_get<Base *>();
 	}
 
 	template <class Base>
-	[[nodiscard]] explicit constexpr operator Base *() noexcept {
+	[[nodiscard]] constexpr explicit operator Base *() noexcept {
 		return unchecked_get<Base *>();
 	}
 
