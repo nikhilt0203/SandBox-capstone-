@@ -28,36 +28,21 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {}
 
-	AudioError link(AudioGraph &graph) override {
-		return audio::add_nodes(graph, {&mix_, mix_id_});
-	}
+	AudioError link(AudioGraph &graph) override;
+	void unlink(AudioGraph &graph) override;
+	AudioEndpoint patch_point(ModulePort port) const override;
 
-	void unlink(AudioGraph &graph) override { graph.remove(mix_id_); }
+	float change_control(ControlChange c) override;
 
-	AudioEndpoint patch_point(ModulePort port) const override {
-		return audio::make_endpoint(mix_id_, port.index);
-	}
-
-	float change_control(ControlChange c) override {
-		assert(c.index < num_controls());
-		return gain_ctrl.change(*this, channel_gains_[c.index], c.delta);
-	}
-
-	const ModuleDisplayInfo &display_info() const override {
-		return module_info<Self>;
-	}
+	const ModuleDisplayInfo &display_info() const override;
 
   private:
-	void update_gains() {
-		for (std::size_t ch{}; ch < channel_gains_.size(); ++ch) {
-			mix_.gain(ch, channel_gains_[ch]);
-		}
-	}
+	void update_gains();
 
 	constexpr static auto channels = num_ins<Self>;
-	using ChannelGains = std::array<ModuleParameter<float>, channels>;
-
 	constexpr static auto default_gain = ModuleParameter{0.0f, 1.0f, 0.5f};
+
+	using ChannelGains = std::array<ModuleParameter<float>, channels>;
 
 	template <std::size_t... Is>
 	static ChannelGains make_gain_params_impl(std::index_sequence<Is...>) {

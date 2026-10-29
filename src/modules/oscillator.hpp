@@ -29,7 +29,6 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	Oscillator()
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {
-		set_defaults();
 		init_synth();
 	}
 
@@ -48,7 +47,6 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 
   protected:
 	void init_synth();
-	void set_defaults();
 	void update_frequency();
 	void update_fm_depth();
 	void update_waveform();

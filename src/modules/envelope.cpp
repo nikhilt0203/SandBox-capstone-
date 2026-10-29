@@ -17,10 +17,19 @@ AudioEndpoint Envelope::patch_point(ModulePort port) const {
 	return map_port(
 	    port,
 	    [this](auto in) {
-		    return in == 0 ? make_endpoint(env_id_, 0)
-		                   : make_endpoint(trig_id_, 0);
+		    switch (in) {
+		    case 0:
+			    return make_endpoint(env_id_);
+		    case 1:
+			    return make_endpoint(env_id_);
+		    }
+		    nst::unreachable{};
+		    return null_endpoint;
 	    },
-	    [this](auto out) { return make_endpoint(env_id_, 0); });
+	    [this](auto out) {
+		    assert(out == 0);
+		    return make_endpoint(env_id_);
+	    });
 }
 
 float Envelope::change_control(ControlChange c) {

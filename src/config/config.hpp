@@ -30,6 +30,8 @@ inline constexpr auto grid_rows = 8U;
 inline constexpr auto grid_cols = 8U;
 inline constexpr auto grid_size = grid_rows * grid_cols;
 
+inline constexpr auto audio_memory = 500U;
+
 } // namespace sndbx::limits
 
 namespace sndbx::config {

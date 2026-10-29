@@ -37,11 +37,11 @@ AudioError Oscillator::link(AudioGraph &graph) {
 void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
 AudioEndpoint Oscillator::patch_point(ModulePort port) const {
-	return audio::make_endpoint(synth_id_, port.index);
+	assert(port.index == 0);
+	return audio::make_endpoint(synth_id_, 0);
 }
 
 float Oscillator::change_control(ControlChange cc) {
-	assert(cc.index < num_controls());
 	switch (cc.index) {
 	case 0:
 		return coarse_ctrl.change(*this, frequency_, cc.delta);
@@ -52,6 +52,8 @@ float Oscillator::change_control(ControlChange cc) {
 	case 3:
 		return waveform_ctrl.change(*this, waveform_idx_, cc.delta);
 	}
+	nst::unreachable{};
+	return 0;
 }
 
 ColoredText Oscillator::display_text() const {
@@ -61,13 +63,6 @@ ColoredText Oscillator::display_text() const {
 
 nst::teensy::ColorRGB Oscillator::led_color() const {
 	return osc_waveforms[waveform_idx_].color;
-}
-
-void Oscillator::set_defaults() {
-	frequency_ = 440.0f;
-	fine_tune_offset_ = 0;
-	fm_depth_ = 8.25f;
-	waveform_idx_ = 0;
 }
 
 void Oscillator::update_frequency() {

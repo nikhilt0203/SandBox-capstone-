@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <nst/audio_graph.hpp>
+#include <nst/unreachable.hpp>
 
 #include "audio/audio_trigger.hpp"
 #include "config/config.hpp"
@@ -45,10 +46,15 @@ struct ModulePort {
 
 namespace sndbx::audio {
 
+void init();
+
+inline constexpr AudioEndpoint null_endpoint{nst::teensy::AudioNodeID{-1},
+                                             nst::teensy::AudioPort{0}};
+
 // Create an AudioEndpoint from a graph node id and port index
 [[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
-                                        std::uint8_t node_port) {
-	return AudioEndpoint{id, nst::teensy::AudioPort{node_port}};
+                                        std::uint8_t audio_port = 0) {
+	return AudioEndpoint{id, nst::teensy::AudioPort{audio_port}};
 }
 
 // helper function template for mapping a module port to an audio patch_point.
@@ -62,10 +68,8 @@ template <typename InputMap, typename OutputMap>
 		return std::forward<InputMap>(in_map)(port.index);
 	case PortType::OUT:
 		return std::forward<OutputMap>(out_map)(port.index);
-	default:
-		assert(false && "Invalid port type");
-		return {};
 	}
+	return nst::unreachable{};
 }
 
 // Takes a initializer list of AudioStream * and AudioNodeID & (out param)

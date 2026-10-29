@@ -79,6 +79,7 @@ inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
 	    src.patch_point({PortType::OUT, output_idx});
 	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
 
+	assert(out_id && in_id);
 	return graph.connect(out_id, out_port, in_id, in_port);
 }
 
@@ -91,6 +92,7 @@ inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
 	    src.patch_point({PortType::OUT, output_idx});
 	const auto [in_id, in_port] = dst.patch_point({PortType::IN, input_idx});
 
+	assert(out_id && in_id);
 	return graph.disconnect(out_id, out_port, in_id, in_port);
 }
 

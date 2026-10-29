@@ -56,7 +56,6 @@ void process_events() {
 // App startup
 //******************************************************************************
 void app::init() {
-	AudioMemory(500);
 	Serial.begin(115200);
 	if (!sd_card::init()) {
 		sndbx_log_error("SD card failed.");

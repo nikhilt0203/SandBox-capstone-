@@ -9,11 +9,11 @@ Creating a module that can be used with the audio system:
 
     class MyModule : public Patchable {
         AudioSynthWaveformModulated synth_;
-        AudioGraph::NodeID synth_id_;
         AudioAmplifier amp_;
-        AudioGraph::NodeID amp_id_;
+        nst::teensy::AudioNodeID synth_id_;
+        nst::teensy::AudioNodeID amp_id_;
     public:
-        MyModule() : Patchable{1, 1} {} //1 input, 1 output
+        MyModule() : Patchable{1, 1} {}
         
     // class cont. below
 ```
@@ -36,7 +36,9 @@ if any node addition fails. The node IDs are passed as an output parameter.
 ```
 
 2. Remove all nodes created in link(). The node ids must be stored in order to perform this step. Note that 
-   synth_id_ and amp_id_ are invalidated after this operation (see below). 
+   synth_id_ and amp_id_ are invalidated after this operation, but logically if link() were to be called again, 
+   the IDs should be correctly reseated.
+
 ```cpp
     using namespace sndbx;
 
@@ -44,11 +46,6 @@ if any node addition fails. The node IDs are passed as an output parameter.
         graph.remove_node(amp_id_);
         graph.remove_node(synth_id_);
     }
-    
-    /* Note: IDs are now invalid ... but the actual AudioStreams stored
-    * in our class are unaffected, so the ids could be reseated (but in the system
-    * link() and unlink() are only called once)
-    */
 ```
 
 3. Provide the patching points. This function should assume that port.index is valid.
@@ -56,47 +53,53 @@ if any node addition fails. The node IDs are passed as an output parameter.
 
     The two patch points are the input of "synth" and the output of "amp," and the synths
     are connected . map() defines the mapping
-    between the logical module port and the actual point in the audio graph. The first field in the patch_point is the AudioStream's audio graph id, and the second field is the AudioStream port number that should be used. 
-    port.type indicates whether the query is for an input or an output. 
+    
+    between the logical module port and the actual point in the audio graph. 
+    The helper function map_port() can be used to separate the logic depending on if the query
+    was for an input or an output.
    
 ```cpp
     using namespace sndbx;
 
     AudioEndpoint map(ModulePort port) const override {
-        // Mapping: Module input  0 -> synth input 0
-        //          Module output 0 -> amp output  0
         assert(port.index == 0);
-        switch (port.type) {
-        case ModulePortType::IN:
+        // input [0] of MyModule  maps to->  input [0] of internal synth
+        // output[0] of MyModule  maps to->  output[0] of internal amplifier
+
+        // Note: the port index argument is ignored, since it
+        //       should only ever be 0 given that this module
+        //       has 1 input and 1 output port
+        auto ins = [this](auto){
             return audio::make_patch_point(synth_id_, 0);
-        case ModulePortType::OUT: 
-            return audio::make_patch_point(amp_id_, 0); 
-        }
+        };
+        auto outs = [this](auto){
+            return audio::make_patch_point(amp_id_, 0);
+        };
+        return audio::map_port(port, ins, outs);
     }
 ```
 
 4. Controls
-    ModuleParameter - arithmetic type with a min and max. can either clamp or wrap at bounds
-    ModuleControl - links the simple primitive with the module
+    Two simple constructs that work together:
 
-    General pattern for declaring a module parameter and control:
+    ModuleParameter - simple arithmetic type with a min and max value. Either clamps to [min, max] or wraps around
+                      depending on the policy given as a template parameter.
+    ModuleControl - holds a curve function that determines how the parameter changes, and a pointer to a member function
+                    which is called when the parameter value is modified.
+
+    The curve is just a function pointer T(*)(T,int), so a stateless lambda can also be used. There are several
+    generic curve functions provided in the sndbx::curves namespace.
 
 ```cpp
-    // could also be a lambda directly in the constructor
-    float curve(float val, int amt) {
-        return val + amt * 0.25f;
-    }
+    // define the parameter's (min, max, initial) values
+    ModuleParameter<float> frequency{0.0, 1000.0, 440.0};
 
-    // provide the parameter's min, max, initial
-    ModuleParameter<float> frequency_{0.0, 1000.0, 440.0};
-
-    // create a module control with a function pointer T(T, int) to decide
-    // how to change the parameter, and a member function pointer to the 
-    // member function that should be called if the parameter value changes.
-    constexpr static ModuleControl<MyModule, decltype(frequency_)> 
-        frequency_control_{curve, &MyModule::update_frequency};
+    // define the control, which can be a compile-time constant
+    constexpr static auto 
+        frequency_ctrl = ModuleControl{curves::exp<float>, &MyModule::update_frequency};
 ```
 
+    
 
 ```cpp
     float MyModule::change_control(ControlChange c) {
@@ -104,7 +107,6 @@ if any node addition fails. The node IDs are passed as an output parameter.
 
         switch (c.index) {
         case 0:
-            
             return frequency_control_.change(*this, frequency_, c.amt);
             // ... more cases
         }

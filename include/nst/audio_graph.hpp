@@ -29,10 +29,10 @@ struct AudioPort : public nst::strong_alias<std::uint8_t, AudioPort> {
 	[[nodiscard]] constexpr auto operator*() const { return this->value; }
 };
 
-struct AudioNodeID : public nst::strong_alias<std::uint32_t, AudioNodeID> {
-	using nst::strong_alias<std::uint32_t, AudioNodeID>::strong_alias;
+struct AudioNodeID : public nst::strong_alias<std::int32_t, AudioNodeID> {
+	using nst::strong_alias<std::int32_t, AudioNodeID>::strong_alias;
 
-	constexpr operator bool() const { return this->value != 0; }
+	constexpr operator bool() const { return this->value != -1; }
 
 	constexpr bool operator==(const AudioNodeID &other) const {
 		return this->value == other.value;
@@ -83,7 +83,8 @@ enum class AudioGraphError {
 };
 
 // Fixed-size audio graph for Teensy Audio Library. Abstracts AudioStreams
-// and AudioConnections into ID-based graph.
+// and AudioConnections into ID-based graph. allocate audio memory with
+// AudioMemory()
 template <std::size_t NodeCapacity, std::size_t PatchCapacity>
 class AudioGraph {
   public:
@@ -97,6 +98,7 @@ class AudioGraph {
 	}
 
 	bool remove(AudioNodeID id) {
+		assert(id);
 		auto it = find_node(id);
 		if (it == nodes_.end()) {
 			return false;
@@ -113,6 +115,7 @@ class AudioGraph {
 
 	Error connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
 	              AudioPort dst_port) {
+		assert(src_id && dst_id);
 		if (patches_.is_full()) {
 			return Error::PATCHES_EXHAUSTED;
 		}
@@ -133,11 +136,13 @@ class AudioGraph {
 
 	// Connect two nodes on port 0
 	Error connect(AudioNodeID src_id, AudioNodeID dst_id) {
+		assert(src_id && dst_id);
 		return connect(src_id, AudioPort{0}, dst_id, AudioPort{0});
 	}
 
 	bool disconnect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
 	                AudioPort dst_port) {
+		assert(src_id && dst_id);
 		auto it = find_patch(src_id, src_port, dst_id, dst_port);
 		if (it == patches_.end()) {
 			return false;
@@ -148,6 +153,7 @@ class AudioGraph {
 
 	// Remove the first connection found between src and dst
 	bool disconnect(AudioNodeID src_id, AudioNodeID dst_id) {
+		assert(src_id && dst_id);
 		auto it = std::find_if(
 		    patches_.begin(), patches_.end(), [src_id, dst_id](const auto &p) {
 			    return p.src_id == src_id && p.dst_id == dst_id;
