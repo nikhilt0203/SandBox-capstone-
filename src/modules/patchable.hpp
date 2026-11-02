@@ -14,14 +14,14 @@ class Patchable {
 
 	// create the required nodes and/or connections in the audio graph. If any
 	// operation fails, undo the previous operations, then return the error
-	[[nodiscard]] virtual auto link(AudioGraph &graph) -> AudioError = 0;
+	[[nodiscard]] virtual bool link(AudioGraph &graph) = 0;
 
 	// remove any nodes created in link() from the graph
 	virtual void unlink(AudioGraph &graph) = 0;
 
-	// map a module port to an AudioEndpoint
+	// map a module port to an AudioPoint
 	[[nodiscard]] virtual auto patch_point(ModulePort port) const
-	    -> AudioEndpoint = 0;
+	    -> AudioPoint = 0;
 
 	[[nodiscard]] std::uint8_t ins() const { return ins_; }
 	[[nodiscard]] std::uint8_t outs() const { return outs_; }

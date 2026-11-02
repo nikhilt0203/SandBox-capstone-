@@ -16,16 +16,14 @@ namespace sndbx {
 using AudioGraph = nst::teensy::AudioGraph<limits::max_audio_graph_nodes,
                                            limits::max_audio_graph_patches>;
 
-using AudioError = nst::teensy::AudioGraphError;
-
-[[nodiscard]] inline constexpr bool is_success(AudioError e) {
-	return e == AudioError::NONE;
-}
-
-struct AudioEndpoint {
+struct AudioPoint {
 	nst::teensy::AudioNodeID id;
 	nst::teensy::AudioPort port;
 };
+
+// Keeps the compiler happy in unreachable paths that return an AudioPoint
+inline constexpr auto null_audio_point =
+    AudioPoint{nst::teensy::AudioNodeID{-1}, nst::teensy::AudioPort{0}};
 
 enum class PortType { IN, OUT };
 
@@ -42,70 +40,58 @@ struct ModulePort {
 	}
 };
 
-} // namespace sndbx
+namespace audio {
 
-namespace sndbx::audio {
+void allocate_blocks();
 
-void init();
-
-// Invalid AudioEndpoint for unreachable return paths
-inline constexpr AudioEndpoint null_endpoint{nst::teensy::AudioNodeID{-1},
-                                             nst::teensy::AudioPort{0}};
-
-// Create an AudioEndpoint from a graph node id and port index
-[[nodiscard]] inline auto make_endpoint(nst::teensy::AudioNodeID id,
-                                        std::uint8_t audio_port = 0) {
-	return AudioEndpoint{id, nst::teensy::AudioPort{audio_port}};
+// Denotes that a module has no input ports in map_port()
+inline auto no_inputs(std::uint8_t) {
+	nst::unreachable{};
+	return null_audio_point;
 }
+
+// Denotes that a module has no output ports in map_port()
+inline auto no_outputs(std::uint8_t) {
+	nst::unreachable{};
+	return null_audio_point;
+}
+
+// Create an AudioPoint from a graph node id and port index
+[[nodiscard]] inline constexpr auto
+make_audio_point(nst::teensy::AudioNodeID id, std::uint8_t audio_port = 0) {
+	return AudioPoint{id, nst::teensy::AudioPort{audio_port}};
+}
+
+// Registers multiple AudioStream objects with the AudioGraph. Supplied
+// as a list of pairs of an AudioStream * and AudioNodeID out param. If any
+// addition in the list fails, all nodes in the list are removed from the graph.
+[[nodiscard]] bool register_nodes(
+    AudioGraph &graph,
+    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
+        node_data);
+
+// Overload for adding only one node
+[[nodiscard]] bool
+register_nodes(AudioGraph &graph,
+               std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data);
 
 // helper function template for mapping a module port to an audio patch_point.
 // InputMap and OutputMap model callables that take in a port index and
-// return an AudioEndpoint.
-template <typename InputMap, typename OutputMap>
-[[nodiscard]] AudioEndpoint map_port(ModulePort port, InputMap &&in_map,
-                                     OutputMap &&out_map) {
+// return an AudioPoint.
+template <typename InputMapping, typename OutputMapping>
+[[nodiscard]] AudioPoint map_port(ModulePort port, InputMapping &&in_map_func,
+                                  OutputMapping &&out_map_func) {
 	switch (port.type) {
 	case PortType::IN:
-		return std::forward<InputMap>(in_map)(port.index);
+		return std::forward<InputMapping>(in_map_func)(port.index);
 	case PortType::OUT:
-		return std::forward<OutputMap>(out_map)(port.index);
+		return std::forward<OutputMapping>(out_map_func)(port.index);
 	}
 	nst::unreachable{};
-	return null_endpoint;
+	return null_audio_point;
 }
 
-// Takes a initializer list of AudioStream * and AudioNodeID & (out param)
-// pairs, adds each device to the audio graph and writes the id to the
-// corresponding out param. If any node addition fails, all nodes are removed
-// and the error is returned.
-[[nodiscard]] inline AudioError add_nodes(
-    AudioGraph &graph,
-    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
-        node_data) {
-	int successes{};
-	for (auto &data : node_data) {
-		auto device = data.first;
-		assert(device);
-		const auto id = graph.add(device);
-		if (!id) {
-			std::for_each_n(
-			    node_data.begin(), successes,
-			    [&graph](const auto &pair) { graph.remove(pair.second); });
-			return id.error();
-		}
-		data.second = *id;
-		++successes;
-	}
-	return AudioError::NONE;
-}
-
-// Overload for adding only one node
-[[nodiscard]] inline auto
-add_nodes(AudioGraph &graph,
-          std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data) {
-	return add_nodes(graph, {node_data});
-}
-
-} // namespace sndbx::audio
+} // namespace audio
+} // namespace sndbx
 
 #endif

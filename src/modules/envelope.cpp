@@ -2,8 +2,8 @@
 
 namespace sndbx {
 
-AudioError Envelope::link(AudioGraph &graph) {
-	return audio::add_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
+bool Envelope::link(AudioGraph &graph) {
+	return audio::register_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
 }
 
 void Envelope::unlink(AudioGraph &graph) {
@@ -11,21 +11,21 @@ void Envelope::unlink(AudioGraph &graph) {
 	graph.remove(trig_id_);
 }
 
-AudioEndpoint Envelope::patch_point(ModulePort port) const {
-	auto in_map = [this](const auto in) {
+AudioPoint Envelope::patch_point(ModulePort port) const {
+	auto in_map = [this](auto in) {
 		switch (in) {
 		case 0:
-			return audio::make_endpoint(env_id_);
+			return audio::make_audio_point(env_id_);
 		case 1:
-			return audio::make_endpoint(trig_id_);
+			return audio::make_audio_point(trig_id_);
 		}
 		nst::unreachable{};
-		return audio::null_endpoint;
+		return null_audio_point;
 	};
 
-	auto out_map = [this](const auto out) {
+	auto out_map = [this](auto out) {
 		assert(out == 0);
-		return audio::make_endpoint(env_id_);
+		return audio::make_audio_point(env_id_);
 	};
 
 	return audio::map_port(port, in_map, out_map);
@@ -47,7 +47,7 @@ float Envelope::change_control(ControlChange c) {
 }
 
 const ModuleDisplayInfo &Envelope::display_info() const {
-	return module_info<Self>;
+	return module_info<Envelope>;
 }
 
 ColoredText Envelope::display_text() const { return {"envelope", 0xFFFF00}; }

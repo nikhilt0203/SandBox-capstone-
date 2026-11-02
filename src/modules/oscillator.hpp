@@ -32,9 +32,9 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 		init_synth();
 	}
 
-	[[nodiscard]] AudioError link(AudioGraph &graph) override;
+	[[nodiscard]] bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	[[nodiscard]] AudioEndpoint patch_point(ModulePort port) const override;
+	[[nodiscard]] AudioPoint patch_point(ModulePort port) const override;
 
 	float change_control(ControlChange c) override;
 

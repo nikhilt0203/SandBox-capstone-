@@ -18,14 +18,14 @@ Creating a module that can be used with the audio system:
     // class cont. below
 ```
 
-2. Override link() to connect to the audio graph. In this example, the module internally holds two audio nodes (synth_ and amp_ above) that are connected together. Use the helper add_nodes which automatically cleans up partially formed modules
+2. Override link() to connect to the audio graph. In this example, the module internally holds two audio nodes (synth_ and amp_ above) that are connected together. Use the helper register_nodes which automatically cleans up partially formed modules
 if any node addition fails. The node IDs are passed as an output parameter.
 
 ```cpp
     using namespace sndbx;
 
     AudioError link(AudioGraph &graph) override {
-        const auto error = audio::add_nodes(graph, {&synth_, synth_id_}, {&amp_, amp_id_}); 
+        const auto error = audio::register_nodes(graph, {&synth_, synth_id_}, {&amp_, amp_id_}); 
         if (error != AudioError::NONE) {
             return error;
         }
@@ -48,20 +48,21 @@ if any node addition fails. The node IDs are passed as an output parameter.
     }
 ```
 
-3. Provide the patching points. This function should assume that port.index is valid.
-   The structure of the example module is the following:
-
+3.  Provide the patching points. A ModulePort consists of a PortType (input or output) and the port index.
+    This function should assume that port.index is valid (an inval)
     The two patch points are the input of "synth" and the output of "amp," and the synths
-    are connected . map() defines the mapping
-    
-    between the logical module port and the actual point in the audio graph. 
-    The helper function map_port() can be used to separate the logic depending on if the query
-    was for an input or an output.
+    are connected . map() defines the mapping between the logical module port and the actual 
+    node in the audio graph. This is a customization point: if the module ports should
+    correspond 1:1 with the underlying AudioStream object, then you can simply return 
+    audio::make_audio_point(device_id, port.index). 
+
+    In this example, MyModule has 1 input that should correspond to the synth input, and 1 output
+    that should correspond to the amplifier output.
    
 ```cpp
     using namespace sndbx;
 
-    AudioEndpoint map(ModulePort port) const override {
+    AudioPoint patch_point(ModulePort port) const override {
         assert(port.index == 0);
         // input [0] of MyModule  maps to->  input [0] of internal synth
         // output[0] of MyModule  maps to->  output[0] of internal amplifier
@@ -69,11 +70,11 @@ if any node addition fails. The node IDs are passed as an output parameter.
         // Note: the port index argument is ignored, since it
         //       should only ever be 0 given that this module
         //       has 1 input and 1 output port
-        auto ins = [this](auto){
-            return audio::make_patch_point(synth_id_, 0);
+        auto ins = [this](auto i){
+            return audio::make_audio_point(synth_id_, 0);
         };
-        auto outs = [this](auto){
-            return audio::make_patch_point(amp_id_, 0);
+        auto outs = [this](auto o){
+            return audio::make_audio_point(amp_id_, 0);
         };
         return audio::map_port(port, ins, outs);
     }

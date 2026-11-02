@@ -27,9 +27,9 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {}
 
-	AudioError link(AudioGraph &graph) override;
+	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	AudioEndpoint patch_point(ModulePort port) const override;
+	AudioPoint patch_point(ModulePort port) const override;
 
 	float change_control(ControlChange c) override;
 
@@ -47,7 +47,7 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	static ChannelGains make_gain_params(std::index_sequence<Is...>) {
 		return ChannelGains{(((void)Is, default_gain))...};
 	}
-    
+
 	struct gain_coeff {
 		constexpr static auto value{1.1f};
 	};

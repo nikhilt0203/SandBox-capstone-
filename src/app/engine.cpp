@@ -70,9 +70,9 @@ auto get_patchable_pair(ModuleFactory factory, ModuleID src, ModuleID dst)
 
 namespace audio {
 
-inline AudioError connect(const Patchable &src, std::uint8_t output_idx,
-                          const Patchable &dst, std::uint8_t input_idx,
-                          AudioGraph &graph) {
+inline bool connect(const Patchable &src, std::uint8_t output_idx,
+                    const Patchable &dst, std::uint8_t input_idx,
+                    AudioGraph &graph) {
 	assert(output_idx >= src.outs() || input_idx >= dst.ins());
 
 	const auto [out_id, out_port] =
@@ -118,16 +118,10 @@ bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
 	if (!modules) {
 		return false;
 	}
-
-	if (!is_success(audio::connect(*modules->first, output_idx,
-	                               *modules->second, input_idx,
-	                               audio_graph_))) {
-		return false;
-	}
-
-	connections_.emplace_back(
-	    ModuleConnection{src_pos, output_idx, dst_pos, input_idx});
-	return true;
+	return audio::connect(*modules->first, output_idx, *modules->second,
+	                      input_idx, audio_graph_) &&
+	       connections_.emplace_back(
+	           ModuleConnection{src_pos, output_idx, dst_pos, input_idx});
 }
 
 bool Engine::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
@@ -168,7 +162,7 @@ std::optional<ModuleID> Engine::create_module(ModuleType type,
 	// link to audio graph if module is Patchable, delete module if failure
 	auto &module = factory_[id];
 	if (module.holds<Patchable>() &&
-	    !is_success(module.get<Patchable>().link(audio_graph_))) {
+	    !module.get<Patchable>().link(audio_graph_)) {
 		factory_.erase(id);
 		return std::nullopt;
 	}

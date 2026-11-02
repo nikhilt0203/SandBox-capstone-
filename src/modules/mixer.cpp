@@ -2,14 +2,14 @@
 
 namespace sndbx {
 
-AudioError Mixer::link(AudioGraph &graph) {
-	return audio::add_nodes(graph, {&mix_, mix_id_});
+bool Mixer::link(AudioGraph &graph) {
+	return audio::register_nodes(graph, {&mix_, mix_id_});
 }
 
 void Mixer::unlink(AudioGraph &graph) { graph.remove(mix_id_); }
 
-AudioEndpoint Mixer::patch_point(ModulePort port) const {
-	return audio::make_endpoint(mix_id_, port.index);
+AudioPoint Mixer::patch_point(ModulePort port) const {
+	return audio::make_audio_point(mix_id_, port.index);
 }
 
 float Mixer::change_control(ControlChange c) {

@@ -2,6 +2,7 @@
 #define SANDBOX_CONTROLLABLE_HPP_
 
 #include "control_change.hpp"
+#include "module_parameter.hpp"
 #include <cstdint>
 
 namespace sndbx {

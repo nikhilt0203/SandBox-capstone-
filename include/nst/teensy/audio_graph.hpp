@@ -4,9 +4,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <utility>
+#include <optional>
 
-#include "nst/expected.hpp"
 #include "nst/inplace_vector.hpp"
 #include "nst/object_pool.hpp"
 #include "nst/strong_alias.hpp"
@@ -72,29 +71,17 @@ struct AudioPatch {
 	      connection{*src.device, *src_port, *dst.device, *dst_port} {}
 };
 
-enum class AudioGraphError {
-	NONE,
-	PATCHES_EXHAUSTED,
-	PATCH_ALREADY_EXISTS,
-	NODE_NOT_FOUND,
-	PATCH_NOT_FOUND,
-	GRAPH_FULL,
-	INVALID_PORT
-};
-
-// Fixed-size audio graph for Teensy Audio Library. Abstracts AudioStreams
-// and AudioConnections into ID-based graph. allocate audio memory with
-// AudioMemory()
+// Fixed-size audio graph for the Teensy Audio Library. Holds and manages
+// AudioConnections.
 template <std::size_t NodeCapacity, std::size_t PatchCapacity>
 class AudioGraph {
   public:
-	using Error = AudioGraphError;
-
-	auto add(::AudioStream *device) -> nst::expected<AudioNodeID, Error> {
-		if (nodes_.is_full()) {
-			return Error::GRAPH_FULL;
+	auto add(::AudioStream *device) -> std::optional<AudioNodeID> {
+		const auto new_id = node_id_gen_.next_id();
+		if (!nodes_.emplace_back(new_id, device)) {
+			return std::nullopt;
 		}
-		return emplace_and_get_id(device);
+		return new_id;
 	}
 
 	bool remove(AudioNodeID id) {
@@ -113,29 +100,24 @@ class AudioGraph {
 		return true;
 	}
 
-	Error connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	              AudioPort dst_port) {
+	bool connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
+	             AudioPort dst_port) {
 		assert(src_id && dst_id);
-		if (patches_.is_full()) {
-			return Error::PATCHES_EXHAUSTED;
-		}
 
 		if (find_patch(src_id, src_port, dst_id, dst_port) != patches_.end()) {
-			return Error::PATCH_ALREADY_EXISTS;
+			return false;
 		}
 
 		const auto src = find_node(src_id);
 		const auto dst = find_node(dst_id);
 		if (src == nodes_.end() || dst == nodes_.end()) {
-			return Error::NODE_NOT_FOUND;
+			return false;
 		}
-
-		patches_.emplace_back(*src, src_port, *dst, dst_port);
-		return Error::NONE;
+		return patches_.emplace_back(*src, src_port, *dst, dst_port);
 	}
 
 	// Connect two nodes on port 0
-	Error connect(AudioNodeID src_id, AudioNodeID dst_id) {
+	bool connect(AudioNodeID src_id, AudioNodeID dst_id) {
 		assert(src_id && dst_id);
 		return connect(src_id, AudioPort{0}, dst_id, AudioPort{0});
 	}
@@ -226,12 +208,6 @@ class AudioGraph {
 			    return src_id == p.src_id && src_port == p.src_port &&
 			           dst_id == p.dst_id && dst_port == p.dst_port;
 		    });
-	}
-
-	AudioNodeID emplace_and_get_id(::AudioStream *device) {
-		const auto new_id = node_id_gen_.next_id();
-		nodes_.emplace_back(new_id, device);
-		return new_id;
 	}
 
 	struct {

@@ -33,9 +33,9 @@ class Envelope : public Patchable,
 	    : Patchable{num_ins<Self>, num_outs<Self>},
 	      Controllable{num_ctrls<Self>} {}
 
-	AudioError link(AudioGraph &graph) override;
+	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	AudioEndpoint patch_point(ModulePort port) const override;
+	AudioPoint patch_point(ModulePort port) const override;
 
 	float change_control(ControlChange c) override;
 

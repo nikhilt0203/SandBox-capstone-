@@ -30,6 +30,8 @@ template <typename T> inline constexpr auto clamp(T val, T min, T max) {
 struct ClampAtBounds {};
 struct WrapAtBounds {};
 
+
+
 template <typename T, typename BoundsPolicy = ClampAtBounds>
 class ModuleParameter {
 	static_assert(std::is_arithmetic_v<T>);

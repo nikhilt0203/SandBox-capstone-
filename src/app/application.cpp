@@ -60,6 +60,7 @@ void app::init() {
 	if (!sd_card::init()) {
 		sndbx_log_error("SD card failed.");
 	}
+	audio::allocate_blocks();
 }
 
 // Main loop
@@ -109,10 +110,10 @@ bool App::create_module(ModuleType type, ModulePosition pos) {
 	nst::invoke_if<Displayable>(module, [this, pos](const auto &m) {
 		display_engine_.add_module(m, pos);
 	});
+
 	nst::invoke_if<Controllable>(module, [this, pos](auto &m) {
 		populate_ctrl_vals(display_engine_, m, pos);
 	});
-
 	return true;
 }
 

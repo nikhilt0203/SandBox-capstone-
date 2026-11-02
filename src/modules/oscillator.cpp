@@ -31,15 +31,15 @@ inline constexpr std::array<Waveform, 7> osc_waveforms = {
 
 namespace sndbx {
 
-AudioError Oscillator::link(AudioGraph &graph) {
-	return audio::add_nodes(graph, {&synth_, synth_id_});
+bool Oscillator::link(AudioGraph &graph) {
+	return audio::register_nodes(graph, {&synth_, synth_id_});
 }
 
 void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
-AudioEndpoint Oscillator::patch_point(ModulePort port) const {
+AudioPoint Oscillator::patch_point(ModulePort port) const {
 	assert(port.index == 0);
-	return audio::make_endpoint(synth_id_, 0);
+	return audio::make_audio_point(synth_id_, 0);
 }
 
 float Oscillator::change_control(ControlChange cc) {

@@ -8,6 +8,7 @@
 #include "nst/inplace_vector.hpp"
 #include "nst/poly_view.hpp"
 #include "nst/strong_alias.hpp"
+#include "nst/expected.hpp"
 
 #include "module_id.hpp"
 #include "module_pools.hpp"
