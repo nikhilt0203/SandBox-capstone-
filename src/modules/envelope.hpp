@@ -44,10 +44,9 @@ class Envelope : public Patchable,
 	ColoredText display_text() const override;
 	nst::teensy::ColorRGB led_color() const override;
 
-	void trigger(AudioEdge e);
-
 	void on_rising_edge() override;
 	void on_falling_edge() override;
+	void trigger(AudioEdge e);
 
   private:
 	void update_attack();

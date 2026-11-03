@@ -23,8 +23,8 @@ class Patchable {
 	[[nodiscard]] virtual auto patch_point(ModulePort port) const
 	    -> AudioPoint = 0;
 
-	[[nodiscard]] std::uint8_t ins() const { return ins_; }
-	[[nodiscard]] std::uint8_t outs() const { return outs_; }
+	[[nodiscard]] auto ins() const { return ins_; }
+	[[nodiscard]] auto outs() const { return outs_; }
 
   private:
 	std::uint8_t ins_;

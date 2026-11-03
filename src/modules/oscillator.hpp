@@ -32,18 +32,18 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 		init_synth();
 	}
 
-	[[nodiscard]] bool link(AudioGraph &graph) override;
+	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
-	[[nodiscard]] AudioPoint patch_point(ModulePort port) const override;
+	AudioPoint patch_point(ModulePort port) const override;
 
 	float change_control(ControlChange c) override;
 
-	[[nodiscard]] const ModuleDisplayInfo &display_info() const override {
+	const ModuleDisplayInfo &display_info() const override {
 		return module_info<Self>;
 	}
 
-	[[nodiscard]] ColoredText display_text() const override;
-	[[nodiscard]] nst::teensy::ColorRGB led_color() const override;
+	ColoredText display_text() const override;
+	nst::teensy::ColorRGB led_color() const override;
 
   protected:
 	void init_synth();

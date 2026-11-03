@@ -53,8 +53,7 @@ float Oscillator::change_control(ControlChange cc) {
 	case 3:
 		return waveform_ctrl.change(*this, waveform_idx_, cc.delta);
 	}
-	nst::unreachable{};
-	return 0;
+	nst::unreachable();
 }
 
 ColoredText Oscillator::display_text() const {

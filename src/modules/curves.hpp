@@ -30,16 +30,6 @@ template <typename T, int Coeff>
 	return value + delta * Coeff;
 }
 
-// template <typename T, typename Coeff = detail::IdentityCoeff,
-//           typename = std::enable_if_t<!std::is_same_v<Coeff, int>>>
-// [[nodiscard]] inline constexpr T log(T value, int delta) {
-// 	static_assert(std::is_arithmetic_v<decltype(Coeff::value)>);
-// 	if (delta == 0) {
-// 		return value;
-// 	}
-// 	return std::log(value + delta) * Coeff::value;
-// }
-
 template <typename T, auto Coeff = 1>
 [[nodiscard]] inline constexpr T log(T value, int delta) {
 	if (delta == 0) {

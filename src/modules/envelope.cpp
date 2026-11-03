@@ -19,8 +19,7 @@ AudioPoint Envelope::patch_point(ModulePort port) const {
 		case 1:
 			return audio::make_audio_point(trig_id_);
 		}
-		nst::unreachable{};
-		return null_audio_point;
+		nst::unreachable();
 	};
 
 	auto out_map = [this](auto out) {

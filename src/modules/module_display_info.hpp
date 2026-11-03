@@ -20,7 +20,7 @@ using ModulePortNames = std::array<ModulePortName, limits::max_in_ports>;
 
 using ModuleControlNames =
     std::array<ModuleControlName, limits::max_module_ctrls>;
-    
+
 using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
                              nst::teensy::ColorRGB>;
 

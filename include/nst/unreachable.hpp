@@ -1,13 +1,8 @@
 #ifndef NST_UNREACHABLE_HPP_
 #define NST_UNREACHABLE_HPP_
 
-#include <cassert>
-
 namespace nst {
-// Calls assert(false) on construction. Denotes an unreachable line
-struct unreachable {
-	unreachable() { assert(false && "Unreachable path"); }
-};
+[[noreturn]] inline void unreachable() { __builtin_unreachable(); }
 } // namespace nst
 
 #endif

@@ -56,13 +56,11 @@ template <typename T, std::size_t Capacity> class object_pool {
 		num_active_ = 0;
 	}
 
-	[[nodiscard]] std::size_t num_active() const { return num_active_; }
-
-	[[nodiscard]] static constexpr std::size_t capacity() { return Capacity; }
-
+	[[nodiscard]] auto num_active() const { return num_active_; }
 	[[nodiscard]] bool empty() const { return num_active_ == 0; }
-
 	[[nodiscard]] bool is_full() const { return num_active_ == Capacity; }
+
+	[[nodiscard]] constexpr static auto capacity() { return Capacity; }
 
   private:
 	struct Slot {
