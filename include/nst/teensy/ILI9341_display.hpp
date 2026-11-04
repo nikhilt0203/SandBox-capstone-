@@ -57,14 +57,15 @@ class TFT {
 		return *double_buffer_[0];
 	}
 
-	// Applies a function that takes a GFXcanvas16& as an argument to both
+	// Applies a function that takes a GFXcanvas16* as an argument to both
 	// frame buffers
-	template <typename Func> void for_each_buffer(Func &&f) {
+	template <typename Func> void modify_canvas(Func &&f) {
 		for (auto b : double_buffer_) {
 			f(b);
 		}
 	}
 
+	[[nodiscard]] const auto &tft() const { return tft_; }
 	[[nodiscard]] auto &tft() { return tft_; }
 
   private:

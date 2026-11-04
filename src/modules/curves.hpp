@@ -10,6 +10,14 @@ namespace detail {
 struct IdentityCoeff {
 	constexpr static auto value{1};
 };
+
+struct GainCoeff {
+	constexpr static auto value{1.08f};
+};
+
+struct FreqCoeff {
+	constexpr static auto value{1.1f};
+};
 } // namespace detail
 
 template <typename T, class Coeff = detail::IdentityCoeff,
@@ -72,6 +80,9 @@ template <typename T, int Coeff>
 	}
 	return std::sqrt(value + static_cast<T>(delta)) * Coeff;
 }
+
+inline constexpr auto default_gain_curve = exp<float, detail::GainCoeff>;
+inline constexpr auto default_freq_curve = exp<float, detail::FreqCoeff>;
 
 } // namespace sndbx::curves
 

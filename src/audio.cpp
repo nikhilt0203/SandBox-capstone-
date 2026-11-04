@@ -4,6 +4,9 @@ namespace sndbx::audio {
 
 void allocate_blocks() { AudioMemory(limits::max_audio_blocks); }
 
+inline AudioPoint no_inputs(std::uint8_t) { nst::unreachable(); }
+inline AudioPoint no_outputs(std::uint8_t) { nst::unreachable(); }
+
 bool register_nodes(
     AudioGraph &graph,
     std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>

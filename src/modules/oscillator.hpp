@@ -51,29 +51,20 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	void update_fm_depth();
 	void update_waveform();
 
-	struct coarse_coeff {
-		constexpr static auto value{1.08f};
-	};
 	struct fm_coeff {
 		constexpr static auto value{0.25f};
 	};
-
-	constexpr static auto coarse_curve = curves::exp<float, coarse_coeff>;
-	constexpr static auto fine_curve = curves::linear<int>;
-	constexpr static auto fm_curve = curves::linear<float, fm_coeff>;
-	constexpr static auto wave_curve = curves::linear<std::size_t>;
-
 	constexpr static auto coarse_ctrl =
-	    ModuleControl{coarse_curve, &Self::update_frequency};
+	    ModuleControl{curves::default_freq_curve, &Self::update_frequency};
 
 	constexpr static auto fine_ctrl =
-	    ModuleControl{fine_curve, &Self::update_frequency};
+	    ModuleControl{curves::linear<int>, &Self::update_frequency};
 
 	constexpr static auto fm_ctrl =
-	    ModuleControl{fm_curve, &Self::update_fm_depth};
+	    ModuleControl{curves::linear<float, fm_coeff>, &Self::update_fm_depth};
 
 	constexpr static auto waveform_ctrl =
-	    ModuleControl{wave_curve, &Self::update_waveform};
+	    ModuleControl{curves::linear<std::size_t>, &Self::update_waveform};
 
 	AudioSynthWaveformModulated synth_;
 	nst::teensy::AudioNodeID synth_id_;

@@ -13,8 +13,8 @@ class App;
 struct AppEventState {
 	virtual ~AppEventState() = default;
 	virtual void on_knob_evt(App &, KnobEvent) = 0;
-	virtual void on_keypad_evt(App &, KeypadEvent evt) = 0;
-	virtual void on_button_evt(App &, ButtonEvent evt) = 0;
+	virtual void on_keypad_evt(App &, KeypadEvent) = 0;
+	virtual void on_button_evt(App &, ButtonEvent) = 0;
 };
 
 class AppEditState final : public AppEventState {

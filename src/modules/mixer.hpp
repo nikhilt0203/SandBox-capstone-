@@ -48,10 +48,6 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 		return ChannelGains{(((void)Is, default_gain))...};
 	}
 
-	struct gain_coeff {
-		constexpr static auto value{1.1f};
-	};
-
 	AudioMixer4 mix_;
 	nst::teensy::AudioNodeID mix_id_;
 
@@ -59,7 +55,7 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	    make_gain_params(std::make_index_sequence<channels>{})};
 
 	constexpr static auto gain_ctrl =
-	    ModuleControl{curves::linear<float, gain_coeff>, &Self::update_gains};
+	    ModuleControl{curves::default_gain_curve, &Self::update_gains};
 };
 
 } // namespace sndbx

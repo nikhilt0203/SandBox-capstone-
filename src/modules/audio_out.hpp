@@ -47,11 +47,8 @@ class AudioOut : public Patchable, public Controllable, public Displayable {
 
 	ModuleParameter<float> gain_{0.0f, 1.0f, 0.5f};
 
-	struct gain_coeff {
-		constexpr static auto value{1.1f};
-	};
 	constexpr static auto gain_ctrl =
-	    ModuleControl{curves::exp<float, gain_coeff>, &Self::update_gain};
+	    ModuleControl{curves::default_gain_curve, &Self::update_gain};
 };
 
 } // namespace sndbx

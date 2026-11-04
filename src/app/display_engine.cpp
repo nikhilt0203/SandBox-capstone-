@@ -5,23 +5,22 @@
 namespace sndbx {
 
 namespace {
-
 // Helpers to convert between position index and row, col
 template <typename T = ModulePosition::underlying_t>
-auto to_row_col(ModulePosition pos) -> std::pair<T, T> {
-	return {pos.value / limits::grid_rows, pos.value % limits::grid_cols};
+auto to_row_col(ModulePosition pos) {
+	return std::pair{pos.value / limits::grid_rows,
+	                 pos.value % limits::grid_cols};
 }
 
 template <typename T = ModulePosition::underlying_t>
-auto to_index(T row, T col) -> T {
+auto to_index(T row, T col) {
 	return row * limits::grid_rows + col;
 }
 
 using PortColors =
     nst::inplace_vector<nst::teensy::ColorRGB, limits::max_in_ports>;
 
-auto connected_module_colors(const Engine &e, ModulePosition pos)
-    -> std::pair<PortColors, PortColors> {
+auto connected_module_colors(const Engine &e, ModulePosition pos) {
 	auto &factory = e.factory();
 	PortColors input_colors;
 	PortColors output_colors;
@@ -41,12 +40,12 @@ auto connected_module_colors(const Engine &e, ModulePosition pos)
 			}
 		}
 	}
-	return {input_colors, output_colors};
+	return std::pair{input_colors, output_colors};
 }
 } // namespace
 
 DisplayEngine::DisplayEngine(Adafruit_MultiTrellis &t) : led_grid_{t} {
-	screen_.for_each_buffer(
+	screen_.modify_canvas(
 	    [](auto b) { b->setFont(&FreeSansBoldOblique9pt7b); });
 }
 
@@ -56,11 +55,8 @@ void DisplayEngine::render_frame() {
 }
 
 auto DisplayEngine::get_path(ModulePosition start, ModulePosition end)
-    -> nst::inplace_vector<std::uint8_t,
-                           limits::grid_rows + limits::grid_cols> {
-	nst::inplace_vector<std::uint8_t, limits::grid_rows + limits::grid_cols>
-	    path;
-
+    -> ConnectionPath {
+	ConnectionPath path;
 	const auto [end_row, end_col] = to_row_col(end);
 	auto [row, col] = to_row_col(start);
 
@@ -142,13 +138,6 @@ void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 	const auto [input_colors, output_colors] =
 	    connected_module_colors(engine, pos);
 
-	// ModuleControlValues values;
-	// auto &fmtrs = info.ctrl_fmt;
-	// for (std::size_t i{}; i < ctrl_vals.size(); ++i) {
-	// 	auto format = fmtrs[i];
-	// 	values.emplace_back(format(ctrl_vals[i]));
-	// }
-
 	ui::ModuleDisplay module_page{module.display_text(),
 	                              info.ctrl_names,
 	                              info.in_names,
@@ -163,7 +152,7 @@ void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 
 void DisplayEngine::update_module_ctrl(ModulePosition pos, std::size_t idx,
                                        float value) {
-	// scale from float 0.0 - 1.0 to byte 0 - 255
+	// scale from float 0.0 - 1.0 to 0 - 255
 	display_grid_[pos.value]->ctrl_vals[idx] =
 	    value * std::numeric_limits<std::uint8_t>::max();
 }

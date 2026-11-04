@@ -92,11 +92,10 @@ void App::update() {
 }
 
 void App::rotate_bank(std::int8_t amt) {
-	const std::int8_t min =
+	const auto min =
 	    -1 * std::distance(&*module_bank.begin(), bank_window_.begin());
-	const std::int8_t max =
-	    std::distance(bank_window_.end(), &*module_bank.end());
-	bank_window_.slide(std::clamp(amt, min, max));
+	const auto max = std::distance(bank_window_.end(), &*module_bank.end());
+	bank_window_.slide(std::clamp<ptrdiff_t>(amt, min, max));
 }
 
 bool App::create_module(ModuleType type, ModulePosition pos) {

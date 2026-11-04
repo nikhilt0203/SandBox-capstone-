@@ -12,8 +12,7 @@ inline constexpr auto encoder_pins =
                std::pair<nst::pin, nst::pin>{37, 38},
                std::pair<nst::pin, nst::pin>{39, 40}};
 
-inline constexpr auto button_pins =
-    std::array{nst::pin{32}, nst::pin{30}, nst::pin{31}, nst::pin{29}};
+inline constexpr auto button_pins = std::array<nst::pin, 4>{32, 30, 31, 29};
 
 inline constexpr auto tft_cs = nst::pin{14};
 inline constexpr auto tft_dc = nst::pin{15};

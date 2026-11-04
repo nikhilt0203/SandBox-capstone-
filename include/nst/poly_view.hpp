@@ -37,9 +37,9 @@ inline constexpr bool is_poly_ref_v = is_poly_ref<remove_cvref_t<T>>::value;
 
 } // namespace detail
 
-// Non-owning polymorphic view over a derived object. Stores a pointer for each
-// listed Base class if the viewed object is derived from that Base class, or
-// nullptr if it is not.
+// Holds a pointer for each type in the pack. If the pointer used to construct
+// is derived from a type in the pack, that pointer will be set, otherwise
+// it will be nullptr. Non-owning
 template <class... PossibleBases> class poly_view {
   public:
 	using value_type = std::tuple<PossibleBases *...>;
@@ -145,7 +145,10 @@ template <class... PossibleBases> class poly_view {
 	}
 };
 
-// Owning poly_view. Deletes the object through the first valid base pointer.
+// Deletes the object through the first non-null base pointer.
+// Holds a pointer for each type in the pack. If the pointer used to construct
+// is derived from a type in the pack, that pointer will be set, otherwise
+// it will be nullptr.
 template <class... PossibleBases>
 class unique_poly_view : public poly_view<PossibleBases...> {
 	using base_view = poly_view<PossibleBases...>;
@@ -197,56 +200,60 @@ holds(const poly_view<PossibleBases...> &view) noexcept {
 	return (view.template holds<Bases>() && ...);
 }
 
-// Retrieve a std::tuple<const Bases &...>
+// Dereferences the poly_view as each type in Bases
 template <class... Bases, class... PossibleBases>
 [[nodiscard]] constexpr auto
 poly_deref(const poly_view<PossibleBases...> &view) noexcept {
-	assert(holds<Bases...>(view));
+	assert(holds<Bases...>(view) &&
+	       "poly_view does not hold a valid pointer for all given Base types");
 	return std::tuple<const Bases &...>{static_cast<const Bases &>(view)...};
 }
 
-// Retrieve a std::tuple<Bases &...>
+// Dereferences the poly_view as each type in Bases
 template <class... Bases, class... PossibleBases>
 [[nodiscard]] constexpr auto
 poly_deref(poly_view<PossibleBases...> &view) noexcept {
-	assert(holds<Bases...>(view));
+	assert(holds<Bases...>(view) &&
+	       "poly_view does not hold a valid pointer for all given Base types");
 	return std::tuple<Bases &...>{static_cast<Bases &>(view)...};
 }
 
-// Call function f if view can be dereferenced as Base
-template <class... Bases, class... PossibleBases, typename U>
-constexpr void invoke_if(const poly_view<PossibleBases...> &view, U &&f) {
+// Call Func if the poly_view can be dereferenced as Base
+template <class... Bases, class... PossibleBases, typename Func>
+constexpr void invoke_if(const poly_view<PossibleBases...> &view, Func &&f) {
 	if (holds<Bases...>(view)) {
-		f(static_cast<const Bases &>(view)...);
+		std::forward<Func>(f)(static_cast<const Bases &>(view)...);
 	}
 }
 
-template <class... Bases, class... PossibleBases, typename U>
-constexpr void invoke_if(poly_view<PossibleBases...> &view, U &&f) {
+// Call Func if the poly_view can be dereferenced as Base
+template <class... Bases, class... PossibleBases, typename Func>
+constexpr void invoke_if(poly_view<PossibleBases...> &view, Func &&f) {
 	if (holds<Bases...>(view)) {
-		f(static_cast<Bases &>(view)...);
+		std::forward<Func>(f)(static_cast<Bases &>(view)...);
 	}
 }
 
-// Calls function f for each poly_view
-template <class... Bases, class Container, typename U>
-constexpr void for_each(Container &c, U &&f) {
+// Calls function f for each poly_view in the container that holds Bases
+template <class... Bases, class Container, typename Func>
+constexpr void for_each(Container &c, Func &&f) {
 	for (auto &view : c) {
 		if constexpr (sizeof...(Bases) == 0) {
-			f(view);
+			std::forward<Func>(f)(view);
 		} else {
-			invoke_if<Bases...>(view, std::forward<U>(f));
+			invoke_if<Bases...>(view, std::forward<Func>(f));
 		}
 	}
 }
 
-template <class... Bases, class Container, typename U>
-constexpr void for_each(const Container &c, U &&f) {
+// Calls function f for each poly_view in the container that holds Bases
+template <class... Bases, class Container, typename Func>
+constexpr void for_each(const Container &c, Func &&f) {
 	for (const auto &view : c) {
 		if constexpr (sizeof...(Bases) == 0) {
-			f(view);
+			std::forward<Func>(f)(view);
 		} else {
-			invoke_if<Bases...>(view, std::forward<U>(f));
+			invoke_if<Bases...>(view, std::forward<Func>(f));
 		}
 	}
 }

@@ -44,11 +44,11 @@ namespace audio {
 
 void allocate_blocks();
 
-// Denotes that a module has no input ports in map_port()
-inline AudioPoint no_inputs(std::uint8_t) { nst::unreachable(); }
+// Denotes that a module has no input ports in map_port(). Does not return!
+AudioPoint no_inputs(std::uint8_t);
 
-// Denotes that a module has no output ports in map_port()
-inline AudioPoint no_outputs(std::uint8_t) { nst::unreachable(); }
+// Denotes that a module has no output ports in map_port(). Does not return!
+AudioPoint no_outputs(std::uint8_t);
 
 // Create an AudioPoint from a graph node id and port index
 [[nodiscard]] inline constexpr auto

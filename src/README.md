@@ -18,18 +18,16 @@ Creating a module that can be used with the audio system:
     // class cont. below
 ```
 
-2. Override link() to connect to the audio graph. In this example, the module internally holds two audio nodes (synth_ and amp_ above) that are connected together. Use the helper register_nodes which automatically cleans up partially formed modules
-if any node addition fails. The node IDs are passed as an output parameter.
+2. Override link() to connect to the audio graph. In this example, the module internally holds two audio nodes (synth_ and amp_ above) that are connected together. This function should return true if all operations were successful. Add the nodes
+using the helper register_nodes() which removes all nodes if any one node fails. The operations can be chained with &&, this gives us the 
+properties we want.
 
 ```cpp
     using namespace sndbx;
 
-    AudioError link(AudioGraph &graph) override {
-        const auto error = audio::register_nodes(graph, {&synth_, synth_id_}, {&amp_, amp_id_}); 
-        if (error != AudioError::NONE) {
-            return error;
-        }
-        return graph.connect(synth_id_, 0, amp_id_, 0);
+    bool link(AudioGraph &graph) override {
+        return audio::register_nodes(graph, {&synth_, synth_id_}, {&amp_, amp_id_}) 
+            && graph.connect(synth_id_, 0, amp_id_, 0);
     }
 
     // class continued below...

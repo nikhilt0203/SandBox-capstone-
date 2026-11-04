@@ -4,9 +4,9 @@
 #include <array>
 #include <optional>
 
+#include <nst/poly_view.hpp>
 #include <nst/teensy/ILI9341_display.hpp>
 #include <nst/teensy/trellis_led_display.hpp>
-#include <nst/poly_view.hpp>
 
 #include "engine.hpp"
 #include "io/pinouts.hpp"
@@ -66,9 +66,10 @@ class DisplayEngine {
 	void update_module_ctrl(ModulePosition pos, std::size_t idx, float value);
 
   private:
-	auto get_path(ModulePosition start, ModulePosition end)
-	    -> nst::inplace_vector<std::uint8_t,
-	                           limits::grid_rows + limits::grid_cols>;
+	using ConnectionPath =
+	    nst::inplace_vector<std::uint8_t,
+	                        limits::grid_rows + limits::grid_cols>;
+	auto get_path(ModulePosition start, ModulePosition end) -> ConnectionPath;
 
 	struct DisplayEntry {
 		DisplayEntry(const Displayable &m) : color{m.led_color()}, module{m} {}
