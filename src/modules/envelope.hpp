@@ -65,9 +65,9 @@ class Envelope : public Patchable,
 	Parameter sustain_ms_{0.0f, 1.0f, 0.0f};
 	Parameter release_ms_{0.0f, 500.0f, 100.0f};
 
-	using sustain_coeff = curves::Ratio<25, 100>;
 	constexpr static auto ms_curve = curves::linear<float, 5>;
-	constexpr static auto sustain_curve = curves::linear<float, sustain_coeff>;
+	constexpr static auto sustain_curve =
+	    curves::linear<float, nst::ratio<25, 100>>;
 
 	constexpr static ModuleControl attack_ctrl{ms_curve, &Self::update_attack};
 

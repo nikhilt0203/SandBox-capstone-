@@ -42,7 +42,7 @@ class AudioOut : public Patchable, public Controllable, public Displayable {
 
 	ModuleParameter<float> gain_{0.0f, 1.0f, 0.5f};
 
-	constexpr static ModuleControl gain_ctrl{curves::default_gain_curve,
+	constexpr static ModuleControl gain_ctrl{curves::gain_curve,
 	                                         &AudioOut::update_gain};
 };
 

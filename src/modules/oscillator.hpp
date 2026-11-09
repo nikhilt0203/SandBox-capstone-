@@ -47,9 +47,9 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	void update_fm_depth();
 	void update_waveform();
 
-	using fm_coeff = curves::Ratio<25, 100>;
+	using fm_coeff = nst::ratio<25, 100>;
 
-	constexpr static ModuleControl coarse_ctrl{curves::default_freq_curve,
+	constexpr static ModuleControl coarse_ctrl{curves::frequency_curve,
 	                                           &Self::update_frequency};
 
 	constexpr static ModuleControl fine_ctrl{curves::linear<int>,

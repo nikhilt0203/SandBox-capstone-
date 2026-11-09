@@ -2,7 +2,6 @@
 #define NST_EXPECTED_HPP_
 
 #include <cassert>
-#include <type_traits>
 #include <variant>
 
 namespace nst {
