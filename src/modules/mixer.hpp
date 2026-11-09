@@ -20,12 +20,10 @@ inline constexpr ModuleDisplayInfo module_info<Mixer>{
     {ctrl_format, ctrl_format, ctrl_format, ctrl_format}};
 
 class Mixer : public Patchable, public Controllable, public Displayable {
-	using Self = Mixer;
+	constexpr static auto num_channels = 4U;
 
   public:
-	Mixer()
-	    : Patchable{num_ins<Self>, num_outs<Self>},
-	      Controllable{num_ctrls<Self>} {}
+	Mixer() : Patchable{num_channels, 1}, Controllable{4} {}
 
 	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
@@ -38,10 +36,9 @@ class Mixer : public Patchable, public Controllable, public Displayable {
   private:
 	void update_gains();
 
-	constexpr static auto channels = num_ins<Self>;
 	constexpr static auto default_gain = ModuleParameter{0.0f, 1.0f, 0.5f};
 
-	using ChannelGains = std::array<ModuleParameter<float>, channels>;
+	using ChannelGains = std::array<ModuleParameter<float>, num_channels>;
 
 	template <std::size_t... Is>
 	static ChannelGains make_gain_params(std::index_sequence<Is...>) {
@@ -52,10 +49,10 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	nst::teensy::AudioNodeID mix_id_;
 
 	ChannelGains channel_gains_{
-	    make_gain_params(std::make_index_sequence<channels>{})};
+	    make_gain_params(std::make_index_sequence<num_channels>{})};
 
 	constexpr static auto gain_ctrl =
-	    ModuleControl{curves::default_gain_curve, &Self::update_gains};
+	    ModuleControl{curves::default_gain_curve, &Mixer::update_gains};
 };
 
 } // namespace sndbx

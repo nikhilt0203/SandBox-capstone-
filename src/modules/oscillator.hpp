@@ -26,11 +26,7 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	using Self = Oscillator;
 
   public:
-	Oscillator()
-	    : Patchable{num_ins<Self>, num_outs<Self>},
-	      Controllable{num_ctrls<Self>} {
-		init_synth();
-	}
+	Oscillator() : Patchable{2, 1}, Controllable{4} { init_synth(); }
 
 	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
@@ -51,20 +47,19 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	void update_fm_depth();
 	void update_waveform();
 
-	struct fm_coeff {
-		constexpr static auto value{0.25f};
-	};
-	constexpr static auto coarse_ctrl =
-	    ModuleControl{curves::default_freq_curve, &Self::update_frequency};
+	using fm_coeff = curves::Ratio<25, 100>;
 
-	constexpr static auto fine_ctrl =
-	    ModuleControl{curves::linear<int>, &Self::update_frequency};
+	constexpr static ModuleControl coarse_ctrl{curves::default_freq_curve,
+	                                           &Self::update_frequency};
 
-	constexpr static auto fm_ctrl =
-	    ModuleControl{curves::linear<float, fm_coeff>, &Self::update_fm_depth};
+	constexpr static ModuleControl fine_ctrl{curves::linear<int>,
+	                                         &Self::update_frequency};
 
-	constexpr static auto waveform_ctrl =
-	    ModuleControl{curves::linear<std::size_t>, &Self::update_waveform};
+	constexpr static ModuleControl fm_ctrl{curves::linear<float, fm_coeff>,
+	                                       &Self::update_fm_depth};
+
+	constexpr static ModuleControl waveform_ctrl{curves::linear<std::size_t>,
+	                                             &Self::update_waveform};
 
 	AudioSynthWaveformModulated synth_;
 	nst::teensy::AudioNodeID synth_id_;

@@ -73,7 +73,7 @@ namespace audio {
 inline bool connect(const Patchable &src, std::uint8_t output_idx,
                     const Patchable &dst, std::uint8_t input_idx,
                     AudioGraph &graph) {
-	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+	assert(output_idx >= src.num_outs() || input_idx >= dst.num_ins());
 
 	const auto [out_id, out_port] =
 	    src.patch_point({PortType::OUT, output_idx});
@@ -86,7 +86,7 @@ inline bool connect(const Patchable &src, std::uint8_t output_idx,
 inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
                        const Patchable &dst, std::uint8_t input_idx,
                        AudioGraph &graph) {
-	assert(output_idx >= src.outs() || input_idx >= dst.ins());
+	assert(output_idx >= src.num_outs() || input_idx >= dst.num_ins());
 
 	const auto [out_id, out_port] =
 	    src.patch_point({PortType::OUT, output_idx});

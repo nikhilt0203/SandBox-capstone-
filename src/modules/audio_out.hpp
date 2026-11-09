@@ -18,13 +18,8 @@ inline constexpr ModuleDisplayInfo module_info<AudioOut>{
     {}};
 
 class AudioOut : public Patchable, public Controllable, public Displayable {
-	using Self = AudioOut;
-
   public:
-	// num ins is just returning 8 always
-	AudioOut()
-	    : Patchable{num_ins<Self>, num_outs<Self>},
-	      Controllable{num_ctrls<Self>} {}
+	AudioOut() : Patchable{1, 0}, Controllable{1} {}
 
 	bool link(AudioGraph &graph) override;
 	AudioPoint patch_point(ModulePort port) const override;
@@ -47,8 +42,8 @@ class AudioOut : public Patchable, public Controllable, public Displayable {
 
 	ModuleParameter<float> gain_{0.0f, 1.0f, 0.5f};
 
-	constexpr static auto gain_ctrl =
-	    ModuleControl{curves::default_gain_curve, &Self::update_gain};
+	constexpr static ModuleControl gain_ctrl{curves::default_gain_curve,
+	                                         &AudioOut::update_gain};
 };
 
 } // namespace sndbx

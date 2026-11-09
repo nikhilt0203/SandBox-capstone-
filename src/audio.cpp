@@ -11,17 +11,17 @@ bool register_nodes(
     AudioGraph &graph,
     std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
         node_data) {
-	int num_successes{};
+	int nodes_added{};
 	for (auto &data : node_data) {
 		const auto result = graph.add(data.first);
 		if (!result) {
 			// remove previous successes if failure
-			std::for_each_n(node_data.begin(), num_successes,
+			std::for_each_n(node_data.begin(), nodes_added,
 			                [&graph](auto pair) { graph.remove(pair.second); });
 			return false;
 		}
 		data.second = *result;
-		++num_successes;
+		++nodes_added;
 	}
 	return true;
 }

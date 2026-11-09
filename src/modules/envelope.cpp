@@ -13,6 +13,7 @@ void Envelope::unlink(AudioGraph &graph) {
 
 AudioPoint Envelope::patch_point(ModulePort port) const {
 	auto in_map = [this](auto in) {
+		assert(in < num_ins());
 		switch (in) {
 		case 0:
 			return audio::make_audio_point(env_id_);
@@ -23,7 +24,7 @@ AudioPoint Envelope::patch_point(ModulePort port) const {
 	};
 
 	auto out_map = [this](auto out) {
-		assert(out == 0);
+		assert(out < num_outs());
 		return audio::make_audio_point(env_id_);
 	};
 
@@ -42,7 +43,7 @@ float Envelope::change_control(ControlChange c) {
 	case 3:
 		return release_ctrl.change(*this, release_ms_, c.delta);
 	}
-	return 0;
+	nst::unreachable();
 }
 
 const ModuleDisplayInfo &Envelope::display_info() const {
@@ -50,6 +51,7 @@ const ModuleDisplayInfo &Envelope::display_info() const {
 }
 
 ColoredText Envelope::display_text() const { return {"envelope", 0xFFFF00}; }
+
 nst::teensy::ColorRGB Envelope::led_color() const { return 0xFFFF00; }
 
 void Envelope::trigger(AudioEdge e) {
@@ -64,15 +66,11 @@ void Envelope::trigger(AudioEdge e) {
 }
 
 void Envelope::on_rising_edge() { trigger(AudioEdge::RISING_EDGE); }
-
 void Envelope::on_falling_edge() { trigger(AudioEdge::FALLING_EDGE); }
 
 void Envelope::update_attack() { env_.attack(attack_ms_); }
-
 void Envelope::update_decay() { env_.decay(decay_ms_); }
-
 void Envelope::update_sustain() { env_.sustain(sustain_ms_); }
-
 void Envelope::update_release() { env_.release(release_ms_); }
 
 } // namespace sndbx

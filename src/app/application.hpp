@@ -58,9 +58,7 @@ class App {
 
 	// Dispatch input events to the current app mode
 	void operator()(KeypadEvent evt) { app_state_->on_keypad_evt(*this, evt); }
-
 	void operator()(KnobEvent evt) { app_state_->on_knob_evt(*this, evt); }
-
 	void operator()(ButtonEvent evt) { app_state_->on_button_evt(*this, evt); }
 
 	template <class State> void change_app_state() {

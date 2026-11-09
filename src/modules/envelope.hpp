@@ -8,6 +8,7 @@
 #include "module_parameter.hpp"
 #include "patchable.hpp"
 #include "pressable.hpp"
+#include <ratio>
 
 namespace sndbx {
 class Envelope;
@@ -29,9 +30,7 @@ class Envelope : public Patchable,
 	using Self = Envelope;
 
   public:
-	Envelope()
-	    : Patchable{num_ins<Self>, num_outs<Self>},
-	      Controllable{num_ctrls<Self>} {}
+	Envelope() : Patchable{2, 1}, Controllable{4} {}
 
 	bool link(AudioGraph &graph) override;
 	void unlink(AudioGraph &graph) override;
@@ -55,7 +54,7 @@ class Envelope : public Patchable,
 	void update_release();
 
 	AudioEffectEnvelope env_;
-	AudioTriggerInput<Envelope> trig_{*this};
+	AudioTriggerInput<Self> trig_{*this};
 	nst::teensy::AudioNodeID env_id_;
 	nst::teensy::AudioNodeID trig_id_;
 
@@ -66,24 +65,19 @@ class Envelope : public Patchable,
 	Parameter sustain_ms_{0.0f, 1.0f, 0.0f};
 	Parameter release_ms_{0.0f, 500.0f, 100.0f};
 
-	struct sustain_coeff {
-		constexpr static auto value{0.25f};
-	};
-
+	using sustain_coeff = curves::Ratio<25, 100>;
 	constexpr static auto ms_curve = curves::linear<float, 5>;
 	constexpr static auto sustain_curve = curves::linear<float, sustain_coeff>;
 
-	constexpr static auto attack_ctrl =
-	    ModuleControl{ms_curve, &Self::update_attack};
+	constexpr static ModuleControl attack_ctrl{ms_curve, &Self::update_attack};
 
-	constexpr static auto decay_ctrl =
-	    ModuleControl{ms_curve, &Self::update_decay};
+	constexpr static ModuleControl decay_ctrl{ms_curve, &Self::update_decay};
 
-	constexpr static auto sustain_ctrl =
-	    ModuleControl{sustain_curve, &Self::update_sustain};
+	constexpr static ModuleControl sustain_ctrl{sustain_curve,
+	                                            &Self::update_sustain};
 
-	constexpr static auto release_ctrl =
-	    ModuleControl{ms_curve, &Self::update_release};
+	constexpr static ModuleControl release_ctrl{ms_curve,
+	                                            &Self::update_release};
 };
 
 } // namespace sndbx

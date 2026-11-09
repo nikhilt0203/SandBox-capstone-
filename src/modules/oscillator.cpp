@@ -43,6 +43,7 @@ AudioPoint Oscillator::patch_point(ModulePort port) const {
 }
 
 float Oscillator::change_control(ControlChange cc) {
+	assert(cc.index < num_controls());
 	switch (cc.index) {
 	case 0:
 		return coarse_ctrl.change(*this, frequency_, cc.delta);

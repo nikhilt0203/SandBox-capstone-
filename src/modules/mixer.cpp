@@ -18,7 +18,7 @@ float Mixer::change_control(ControlChange c) {
 }
 
 const ModuleDisplayInfo &Mixer::display_info() const {
-	return module_info<Self>;
+	return module_info<Mixer>;
 }
 
 void Mixer::update_gains() {

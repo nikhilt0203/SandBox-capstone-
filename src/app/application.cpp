@@ -11,12 +11,13 @@
 
 namespace sndbx {
 namespace {
-// Consumed by app
+
+// added to by input devices, consumed by application
 static InputEventQueue event_queue;
 
 using namespace nst::teensy;
 
-// Input devices that add events into the queue
+// Input devices
 static auto keypad = make_multitrellis<pinouts::trellis_addrs>(event_queue);
 static auto knobs = make_encoder_array(pinouts::encoder_pins, event_queue);
 static auto buttons = make_button_array(pinouts::button_pins, event_queue);

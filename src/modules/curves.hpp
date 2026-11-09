@@ -6,18 +6,23 @@
 
 namespace sndbx::curves {
 
+// Curve functions can accept a ratio as a template parameter. A coefficient
+// type must have a static data member 'value' that contains the coefficient.
+// The type Ratio<N,D> can be used to express these values
+
+// Compile-time ratio constant to use with curves
+template <int N, int D> struct Ratio {
+	static_assert(D != 0);
+
+	constexpr operator float() const { return value; }
+
+	static constexpr auto numerator = N;
+	static constexpr auto denominator = D;
+	static constexpr auto value = static_cast<float>(N) / static_cast<float>(D);
+};
+
 namespace detail {
-struct IdentityCoeff {
-	constexpr static auto value{1};
-};
-
-struct GainCoeff {
-	constexpr static auto value{1.08f};
-};
-
-struct FreqCoeff {
-	constexpr static auto value{1.1f};
-};
+using IdentityCoeff = Ratio<1, 1>;
 } // namespace detail
 
 template <typename T, class Coeff = detail::IdentityCoeff,
@@ -81,8 +86,8 @@ template <typename T, int Coeff>
 	return std::sqrt(value + static_cast<T>(delta)) * Coeff;
 }
 
-inline constexpr auto default_gain_curve = exp<float, detail::GainCoeff>;
-inline constexpr auto default_freq_curve = exp<float, detail::FreqCoeff>;
+inline constexpr auto default_gain_curve = exp<float, Ratio<108, 100>>;
+inline constexpr auto default_freq_curve = exp<float, Ratio<11, 10>>;
 
 } // namespace sndbx::curves
 
