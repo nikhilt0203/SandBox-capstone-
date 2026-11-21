@@ -15,11 +15,6 @@ struct AudioPoint {
 	std::uint8_t port;
 };
 
-[[nodiscard]] inline constexpr auto make_patch_point(nst::teensy::AudioID id,
-                                                     std::uint8_t port = 0) {
-	return AudioPoint{id, port};
-}
-
 // Keeps the compiler happy in unreachable paths that return an AudioPoint
 inline constexpr auto null_audio_point =
     AudioPoint{nst::teensy::AudioID{-1}, 0};
@@ -52,7 +47,7 @@ inline AudioPoint no_outputs(std::uint8_t) { nst::unreachable(); }
 
 // Create an AudioPoint from a graph node id and port index
 [[nodiscard]] inline constexpr auto
-make_audio_point(nst::teensy::AudioID device_id, std::uint8_t device_port = 0) {
+make_patch_point(nst::teensy::AudioID device_id, std::uint8_t device_port = 0) {
 	return AudioPoint{device_id, device_port};
 }
 
@@ -73,8 +68,9 @@ register_devices(AudioGraph &graph,
 // InputMap and OutputMap model callables that take in a port index and
 // return an AudioPoint.
 template <typename InputMapping, typename OutputMapping>
-[[nodiscard]] AudioPoint map_port(ModulePort port, InputMapping &&in_map_func,
-                                  OutputMapping &&out_map_func) {
+[[nodiscard]] AudioPoint map_module_port(ModulePort port,
+                                         InputMapping &&in_map_func,
+                                         OutputMapping &&out_map_func) {
 	switch (port.type) {
 	case PortType::IN:
 		return std::forward<InputMapping>(in_map_func)(port.index);

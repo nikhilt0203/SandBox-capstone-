@@ -9,7 +9,7 @@ bool Mixer::link(AudioGraph &graph) {
 void Mixer::unlink(AudioGraph &graph) { graph.remove(mix_id_); }
 
 AudioPoint Mixer::patch_point(ModulePort port) const {
-	return audio::make_audio_point(mix_id_, port.index);
+	return audio::make_patch_point(mix_id_, port.index);
 }
 
 float Mixer::change_control(ControlChange cc) {

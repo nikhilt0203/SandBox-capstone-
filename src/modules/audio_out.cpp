@@ -18,7 +18,7 @@ bool AudioOut::link(AudioGraph &graph) {
 
 AudioPoint AudioOut::patch_point(ModulePort port) const {
 	using namespace audio;
-	return map_port(
+	return map_module_port(
 	    port,
 	    [this](auto in) {
 		    assert(in == 0);

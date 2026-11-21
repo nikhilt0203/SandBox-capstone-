@@ -16,18 +16,18 @@ AudioPoint Envelope::patch_point(ModulePort port) const {
 	auto in_map = [this](auto in) {
 		switch (in) {
 		case 0:
-			return audio::make_audio_point(env_id_);
+			return audio::make_patch_point(env_id_);
 		case 1:
-			return audio::make_audio_point(trig_id_);
+			return audio::make_patch_point(trig_id_);
 		}
 		nst::unreachable();
 	};
 
 	auto out_map = [this](auto out) {
-		return audio::make_audio_point(env_id_);
+		return audio::make_patch_point(env_id_);
 	};
 
-	return audio::map_port(port, in_map, out_map);
+	return audio::map_module_port(port, in_map, out_map);
 }
 
 float Envelope::change_control(ControlChange cc) {

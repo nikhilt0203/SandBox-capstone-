@@ -39,7 +39,7 @@ void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
 AudioPoint Oscillator::patch_point(ModulePort port) const {
 	assert(port.index == 0);
-	return audio::make_audio_point(synth_id_);
+	return audio::make_patch_point(synth_id_);
 }
 
 float Oscillator::change_control(ControlChange cc) {
