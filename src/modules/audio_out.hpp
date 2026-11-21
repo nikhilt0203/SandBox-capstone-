@@ -3,6 +3,7 @@
 
 #include "controllable.hpp"
 #include "displayable.hpp"
+#include "io/serializable.hpp"
 #include "patchable.hpp"
 
 namespace sndbx {
@@ -10,16 +11,14 @@ class AudioOut;
 
 template <>
 inline constexpr ModuleDisplayInfo module_info<AudioOut>{
-    {"audio out", 0x0000FF},
-    "sends to the audio output",
-    {"gain"},
-    {"in"},
-    {},
-    {}};
+    {"audio out", 0x0000FF}, "sends to the audio output", {"gain"}, {"in"}, {}};
 
-class AudioOut : public Patchable, public Controllable, public Displayable {
+class AudioOut : public Patchable,
+                 public Controllable,
+                 public Displayable,
+                 public Serializable {
   public:
-	AudioOut() : Patchable{1, 0}, Controllable{1} {}
+	AudioOut() : Patchable{1, 0}, Controllable{1} { update_gain(); }
 
 	bool link(AudioGraph &graph) override;
 	AudioPoint patch_point(ModulePort port) const override;
@@ -29,6 +28,14 @@ class AudioOut : public Patchable, public Controllable, public Displayable {
 
 	const ModuleDisplayInfo &display_info() const override;
 
+	void serialize(SerializationBuffer &sb) const override {
+		// save<AudioOut>(sb, gain_);
+	}
+
+	void deserialize(const SerializationBuffer &sb) override {
+		// load(sb, gain_);
+	}
+
   private:
 	void update_gain();
 
@@ -36,9 +43,9 @@ class AudioOut : public Patchable, public Controllable, public Displayable {
 	AudioOutputUSB usb_out_;
 	AudioOutputI2S i2s_out_;
 
-	nst::teensy::AudioNodeID usb_id_;
-	nst::teensy::AudioNodeID i2s_id_;
-	nst::teensy::AudioNodeID amp_id_;
+	nst::teensy::AudioID usb_id_;
+	nst::teensy::AudioID i2s_id_;
+	nst::teensy::AudioID amp_id_;
 
 	ModuleParameter<float> gain_{0.0f, 1.0f, 0.5f};
 

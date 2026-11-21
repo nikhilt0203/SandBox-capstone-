@@ -28,18 +28,16 @@ static DisplayEngine display_engine{keypad.multitrellis()};
 
 //******************************************************************************
 //
-/**/ static App application{engine, display_engine}; // Application instance
+/**/ static App application; // Application instance
 //
 //******************************************************************************
 
 // Push any input events into the queue
 void update_inputs() {
 	keypad.update();
-
 	for (auto &knob : knobs) {
 		knob.update();
 	}
-
 	for (auto &button : buttons) {
 		button.update();
 	}
@@ -54,14 +52,15 @@ void process_events() {
 
 } // namespace
 
-// App startup
 //******************************************************************************
+// App startup
 void app::init() {
 	Serial.begin(115200);
 	if (!sd_card::init()) {
 		sndbx_log_error("SD card failed.");
 	}
 	audio::allocate_blocks();
+	audio::enable_audio_shield(0.5);
 }
 
 // Main loop
@@ -73,103 +72,66 @@ void app::loop() {
 //******************************************************************************
 
 namespace {
-void draw_all_connections(const Engine &e, DisplayEngine &d) {
-	for (const auto &c : e.connections()) {
-		d.draw_connection(c.src_pos, c.dst_pos);
+void draw_all_connections() {
+	for (const auto &c : engine.connections()) {
+		display_engine.draw_connection(c.src_pos, c.dst_pos);
 	}
 }
 // Give the display engine the initial values of a Controllable module's params
-void populate_ctrl_vals(DisplayEngine &d, Controllable &c, ModulePosition pos) {
+void populate_ctrl_vals(Controllable &c, ModulePosition pos) {
 	for (std::size_t i{}; i < c.num_controls(); ++i) {
 		const ControlChange dummy{i, 0};
-		d.update_module_ctrl(pos, i, c.change_control(dummy));
+		display_engine.update_module_ctrl(pos, i, c.change_control(dummy));
 	}
 }
 } // namespace
 
 void App::update() {
-	display_engine_.display_module(engine_, selected_.pos);
-	display_engine_.render_frame();
+	display_engine.display_module(engine, selected_.pos);
+	display_engine.render_frame();
 }
 
-void App::rotate_bank(std::int8_t amt) {
-	const auto min =
-	    -1 * std::distance(&*module_bank.begin(), bank_window_.begin());
-	const auto max = std::distance(bank_window_.end(), &*module_bank.end());
-	bank_window_.slide(std::clamp<ptrdiff_t>(amt, min, max));
+void App::rotate_module_bank(std::int8_t amt) {
+	constexpr auto max = module_bank.size();
+	bank_window_ = (((bank_window_ + amt) % max) + max) % max;
 }
 
-bool App::create_module(ModuleType type, ModulePosition pos) {
-	auto id = engine_.create_module(type, pos);
-	if (!id) {
+bool create_module(ModuleType type, ModulePosition pos) {
+	auto result = engine.create_module(type, pos);
+	if (!result) {
 		return false;
 	}
-
-	auto &module = engine_.get_module(*id);
-
-	nst::invoke_if<Displayable>(module, [this, pos](const auto &m) {
-		display_engine_.add_module(m, pos);
+	nst::invoke_if<Displayable>(*result, [pos](const auto &module) {
+		display_engine.add_module(module, pos);
 	});
-
-	nst::invoke_if<Controllable>(module, [this, pos](auto &m) {
-		populate_ctrl_vals(display_engine_, m, pos);
-	});
+	nst::invoke_if<Controllable>(
+	    *result, [pos](auto &module) { populate_ctrl_vals(module, pos); });
 	return true;
 }
 
-bool App::delete_module(ModulePosition pos) {
-	if (engine_.delete_module(pos)) {
-		display_engine_.reset(pos);
-		return true;
+int idx = 0;
+void App::operator()(KeypadEvent evt) {
+	Serial.println("keypad");
+	using nst::teensy::TrellisKeyEvent;
+	if (evt.data.edge == TrellisKeyEvent::Edge::RISING_EDGE) {
+		const auto pos = ModulePosition{evt.data.key_num};
+		create_module(module_bank[bank_window_].type, pos);
 	}
-	return false;
 }
 
-bool App::connect(ModulePosition src_pos, std::uint8_t output_idx,
-                  ModulePosition dst_pos, std::uint8_t input_idx) {
-	if (!engine_.connect(src_pos, output_idx, dst_pos, input_idx)) {
-		return false;
-	}
-	display_engine.draw_connection(src_pos, dst_pos);
-	return true;
-}
-
-bool App::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
-                     ModulePosition dst_pos, std::uint8_t input_idx) {
-	if (engine_.disconnect(src_pos, output_idx, dst_pos, input_idx)) {
-		return false;
-	}
-	draw_all_connections(engine_, display_engine_);
-	return true;
-}
-
-bool App::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
-	// do display stuff
-	return engine_.connect_first(src_pos, dst_pos);
-}
-
-bool App::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
-	// do display stuff
-	return engine_.disconnect_first(src_pos, dst_pos);
-}
-
-void App::select(ModuleView module, ModulePosition pos) {
-	selected_ = {module, pos};
-	display_engine_.display_module(engine_, pos);
-}
-
-void App::turn_module_knob(std::uint8_t idx, std::int8_t amt) {
-	if (!selected_.module.holds<Controllable>()) {
+void App::operator()(KnobEvent evt) {
+	if (evt.encoder_num == 1) {
+		rotate_module_bank(evt.delta);
 		return;
 	}
-	auto &c = selected_.module.get<Controllable>();
-	if (idx < c.num_controls()) {
-		return;
-	}
-	const ControlChange cc{idx, amt};
-	const auto new_val = c.change_control(cc);
-	display_engine_.update_module_ctrl(selected_.pos, idx, new_val);
-	display_engine_.display_module(engine_, selected_.pos);
+	nst::invoke_if<Controllable>(
+	    engine.get_module(engine.module_id(ModulePosition{1})),
+	    [evt](auto &c) { c.change_control(ControlChange{0, evt.delta}); });
+}
+
+void App::operator()(ButtonEvent evt) {
+	Serial.println("button");
+	engine.connect(ModulePosition{1}, 0, ModulePosition{0}, 0);
 }
 
 } // namespace sndbx

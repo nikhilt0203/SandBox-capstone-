@@ -3,7 +3,7 @@
 namespace sndbx {
 
 bool Mixer::link(AudioGraph &graph) {
-	return audio::register_nodes(graph, {&mix_, mix_id_});
+	return audio::register_devices(graph, {&mix_, mix_id_});
 }
 
 void Mixer::unlink(AudioGraph &graph) { graph.remove(mix_id_); }
@@ -12,9 +12,8 @@ AudioPoint Mixer::patch_point(ModulePort port) const {
 	return audio::make_audio_point(mix_id_, port.index);
 }
 
-float Mixer::change_control(ControlChange c) {
-	assert(c.index < num_controls());
-	return gain_ctrl.change(*this, channel_gains_[c.index], c.delta);
+float Mixer::change_control(ControlChange cc) {
+	return gain_ctrl.change(*this, channel_gains_[cc.index], cc.delta);
 }
 
 const ModuleDisplayInfo &Mixer::display_info() const {

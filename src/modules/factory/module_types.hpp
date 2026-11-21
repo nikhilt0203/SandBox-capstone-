@@ -5,16 +5,18 @@
 #include <nst/strong_alias.hpp>
 #include <nst/type_list.hpp>
 
+#include "modules/audio_out.hpp"
 #include "modules/envelope.hpp"
+#include "modules/mixer.hpp"
 #include "modules/oscillator.hpp"
 
 namespace sndbx {
-
+class AudioOut;
 // Modules recognized by the system *add to the end, old saved pa
-using ModuleTypes = nst::type_list<Oscillator, Envelope>;
+using ModuleTypes = nst::type_list<Oscillator, Envelope, Mixer, AudioOut>;
 
 // Module types that can be created by the user
-using ModuleBankTypes = nst::type_list<Oscillator, Envelope>;
+using ModuleBankTypes = ModuleTypes;
 
 namespace limits {
 // Max instances per module, default 16
@@ -22,6 +24,8 @@ template <class Module> inline constexpr std::size_t max_instances = 16;
 
 template <> inline constexpr std::size_t max_instances<Oscillator> = 32;
 template <> inline constexpr std::size_t max_instances<Envelope> = 32;
+template <> inline constexpr std::size_t max_instances<Mixer> = 16;
+template <> inline constexpr std::size_t max_instances<AudioOut> = 1;
 } // namespace limits
 
 // An integer ID for each module type in the ModuleTypes type list
@@ -37,7 +41,8 @@ struct ModuleType : public nst::strong_alias<std::size_t, ModuleType> {
 };
 
 // Get the value representation of a module type
-template <class Module, typename = std::enable_if_t<ModuleTypes::contains_v<Module>>>
+template <class Module,
+          typename = std::enable_if_t<ModuleTypes::contains_v<Module>>>
 inline constexpr ModuleType module_type{ModuleTypes::index_of<Module>};
 
 } // namespace sndbx

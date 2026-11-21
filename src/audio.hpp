@@ -1,15 +1,9 @@
 #ifndef SANDBOX_AUDIO_ENGINE_HPP_
 #define SANDBOX_AUDIO_ENGINE_HPP_
 
-#include <algorithm>
-#include <string_view>
-#include <utility>
-
+#include "config/config.hpp"
 #include <nst/teensy/audio_graph.hpp>
 #include <nst/unreachable.hpp>
-
-#include "audio/audio_trigger.hpp"
-#include "config/config.hpp"
 
 namespace sndbx {
 
@@ -17,13 +11,18 @@ using AudioGraph = nst::teensy::AudioGraph<limits::max_audio_graph_nodes,
                                            limits::max_audio_graph_patches>;
 
 struct AudioPoint {
-	nst::teensy::AudioNodeID id;
-	nst::teensy::AudioPort port;
+	nst::teensy::AudioID id;
+	std::uint8_t port;
 };
+
+[[nodiscard]] inline constexpr auto make_patch_point(nst::teensy::AudioID id,
+                                                     std::uint8_t port = 0) {
+	return AudioPoint{id, port};
+}
 
 // Keeps the compiler happy in unreachable paths that return an AudioPoint
 inline constexpr auto null_audio_point =
-    AudioPoint{nst::teensy::AudioNodeID{-1}, nst::teensy::AudioPort{0}};
+    AudioPoint{nst::teensy::AudioID{-1}, 0};
 
 enum class PortType { IN, OUT };
 
@@ -43,31 +42,32 @@ struct ModulePort {
 namespace audio {
 
 void allocate_blocks();
+void enable_audio_shield(float volume);
 
 // Denotes that a module has no input ports in map_port(). Does not return!
-AudioPoint no_inputs(std::uint8_t);
+inline AudioPoint no_inputs(std::uint8_t) { nst::unreachable(); }
 
 // Denotes that a module has no output ports in map_port(). Does not return!
-AudioPoint no_outputs(std::uint8_t);
+inline AudioPoint no_outputs(std::uint8_t) { nst::unreachable(); }
 
 // Create an AudioPoint from a graph node id and port index
 [[nodiscard]] inline constexpr auto
-make_audio_point(nst::teensy::AudioNodeID id, std::uint8_t audio_port = 0) {
-	return AudioPoint{id, nst::teensy::AudioPort{audio_port}};
+make_audio_point(nst::teensy::AudioID device_id, std::uint8_t device_port = 0) {
+	return AudioPoint{device_id, device_port};
 }
 
 // Registers multiple AudioStream objects with the AudioGraph. Supplied
-// as a list of pairs of an AudioStream * and AudioNodeID out param. If any
+// as a list of pairs of an AudioStream * and AudioID out param. If any
 // addition in the list fails, all nodes in the list are removed from the graph.
-[[nodiscard]] bool register_nodes(
+[[nodiscard]] bool register_devices(
     AudioGraph &graph,
-    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
-        node_data);
+    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioID &>>
+        device_data);
 
 // Overload for adding only one node
 [[nodiscard]] bool
-register_nodes(AudioGraph &graph,
-               std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data);
+register_devices(AudioGraph &graph,
+                 std::pair<AudioStream *, nst::teensy::AudioID &> device_data);
 
 // helper function template for mapping a module port to an audio patch_point.
 // InputMap and OutputMap model callables that take in a port index and

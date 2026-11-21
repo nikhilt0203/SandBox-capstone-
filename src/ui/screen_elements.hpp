@@ -397,9 +397,8 @@ class PatchDisplayPage : public ScreenElement {
 	Text dst_port_name_;
 };
 
-class OscilloscopeFrame : public ScreenElement {
-	static constexpr std::size_t bufferSize = 1024;
-	using SampleBuffer = std::array<float, bufferSize>;
+template <std::size_t N> class OscilloscopeFrame : public ScreenElement {
+	using SampleBuffer = std::array<float, N>;
 
   public:
 	OscilloscopeFrame(const SampleBuffer &buffer, GFXcanvas16 &frame)

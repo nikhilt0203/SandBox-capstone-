@@ -10,17 +10,13 @@
 namespace sndbx {
 class Oscillator;
 
-CtrlFmtStr waveform_ctrl_formatter(float f);
-
 template <>
 inline constexpr ModuleDisplayInfo module_info<Oscillator>{
     {"oscillator", 0x00FF00},
     "outputs a continous waveform modulated by an fm input",
     {"coarse", "fine", "fm", "type"},
     {"in", "fm"},
-    {"out"},
-    {ctrl_format<FHertz>, ctrl_format<FHertz>, ctrl_format<FOctaves>,
-     waveform_ctrl_formatter}};
+    {"out"}};
 
 class Oscillator : public Patchable, public Controllable, public Displayable {
 	using Self = Oscillator;
@@ -32,7 +28,7 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	void unlink(AudioGraph &graph) override;
 	AudioPoint patch_point(ModulePort port) const override;
 
-	float change_control(ControlChange c) override;
+	float change_control(ControlChange cc) override;
 
 	const ModuleDisplayInfo &display_info() const override {
 		return module_info<Self>;
@@ -62,7 +58,7 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 	                                             &Self::update_waveform};
 
 	AudioSynthWaveformModulated synth_;
-	nst::teensy::AudioNodeID synth_id_;
+	nst::teensy::AudioID synth_id_;
 
 	ModuleParameter<float> frequency_{0.01f, 18000.0f, 440.0f};
 	ModuleParameter<int> fine_tune_offset_{-50, 50, 0};

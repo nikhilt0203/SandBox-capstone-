@@ -21,20 +21,19 @@ using PortColors =
     nst::inplace_vector<nst::teensy::ColorRGB, limits::max_in_ports>;
 
 auto connected_module_colors(const Engine &e, ModulePosition pos) {
-	auto &factory = e.factory();
 	PortColors input_colors;
 	PortColors output_colors;
 
 	for (auto &c : e.connections()) {
 		if (c.dst_pos == pos) {
-			const auto id = factory[c.src_pos];
-			const auto &m = factory[id];
+			const auto id = e.module_id(c.src_pos);
+			const auto &m = e.get_module(id);
 			if (auto d = m.get_if<Displayable>()) {
 				input_colors[c.input_idx] = d->led_color();
 			}
 		} else if (c.src_pos == pos) {
-			const auto id = factory[c.dst_pos];
-			const auto &m = factory[id];
+			const auto id = e.module_id(c.dst_pos);
+			const auto &m = e.get_module(id);
 			if (auto d = m.get_if<Displayable>()) {
 				output_colors[c.output_idx] = d->led_color();
 			}
@@ -120,6 +119,7 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 
 void DisplayEngine::add_module(const Displayable &module, ModulePosition pos) {
 	display_grid_[pos.value].emplace(module);
+	led_grid_.draw_pixel(pos.value, module.led_color());
 }
 
 void DisplayEngine::reset(ModulePosition pos) {

@@ -1,39 +1,43 @@
 #include "audio.hpp"
 
+AudioControlSGTL5000 audio_shield;
+
 namespace sndbx::audio {
 
 void allocate_blocks() { AudioMemory(limits::max_audio_blocks); }
 
-inline AudioPoint no_inputs(std::uint8_t) { nst::unreachable(); }
-inline AudioPoint no_outputs(std::uint8_t) { nst::unreachable(); }
+void enable_audio_shield(float volume) {
+	audio_shield.enable();
+	audio_shield.volume(volume);
+}
 
-bool register_nodes(
+bool register_devices(
     AudioGraph &graph,
-    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioNodeID &>>
-        node_data) {
-	int nodes_added{};
-	for (auto &data : node_data) {
+    std::initializer_list<std::pair<AudioStream *, nst::teensy::AudioID &>>
+        device_data) {
+	int num_added{};
+	for (auto &data : device_data) {
 		const auto result = graph.add(data.first);
 		if (!result) {
 			// remove previous successes if failure
-			std::for_each_n(node_data.begin(), nodes_added,
+			std::for_each_n(device_data.begin(), num_added,
 			                [&graph](auto pair) { graph.remove(pair.second); });
 			return false;
 		}
 		data.second = *result;
-		++nodes_added;
+		++num_added;
 	}
 	return true;
 }
 
-bool register_nodes(
+bool register_devices(
     AudioGraph &graph,
-    std::pair<AudioStream *, nst::teensy::AudioNodeID &> node_data) {
-	const auto id = graph.add(node_data.first);
+    std::pair<AudioStream *, nst::teensy::AudioID &> device_data) {
+	const auto id = graph.add(device_data.first);
 	if (!id) {
 		return false;
 	}
-	node_data.second = *id;
+	device_data.second = *id;
 	return true;
 }
 

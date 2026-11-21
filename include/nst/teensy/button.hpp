@@ -9,7 +9,7 @@
 namespace nst::teensy {
 
 struct ButtonEvent {
-	enum class Edge : std::uint8_t { RISING_EDGE, FALLING_EDGE };
+	enum class Edge : std::uint8_t { PRESSED, RELEASED };
 	std::uint8_t button_num;
 	Edge edge;
 
@@ -33,37 +33,40 @@ template <class EventContainer> class Button {
   public:
 	constexpr Button(nst::pin pin, std::uint8_t button_num,
 	                 EventContainer &events)
-	    : events_{events}, pin_{pin}, button_num_{button_num} {}
+	    : events_{events}, pin_{pin}, button_num_{button_num} {
+		pin_.pin_mode(INPUT_PULLUP);
+	}
 
 	void update() {
 		const auto current_state = pin_.read();
-		const bool was_high = (last_state_ == HIGH);
-		const bool has_event = was_high ^ (current_state == HIGH);
+		const bool was_pressed = (last_state_ == LOW);
+		const bool is_pressed = (current_state == LOW);
 
 		last_state_ = current_state;
-		if (!has_event) {
-			return;
-		}
 
-		if constexpr (std::is_same_v<typename EventContainer::value_type,
-		                             ButtonEvent>) {
-			events_.emplace_back(button_num_,
-			                     was_high ? ButtonEvent::Edge::RISING_EDGE
-			                              : ButtonEvent::Edge::FALLING_EDGE);
-		} else {
-			events_.emplace_back(ButtonEvent{
-			    button_num_, was_high ? ButtonEvent::Edge::RISING_EDGE
-			                          : ButtonEvent::Edge::FALLING_EDGE});
+		if (!was_pressed && is_pressed) {
+			push_event(ButtonEvent::Edge::PRESSED);
+		} else if (was_pressed && !is_pressed) {
+			push_event(ButtonEvent::Edge::RELEASED);
 		}
 	}
 
 	[[nodiscard]] constexpr auto button_num() const { return button_num_; }
 
   private:
+	void push_event(ButtonEvent::Edge e) {
+		if constexpr (std::is_same_v<typename EventContainer::value_type,
+		                             ButtonEvent>) {
+			events_.emplace_back(button_num_, e);
+		} else {
+			events_.emplace_back(ButtonEvent{button_num_, e});
+		}
+	}
+
 	EventContainer &events_;
 	nst::pin pin_;
 	std::uint8_t button_num_;
-	std::uint8_t last_state_{pin_.read()};
+	std::uint8_t last_state_{HIGH};
 };
 
 namespace detail {

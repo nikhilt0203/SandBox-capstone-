@@ -14,61 +14,38 @@
 
 namespace nst::teensy {
 
-struct AudioPort : public nst::strong_alias<std::uint8_t, AudioPort> {
-	using nst::strong_alias<std::uint8_t, AudioPort>::strong_alias;
-
-	constexpr bool operator==(const AudioPort &other) const {
-		return this->value == other.value;
-	}
-
-	constexpr bool operator!=(const AudioPort &other) const {
-		return this->value != other.value;
-	}
-
-	[[nodiscard]] constexpr auto operator*() const { return this->value; }
-};
-
-struct AudioNodeID : public nst::strong_alias<std::int32_t, AudioNodeID> {
-	using nst::strong_alias<std::int32_t, AudioNodeID>::strong_alias;
+struct AudioID : public nst::strong_alias<std::int32_t, AudioID> {
+	using nst::strong_alias<std::int32_t, AudioID>::strong_alias;
 
 	constexpr operator bool() const { return this->value != -1; }
 
-	constexpr bool operator==(const AudioNodeID &other) const {
+	constexpr bool operator==(const AudioID &other) const {
 		return this->value == other.value;
 	}
 
-	constexpr bool operator!=(const AudioNodeID &other) const {
+	constexpr bool operator!=(const AudioID &other) const {
 		return this->value != other.value;
 	}
 };
 
-template <class AudioDevice> struct AudioNodeHandle {
-	AudioNodeID id;
-	AudioDevice *device;
-
-	const AudioDevice *operator->() const { return device; }
-	AudioDevice *operator->() { return device; }
-	operator AudioNodeID() const { return id; }
-};
-
 struct AudioNode {
-	AudioNodeID id;
+	AudioID id;
 	::AudioStream *device;
-	AudioNode(AudioNodeID id, ::AudioStream *device) : id{id}, device{device} {}
+	AudioNode(AudioID id, ::AudioStream *device) : id{id}, device{device} {}
 };
 
 struct AudioPatch {
-	AudioNodeID src_id;
-	AudioPort src_port;
-	AudioNodeID dst_id;
-	AudioPort dst_port;
+	AudioID src_id;
+	std::uint8_t src_port;
+	AudioID dst_id;
+	std::uint8_t dst_port;
 	::AudioConnection connection;
 
-	AudioPatch(AudioNode src, AudioPort src_port, AudioNode dst,
-	           AudioPort dst_port)
+	AudioPatch(AudioNode src, std::uint8_t src_port, AudioNode dst,
+	           std::uint8_t dst_port)
 	    : src_id{src.id}, src_port{src_port}, dst_id{dst.id},
 	      dst_port{dst_port},
-	      connection{*src.device, *src_port, *dst.device, *dst_port} {}
+	      connection{*src.device, src_port, *dst.device, dst_port} {}
 };
 
 // Fixed-size audio graph for the Teensy Audio Library. Holds and manages
@@ -76,7 +53,7 @@ struct AudioPatch {
 template <std::size_t NodeCapacity, std::size_t PatchCapacity>
 class AudioGraph {
   public:
-	auto add(::AudioStream *device) -> std::optional<AudioNodeID> {
+	[[nodiscard]] auto add(::AudioStream *device) -> std::optional<AudioID> {
 		const auto new_id = node_id_gen_.next_id();
 		if (!nodes_.emplace_back(new_id, device)) {
 			return std::nullopt;
@@ -84,7 +61,7 @@ class AudioGraph {
 		return new_id;
 	}
 
-	bool remove(AudioNodeID id) {
+	bool remove(AudioID id) {
 		assert(id);
 		auto it = find_node(id);
 		if (it == nodes_.end()) {
@@ -100,8 +77,8 @@ class AudioGraph {
 		return true;
 	}
 
-	bool connect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	             AudioPort dst_port) {
+	bool connect(AudioID src_id, std::uint8_t src_port, AudioID dst_id,
+	             std::uint8_t dst_port) {
 		assert(src_id && dst_id);
 
 		if (find_patch(src_id, src_port, dst_id, dst_port) != patches_.end()) {
@@ -117,13 +94,13 @@ class AudioGraph {
 	}
 
 	// Connect two nodes on port 0
-	bool connect(AudioNodeID src_id, AudioNodeID dst_id) {
+	bool connect(AudioID src_id, AudioID dst_id) {
 		assert(src_id && dst_id);
-		return connect(src_id, AudioPort{0}, dst_id, AudioPort{0});
+		return connect(src_id, std::uint8_t{0}, dst_id, std::uint8_t{0});
 	}
 
-	bool disconnect(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	                AudioPort dst_port) {
+	bool disconnect(AudioID src_id, std::uint8_t src_port, AudioID dst_id,
+	                std::uint8_t dst_port) {
 		assert(src_id && dst_id);
 		auto it = find_patch(src_id, src_port, dst_id, dst_port);
 		if (it == patches_.end()) {
@@ -134,7 +111,7 @@ class AudioGraph {
 	}
 
 	// Remove the first connection found between src and dst
-	bool disconnect(AudioNodeID src_id, AudioNodeID dst_id) {
+	bool disconnect(AudioID src_id, AudioID dst_id) {
 		assert(src_id && dst_id);
 		auto it = std::find_if(
 		    patches_.begin(), patches_.end(), [src_id, dst_id](const auto &p) {
@@ -175,18 +152,18 @@ class AudioGraph {
 	[[nodiscard]] auto &patches() { return patches_; }
 
   private:
-	auto find_node(AudioNodeID id) {
+	auto find_node(AudioID id) {
 		return std::find_if(nodes_.begin(), nodes_.end(),
 		                    [id](const auto &n) { return n.id == id; });
 	}
 
-	auto find_node(AudioNodeID id) const {
+	auto find_node(AudioID id) const {
 		return std::find_if(nodes_.cbegin(), nodes_.cend(),
 		                    [id](const auto &n) { return n.id == id; });
 	}
 
-	auto find_patch(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	                AudioPort dst_port) const {
+	auto find_patch(AudioID src_id, std::uint8_t src_port, AudioID dst_id,
+	                std::uint8_t dst_port) const {
 		return std::find_if(
 		    patches_.cbegin(), patches_.cend(), [=](const auto &p) {
 			    return src_id == p.src_id && src_port == p.src_port &&
@@ -194,15 +171,15 @@ class AudioGraph {
 		    });
 	}
 
-	auto find_patch(AudioNodeID src_id, AudioNodeID dst_id) const {
+	auto find_patch(AudioID src_id, AudioID dst_id) const {
 		return std::find_if(patches_.cbegin(), patches_.end(),
 		                    [=](const auto &p) {
 			                    return src_id == p.src_id && dst_id == p.dst_id;
 		                    });
 	}
 
-	auto find_patch(AudioNodeID src_id, AudioPort src_port, AudioNodeID dst_id,
-	                AudioPort dst_port) {
+	auto find_patch(AudioID src_id, std::uint8_t src_port, AudioID dst_id,
+	                std::uint8_t dst_port) {
 		return std::find_if(
 		    patches_.begin(), patches_.end(), [=](const auto &p) {
 			    return src_id == p.src_id && src_port == p.src_port &&
@@ -211,11 +188,11 @@ class AudioGraph {
 	}
 
 	struct {
-		AudioNodeID next_id() {
+		AudioID next_id() {
 			++last_id.value;
-			return AudioNodeID{last_id};
+			return AudioID{last_id};
 		}
-		AudioNodeID last_id{};
+		AudioID last_id{};
 	} node_id_gen_;
 
 	nst::inplace_vector<AudioNode, NodeCapacity> nodes_;

@@ -8,7 +8,6 @@
 #include "module_parameter.hpp"
 #include "patchable.hpp"
 #include "pressable.hpp"
-#include <ratio>
 
 namespace sndbx {
 class Envelope;
@@ -19,9 +18,7 @@ inline constexpr ModuleDisplayInfo module_info<Envelope>{
     "applies an envelope to the input signal",
     {"attack", "decay", "sustain", "release"},
     {"in", "trg"},
-    {"out"},
-    {ctrl_format<FMillis>, ctrl_format<FMillis>, ctrl_format<FMillis>,
-     ctrl_format<FMillis>}};
+    {"out"}};
 
 class Envelope : public Patchable,
                  public Controllable,
@@ -36,7 +33,7 @@ class Envelope : public Patchable,
 	void unlink(AudioGraph &graph) override;
 	AudioPoint patch_point(ModulePort port) const override;
 
-	float change_control(ControlChange c) override;
+	float change_control(ControlChange cc) override;
 
 	const ModuleDisplayInfo &display_info() const override;
 
@@ -55,8 +52,8 @@ class Envelope : public Patchable,
 
 	AudioEffectEnvelope env_;
 	AudioTriggerInput<Self> trig_{*this};
-	nst::teensy::AudioNodeID env_id_;
-	nst::teensy::AudioNodeID trig_id_;
+	nst::teensy::AudioID env_id_;
+	nst::teensy::AudioID trig_id_;
 
 	using Parameter = ModuleParameter<float>;
 

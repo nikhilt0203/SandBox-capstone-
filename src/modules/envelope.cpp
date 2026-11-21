@@ -3,7 +3,8 @@
 namespace sndbx {
 
 bool Envelope::link(AudioGraph &graph) {
-	return audio::register_nodes(graph, {{&env_, env_id_}, {&trig_, trig_id_}});
+	return audio::register_devices(graph,
+	                               {{&env_, env_id_}, {&trig_, trig_id_}});
 }
 
 void Envelope::unlink(AudioGraph &graph) {
@@ -13,7 +14,6 @@ void Envelope::unlink(AudioGraph &graph) {
 
 AudioPoint Envelope::patch_point(ModulePort port) const {
 	auto in_map = [this](auto in) {
-		assert(in < num_ins());
 		switch (in) {
 		case 0:
 			return audio::make_audio_point(env_id_);
@@ -24,24 +24,22 @@ AudioPoint Envelope::patch_point(ModulePort port) const {
 	};
 
 	auto out_map = [this](auto out) {
-		assert(out < num_outs());
 		return audio::make_audio_point(env_id_);
 	};
 
 	return audio::map_port(port, in_map, out_map);
 }
 
-float Envelope::change_control(ControlChange c) {
-	assert(c.index < num_controls());
-	switch (c.index) {
+float Envelope::change_control(ControlChange cc) {
+	switch (cc.index) {
 	case 0:
-		return attack_ctrl.change(*this, attack_ms_, c.delta);
+		return attack_ctrl.change(*this, attack_ms_, cc.delta);
 	case 1:
-		return decay_ctrl.change(*this, decay_ms_, c.delta);
+		return decay_ctrl.change(*this, decay_ms_, cc.delta);
 	case 2:
-		return sustain_ctrl.change(*this, sustain_ms_, c.delta);
+		return sustain_ctrl.change(*this, sustain_ms_, cc.delta);
 	case 3:
-		return release_ctrl.change(*this, release_ms_, c.delta);
+		return release_ctrl.change(*this, release_ms_, cc.delta);
 	}
 	nst::unreachable();
 }

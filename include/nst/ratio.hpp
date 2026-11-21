@@ -15,6 +15,8 @@ template <int N, int D> struct ratio {
 	static constexpr auto denom = D;
 };
 
+// Alias for ratios with a denominator of 100
+template <int N> using percent = nst::ratio<N, 100>;
 } // namespace nst
 
 #endif

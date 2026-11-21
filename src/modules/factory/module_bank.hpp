@@ -11,16 +11,17 @@ struct ModuleBankEntry {
 	ModuleDescription description;
 };
 
-using ModuleBank = std::array<ModuleBankEntry, ModuleBankTypes::size>;
-
 template <std::size_t... Is>
 inline constexpr auto make_module_bank(std::index_sequence<Is...>) {
-	return ModuleBank{[]() {
+	return std::array<ModuleBankEntry, ModuleBankTypes::size>{[]() {
 		using Module = ModuleTypes::get<Is>;
 		return ModuleBankEntry{module_type<Module>, module_info<Module>.name,
 		                       module_info<Module>.description};
 	}()...};
 }
+
+inline constexpr auto module_bank =
+    make_module_bank(ModuleBankTypes::index_sequence{});
 
 template <class Module,
           typename = std::enable_if_t<ModuleBankTypes::contains_v<Module> &&

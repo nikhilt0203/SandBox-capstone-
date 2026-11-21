@@ -2,6 +2,7 @@
 #define NST_SPAN_HPP_
 
 #include <cassert>
+#include <type_traits>
 
 namespace nst {
 

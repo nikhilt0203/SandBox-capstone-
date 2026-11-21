@@ -10,8 +10,8 @@ Creating a module that can be used with the audio system:
     class MyModule : public Patchable {
         AudioSynthWaveformModulated synth_;
         AudioAmplifier amp_;
-        nst::teensy::AudioNodeID synth_id_;
-        nst::teensy::AudioNodeID amp_id_;
+        nst::teensy::AudioID synth_id_;
+        nst::teensy::AudioID amp_id_;
     public:
         MyModule() : Patchable{1, 1} {}
         
@@ -47,7 +47,7 @@ properties we want.
 ```
 
 3.  Provide the patching points. A ModulePort consists of a PortType (input or output) and the port index.
-    This function should assume that port.index is valid (an inval)
+    This function should assume that port.index is valid 
     The two patch points are the input of "synth" and the output of "amp," and the synths
     are connected . map() defines the mapping between the logical module port and the actual 
     node in the audio graph. This is a customization point: if the module ports should

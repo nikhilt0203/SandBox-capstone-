@@ -1,6 +1,7 @@
 #ifndef SANDBOX_PARAMETER_HPP_
 #define SANDBOX_PARAMETER_HPP_
 
+#include "Arduino.h"
 #include "curves.hpp"
 #include <type_traits>
 
@@ -51,6 +52,8 @@ class ModuleParameter {
 		       static_cast<float>(max_ - min_);
 	}
 
+	void denormalize(float value) { set((max_ - min_) * value); }
+
 	constexpr operator T() const noexcept { return value_; }
 
 	constexpr auto &operator=(T rhs) noexcept {
@@ -97,6 +100,11 @@ class ModuleParameter {
 	T max_;
 };
 
+template <typename T, typename BoundsPolicy = ClampAtBounds>
+inline ModuleParameter<T, BoundsPolicy> make_param(T min, T max) {
+	return {min, max};
+}
+
 // Holds a curve function ptr and a member function ptr for when the parameter
 // value changes
 template <class Module, typename T> class ModuleControl {
@@ -113,10 +121,13 @@ template <class Module, typename T> class ModuleControl {
 	template <typename BoundsPolicy>
 	constexpr float change(Module &m, ModuleParameter<T, BoundsPolicy> &param,
 	                       int delta) const {
-		const auto old = param.value();
-		param = curve(param, delta);
-		if (old != param) {
-			(m.*update)();
+		if (delta != 0) {
+			const auto old = param.value();
+			param = curve(param, delta);
+            Serial.println(param);
+			if (old != param) {
+				(m.*update)();
+			}
 		}
 		return param.ratio();
 	}

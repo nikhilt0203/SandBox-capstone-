@@ -2,27 +2,30 @@
 #define SANDBOX_TESTS_HPP_
 
 #include "modules/oscillator.hpp"
-#include <cassert>
-#include <nst/audio_graph.hpp>
+#include <nst/teensy/audio_graph.hpp>
 
 void audio_graph_basic_test() {
+	AudioMemory(100);
+
 	::AudioControlSGTL5000 audio_shield;
 	::AudioOutputI2S output;
 
-	using namespace sndbx;
-	AudioGraph graph;
-	Oscillator osc;
-
 	audio_shield.enable();
-	audio_shield.volume(0.5);
+	audio_shield.volume(1.0);
 
+	sndbx::AudioGraph graph;
+	sndbx::Oscillator osc;
+
+	assert(osc.link(graph));
 	const auto out_id = *graph.add(&output);
-
-	osc.link(graph);
-	const auto [osc_id, _] = osc.patch_point({PortType::OUT});
+	const auto [osc_id, _] = osc.patch_point({sndbx::PortType::OUT});
 
 	constexpr static auto ms = 1500;
 	while (true) {
+		graph.connect(osc_id, 0, out_id, 1);
+		delay(ms);
+		graph.disconnect(osc_id, out_id);
+		delay(ms);
 		graph.connect(osc_id, out_id);
 		delay(ms);
 		graph.disconnect(osc_id, out_id);

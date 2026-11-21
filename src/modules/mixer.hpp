@@ -16,8 +16,7 @@ inline constexpr ModuleDisplayInfo module_info<Mixer>{
     "4 channel mixer",
     {"gain 1", "gain 2", "gain 3", "gain 4"},
     {"1", "2", "3", "4"},
-    {"out"},
-    {ctrl_format, ctrl_format, ctrl_format, ctrl_format}};
+    {"out"}};
 
 class Mixer : public Patchable, public Controllable, public Displayable {
 	constexpr static auto num_channels = 4U;
@@ -29,7 +28,7 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	void unlink(AudioGraph &graph) override;
 	AudioPoint patch_point(ModulePort port) const override;
 
-	float change_control(ControlChange c) override;
+	float change_control(ControlChange cc) override;
 
 	const ModuleDisplayInfo &display_info() const override;
 
@@ -46,13 +45,13 @@ class Mixer : public Patchable, public Controllable, public Displayable {
 	}
 
 	AudioMixer4 mix_;
-	nst::teensy::AudioNodeID mix_id_;
+	nst::teensy::AudioID mix_id_;
 
 	ChannelGains channel_gains_{
 	    make_gain_params(std::make_index_sequence<num_channels>{})};
 
 	constexpr static auto gain_ctrl =
-	    ModuleControl{curves::default_gain_curve, &Mixer::update_gains};
+	    ModuleControl{curves::gain_curve, &Mixer::update_gains};
 };
 
 } // namespace sndbx

@@ -32,18 +32,17 @@ inline constexpr std::array<Waveform, 7> osc_waveforms = {
 namespace sndbx {
 
 bool Oscillator::link(AudioGraph &graph) {
-	return audio::register_nodes(graph, {&synth_, synth_id_});
+	return audio::register_devices(graph, {&synth_, synth_id_});
 }
 
 void Oscillator::unlink(AudioGraph &graph) { graph.remove(synth_id_); }
 
 AudioPoint Oscillator::patch_point(ModulePort port) const {
 	assert(port.index == 0);
-	return audio::make_audio_point(synth_id_, 0);
+	return audio::make_audio_point(synth_id_);
 }
 
 float Oscillator::change_control(ControlChange cc) {
-	assert(cc.index < num_controls());
 	switch (cc.index) {
 	case 0:
 		return coarse_ctrl.change(*this, frequency_, cc.delta);
@@ -78,14 +77,10 @@ void Oscillator::update_waveform() {
 
 void Oscillator::init_synth() {
 	nst::teensy::AudioGuard guard{};
-	synth_.begin(osc_waveforms[waveform_idx_].id);
 	synth_.amplitude(0.5);
+	update_waveform();
 	update_frequency();
 	update_fm_depth();
-}
-
-CtrlFmtStr waveform_ctrl_formatter(float f) {
-	return CtrlFmtStr{osc_waveforms[f * osc_waveforms.max_size()].name};
 }
 
 } // namespace sndbx
