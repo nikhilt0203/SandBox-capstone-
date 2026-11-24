@@ -41,7 +41,7 @@ class AudioOut : public Patchable,
 
 	AudioAmplifier amp_;
 	AudioOutputUSB usb_out_;
-	AudioOutputI2S i2s_out_;
+	inline static AudioOutputI2S i2s_out_; // needs to be static to get audio
 
 	nst::teensy::AudioID usb_id_;
 	nst::teensy::AudioID i2s_id_;

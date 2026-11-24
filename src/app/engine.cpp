@@ -11,9 +11,9 @@ namespace sndbx {
 namespace {
 
 template <typename Container>
-auto find_connection(Container &c, ModulePosition src_pos,
-                     std::uint8_t output_idx, ModulePosition dst_pos,
-                     std::uint8_t input_idx) -> ModuleConnection * {
+ModuleConnection *
+find_connection(Container &c, ModulePosition src_pos, std::uint8_t output_idx,
+                ModulePosition dst_pos, std::uint8_t input_idx) {
 	return std::find_if(
 	    c.begin(), c.end(),
 	    [src_pos, output_idx, dst_pos, input_idx](const auto &c) {
@@ -23,9 +23,10 @@ auto find_connection(Container &c, ModulePosition src_pos,
 }
 
 template <typename Container>
-auto find_connection(const Container &c, ModulePosition src_pos,
-                     std::uint8_t output_idx, ModulePosition dst_pos,
-                     std::uint8_t input_idx) -> const ModuleConnection * {
+const ModuleConnection *
+find_connection(const Container &c, ModulePosition src_pos,
+                std::uint8_t output_idx, ModulePosition dst_pos,
+                std::uint8_t input_idx) {
 	return std::find_if(
 	    c.cbegin(), c.cend(),
 	    [src_pos, output_idx, dst_pos, input_idx](const auto &c) {
@@ -37,10 +38,8 @@ auto find_connection(const Container &c, ModulePosition src_pos,
 } // namespace
 
 namespace audio {
-
-inline bool connect(const Patchable &src, std::uint8_t output_idx,
-                    const Patchable &dst, std::uint8_t input_idx,
-                    AudioGraph &graph) {
+bool connect(const Patchable &src, std::uint8_t output_idx,
+             const Patchable &dst, std::uint8_t input_idx, AudioGraph &graph) {
 	assert(output_idx < src.num_outs() && input_idx < dst.num_ins());
 
 	const auto [out_id, out_port] =
@@ -52,9 +51,9 @@ inline bool connect(const Patchable &src, std::uint8_t output_idx,
 	return graph.connect(out_id, out_port, in_id, in_port);
 }
 
-inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
-                       const Patchable &dst, std::uint8_t input_idx,
-                       AudioGraph &graph) {
+bool disconnect(const Patchable &src, std::uint8_t output_idx,
+                const Patchable &dst, std::uint8_t input_idx,
+                AudioGraph &graph) {
 	assert(output_idx < src.num_outs() && input_idx < dst.num_ins());
 
 	const auto [out_id, out_port] =
@@ -64,7 +63,6 @@ inline bool disconnect(const Patchable &src, std::uint8_t output_idx,
 	assert(out_id && in_id);
 	return graph.disconnect(out_id, out_port, in_id, in_port);
 }
-
 } // namespace audio
 
 bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
@@ -82,8 +80,8 @@ bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	const auto &src = get_module(module_id(src_pos));
-	const auto &dst = get_module(module_id(dst_pos));
+	const auto &src = module_map_[src_pos];
+	const auto &dst = module_map_[dst_pos];
 	if (!src.holds<Patchable>() || !dst.holds<Patchable>()) {
 		return false;
 	}
@@ -102,8 +100,8 @@ bool Engine::disconnect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	const auto &src = get_module(module_id(src_pos));
-	const auto &dst = get_module(module_id(dst_pos));
+	const auto &src = module_map_[src_pos];
+	const auto &dst = module_map_[dst_pos];
 	if (!src.holds<Patchable>() || !dst.holds<Patchable>()) {
 		return false;
 	}
@@ -122,7 +120,8 @@ static std::array<bool, limits::max_out_ports> avail_outs;
 } // namespace
 
 bool Engine::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
-	assert(module_exists(src_pos) && module_exists(src_pos));
+	assert(module_map_.is_occupied(src_pos) &&
+	       module_map_.is_occupied(src_pos));
 	avail_ins.fill(true);
 	avail_outs.fill(true);
 

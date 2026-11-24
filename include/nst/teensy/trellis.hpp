@@ -17,42 +17,41 @@
 
 /// Trellis/MultiTrellis must be instantiated with a container that supports
 /// emplace_back and has a value_type that is constructible from a
-/// TrellisKeyEvent. This makes it so that a simple wrapper struct
+/// TrellisEvent. This makes it so that a simple wrapper struct
 // can be written to opt into additional event fields (a timestamp, for example)
 
 namespace nst::teensy {
 
 // The type that the Trellis/MultiTrellis pushes into the event queue.
-struct TrellisKeyEvent {
-	enum class Edge { RISING_EDGE, FALLING_EDGE } edge;
+struct TrellisEvent {
+	enum class State { PRESSED, RELEASED } state;
 	std::uint16_t key_num;
 	std::uint8_t board_num;
 
-	constexpr TrellisKeyEvent(Edge edge, std::uint16_t key_num,
-	                          std::uint8_t board_num)
-	    : edge(edge), key_num(key_num), board_num(board_num) {}
+	constexpr TrellisEvent(State state, std::uint16_t key_num,
+	                       std::uint8_t board_num)
+	    : state(state), key_num(key_num), board_num(board_num) {}
 };
 
 namespace detail {
 
 template <typename EventContainer>
 constexpr bool can_hold_key_events_v =
-    std::is_constructible_v<typename EventContainer::value_type,
-                            TrellisKeyEvent>;
+    std::is_constructible_v<typename EventContainer::value_type, TrellisEvent>;
 
 template <typename EventContainer>
 inline void push_event(EventContainer &events, ::keyEvent e,
                        std::uint8_t board_num) {
 	const auto &[edge, key_num] = e.bit;
-	const auto key_edge = (edge == SEESAW_KEYPAD_EDGE_RISING)
-	                          ? TrellisKeyEvent::Edge::RISING_EDGE
-	                          : TrellisKeyEvent::Edge::FALLING_EDGE;
-	// no need to create temporary obj if container holds TrellisKeyEvent
+	const auto state = (edge == SEESAW_KEYPAD_EDGE_RISING)
+	                       ? TrellisEvent::State::PRESSED
+	                       : TrellisEvent::State::RELEASED;
+	// no need to create temporary obj if container holds TrellisEvent
 	if constexpr (std::is_same_v<typename EventContainer::value_type,
-	                             TrellisKeyEvent>) {
-		events.emplace_back(key_edge, key_num, board_num);
+	                             TrellisEvent>) {
+		events.emplace_back(state, key_num, board_num);
 	} else {
-		events.emplace_back(TrellisKeyEvent{key_edge, key_num, board_num});
+		events.emplace_back(TrellisEvent{state, key_num, board_num});
 	}
 }
 
@@ -81,7 +80,7 @@ template <typename Trellis>
 template <std::uint8_t I2CAddress, typename EventContainer> class Trellis {
 	static_assert(
 	    detail::can_hold_key_events_v<EventContainer>,
-	    "Container must store TrellisKeyEvent or another convertible type.");
+	    "Container must store TrellisEvent or another convertible type.");
 
   public:
 	/// @brief Trellis constructor
@@ -125,7 +124,7 @@ template <std::uint8_t I2CAddress, typename EventContainer> class Trellis {
 template <auto &I2CAddresses, typename EventContainer> class MultiTrellis {
 	static_assert(
 	    detail::can_hold_key_events_v<EventContainer>,
-	    "Container must store TrellisKeyEvent or another convertible type.");
+	    "Container must store TrellisEvent or another convertible type.");
 
   public:
 	using ContainerType = EventContainer;
@@ -137,7 +136,7 @@ template <auto &I2CAddresses, typename EventContainer> class MultiTrellis {
 	MultiTrellis(EventContainer &events, std::uint8_t board_num = 0)
 	    : events_{events}, board_num_{board_num} {
 		if (!detail::activate_trellis(multitrellis_, key_callback,
-		                              num_keys())) {
+		                              num_trelli * 16)) {
 			Serial.println("Error: failed to start trellis");
 			return;
 		}
@@ -151,12 +150,10 @@ template <auto &I2CAddresses, typename EventContainer> class MultiTrellis {
 	[[nodiscard]] const auto &multitrellis() const { return multitrellis_; }
 	[[nodiscard]] auto &multitrellis() { return multitrellis_; }
 
-	[[nodiscard]] static constexpr auto num_keys() { return num_trelli * 16; }
+	static constexpr auto num_trelli = std::size(I2CAddresses);
 
   private:
 	static inline MultiTrellis *instance_{};
-
-	static constexpr std::size_t num_trelli = I2CAddresses.size();
 	using TrellisArray = std::array<Adafruit_NeoTrellis, num_trelli>;
 
 	template <std::size_t... Is>
@@ -186,9 +183,6 @@ template <auto &I2CAddresses, typename EventContainer> class MultiTrellis {
 template <auto &I2CAddresses, typename EventContainer>
 [[nodiscard]] inline auto make_multitrellis(EventContainer &events,
                                             std::uint8_t board_num = 0) {
-	static_assert(
-	    detail::can_hold_key_events_v<EventContainer>,
-	    "Container must store TrellisKeyEvent or another convertible type.");
 	return MultiTrellis<I2CAddresses, EventContainer>{events, board_num};
 }
 
@@ -201,9 +195,6 @@ template <auto &I2CAddresses, typename EventContainer>
 template <std::uint8_t I2CAddress, typename EventContainer>
 [[nodiscard]] inline auto make_trellis(EventContainer &events,
                                        std::uint8_t board_num = 0) {
-	static_assert(
-	    detail::can_hold_key_events_v<EventContainer>,
-	    "Container must store TrellisKeyEvent or another convertible type.");
 	return Trellis<I2CAddress, EventContainer>{events, board_num};
 }
 

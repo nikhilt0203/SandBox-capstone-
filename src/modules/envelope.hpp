@@ -42,6 +42,7 @@ class Envelope : public Patchable,
 
 	void on_rising_edge() override;
 	void on_falling_edge() override;
+
 	void trigger(AudioEdge e);
 
   private:

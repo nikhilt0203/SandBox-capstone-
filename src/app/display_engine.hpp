@@ -8,8 +8,8 @@
 #include <nst/teensy/ILI9341_display.hpp>
 #include <nst/teensy/trellis_led_display.hpp>
 
+#include "config/pinouts.hpp"
 #include "engine.hpp"
-#include "io/pinouts.hpp"
 #include "modules/displayable.hpp"
 #include "modules/factory/module_position.hpp"
 #include "ui/screen_elements.hpp"
@@ -63,19 +63,33 @@ class DisplayEngine {
 
 	void reset(ModulePosition pos);
 
-	void update_module_ctrl(ModulePosition pos, std::size_t idx, float value);
+	void update_module_ctrl(ModulePosition pos, std::size_t idx,
+	                        float normalized_val);
+
+	void draw_modules() {
+		for (std::size_t i{}; i < display_grid_.size(); ++i) {
+			const auto &e = display_grid_[i];
+			e.has_value() ? led_grid_.draw_pixel(i, e->module.led_color())
+			              : led_grid_.draw_pixel(i, 0);
+		}
+	}
+
+	[[nodiscard]] const auto &led_grid() const { return led_grid_; }
+	[[nodiscard]] const auto &screen() const { return screen_; }
+	[[nodiscard]] auto &led_grid() { return led_grid_; }
+	[[nodiscard]] auto &screen() { return screen_; }
 
   private:
 	using ConnectionPath =
 	    nst::inplace_vector<std::uint8_t,
 	                        limits::grid_rows + limits::grid_cols>;
+
 	auto get_path(ModulePosition start, ModulePosition end) -> ConnectionPath;
 
 	struct DisplayEntry {
-		DisplayEntry(const Displayable &m) : color{m.led_color()}, module{m} {}
 		std::array<std::uint8_t, limits::max_module_ctrls> ctrl_vals{};
-		nst::teensy::ColorRGB color;
 		const Displayable &module;
+		DisplayEntry(const Displayable &m) : module{m} {}
 	};
 
 	std::array<std::optional<DisplayEntry>, limits::grid_size> display_grid_{};

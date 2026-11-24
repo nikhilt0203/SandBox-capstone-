@@ -29,12 +29,22 @@ class App {
   private:
 	enum class State { EDIT, VIEW } app_state_;
 	std::size_t bank_window_{};
-	struct {
+	struct ModuleSelection {
 		ModuleView module;
 		ModulePosition pos;
-	} selected_{};
+	};
+	std::optional<ModuleSelection> selection_{};
+
+	void handle_keypad_press(KeypadEvent evt);
+	void handle_keypad_release(KeypadEvent evt);
+
+	void select_module(ModulePosition pos);
 
 	void rotate_module_bank(std::int8_t amt);
+
+	void display_module_bank();
+
+	void delete_module(ModulePosition pos);
 };
 
 } // namespace sndbx

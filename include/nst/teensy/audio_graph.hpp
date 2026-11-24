@@ -7,17 +7,16 @@
 #include <optional>
 
 #include "nst/inplace_vector.hpp"
-#include "nst/object_pool.hpp"
 #include "nst/strong_alias.hpp"
 
 #include <Audio.h>
 
 namespace nst::teensy {
 
-struct AudioID : public nst::strong_alias<std::int32_t, AudioID> {
-	using nst::strong_alias<std::int32_t, AudioID>::strong_alias;
+struct AudioID : public nst::strong_alias<std::uint32_t, AudioID> {
+	using nst::strong_alias<std::uint32_t, AudioID>::strong_alias;
 
-	constexpr operator bool() const { return this->value != -1; }
+	constexpr operator bool() const { return this->value != 0; }
 
 	constexpr bool operator==(const AudioID &other) const {
 		return this->value == other.value;
@@ -68,12 +67,11 @@ class AudioGraph {
 			return false;
 		}
 		nodes_.erase(it);
-		patches_.erase(std::remove_if(patches_.begin(), patches_.end(),
-		                              [id](const auto &p) {
-			                              return p.src_id == id ||
-			                                     p.dst_id == id;
-		                              }),
-		               patches_.end());
+		for (auto &p : patches_) {
+			if (p && (p->src_id == id || p->dst_id == id)) {
+				p.reset();
+			}
+		}
 		return true;
 	}
 
@@ -90,7 +88,14 @@ class AudioGraph {
 		if (src == nodes_.end() || dst == nodes_.end()) {
 			return false;
 		}
-		return patches_.emplace_back(*src, src_port, *dst, dst_port);
+
+		for (auto &p : patches_) {
+			if (!p) {
+				p.emplace(*src, src_port, *dst, dst_port);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// Connect two nodes on port 0
@@ -106,22 +111,20 @@ class AudioGraph {
 		if (it == patches_.end()) {
 			return false;
 		}
-		patches_.erase(it);
+		it->reset();
 		return true;
 	}
 
 	// Remove the first connection found between src and dst
 	bool disconnect(AudioID src_id, AudioID dst_id) {
 		assert(src_id && dst_id);
-		auto it = std::find_if(
-		    patches_.begin(), patches_.end(), [src_id, dst_id](const auto &p) {
-			    return p.src_id == src_id && p.dst_id == dst_id;
-		    });
-		if (it == patches_.end()) {
-			return false;
+		for (auto &p : patches_) {
+			if (p && p->src_id == src_id && p->dst_id == dst_id) {
+				p.reset();
+				return true;
+			}
 		}
-		patches_.erase(it);
-		return true;
+		return false;
 	}
 
 	[[nodiscard]] float processor_usage() {
@@ -148,8 +151,6 @@ class AudioGraph {
 
 	[[nodiscard]] const auto &nodes() const { return nodes_; }
 	[[nodiscard]] const auto &patches() const { return patches_; }
-	[[nodiscard]] auto &nodes() { return nodes_; }
-	[[nodiscard]] auto &patches() { return patches_; }
 
   private:
 	auto find_node(AudioID id) {
@@ -166,37 +167,34 @@ class AudioGraph {
 	                std::uint8_t dst_port) const {
 		return std::find_if(
 		    patches_.cbegin(), patches_.cend(), [=](const auto &p) {
-			    return src_id == p.src_id && src_port == p.src_port &&
-			           dst_id == p.dst_id && dst_port == p.dst_port;
+			    return p && src_id == p->src_id && src_port == p->src_port &&
+			           dst_id == p->dst_id && dst_port == p->dst_port;
 		    });
 	}
 
 	auto find_patch(AudioID src_id, AudioID dst_id) const {
-		return std::find_if(patches_.cbegin(), patches_.end(),
-		                    [=](const auto &p) {
-			                    return src_id == p.src_id && dst_id == p.dst_id;
-		                    });
+		return std::find_if(
+		    patches_.cbegin(), patches_.end(), [=](const auto &p) {
+			    return p && src_id == p->src_id && dst_id == p->dst_id;
+		    });
 	}
 
 	auto find_patch(AudioID src_id, std::uint8_t src_port, AudioID dst_id,
 	                std::uint8_t dst_port) {
 		return std::find_if(
 		    patches_.begin(), patches_.end(), [=](const auto &p) {
-			    return src_id == p.src_id && src_port == p.src_port &&
-			           dst_id == p.dst_id && dst_port == p.dst_port;
+			    return p && src_id == p->src_id && src_port == p->src_port &&
+			           dst_id == p->dst_id && dst_port == p->dst_port;
 		    });
 	}
 
 	struct {
-		AudioID next_id() {
-			++last_id.value;
-			return AudioID{last_id};
-		}
-		AudioID last_id{};
+		AudioID next_id() { return AudioID{++last_id_}; }
+		AudioID::underlying_t last_id_{};
 	} node_id_gen_;
 
 	nst::inplace_vector<AudioNode, NodeCapacity> nodes_;
-	nst::inplace_vector<AudioPatch, PatchCapacity> patches_;
+	std::array<std::optional<AudioPatch>, PatchCapacity> patches_;
 };
 
 } // namespace nst::teensy

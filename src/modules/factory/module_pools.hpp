@@ -1,8 +1,8 @@
 #ifndef SANDBOX_MODULE_POOLS_HPP_
 #define SANDBOX_MODULE_POOLS_HPP_
 
-#include <cstddef>
 #include "module_types.hpp"
+#include <cstddef>
 
 namespace sndbx {
 namespace detail {
@@ -27,18 +27,18 @@ inline constexpr auto release_table = make_table(ModuleTypes::index_sequence{});
 
 } // namespace detail
 
-namespace arena {
+namespace module_pools {
 
 template <class Module, typename... Args>
-[[nodiscard]] inline auto acquire_module(Args &&...args) {
+[[nodiscard]] inline auto acquire(Args &&...args) {
 	return detail::module_pool<Module>().acquire(std::forward<Args>(args)...);
 }
 
-inline void release_module(ModuleType type, void *module) {
+inline void release(ModuleType type, void *module) {
 	detail::release_table[type.value](module);
 }
 
-} // namespace arena
+} // namespace module_pools
 
 } // namespace sndbx
 

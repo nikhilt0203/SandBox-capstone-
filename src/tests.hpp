@@ -1,6 +1,8 @@
 #ifndef SANDBOX_TESTS_HPP_
 #define SANDBOX_TESTS_HPP_
 
+#include "audio.hpp"
+#include "modules/audio_out.hpp"
 #include "modules/oscillator.hpp"
 #include <nst/teensy/audio_graph.hpp>
 
@@ -11,7 +13,7 @@ void audio_graph_basic_test() {
 	::AudioOutputI2S output;
 
 	audio_shield.enable();
-	audio_shield.volume(1.0);
+	audio_shield.volume(0.2);
 
 	sndbx::AudioGraph graph;
 	sndbx::Oscillator osc;
@@ -22,7 +24,7 @@ void audio_graph_basic_test() {
 
 	constexpr static auto ms = 1500;
 	while (true) {
-		graph.connect(osc_id, 0, out_id, 1);
+		graph.connect(osc_id, out_id);
 		delay(ms);
 		graph.disconnect(osc_id, out_id);
 		delay(ms);
@@ -62,6 +64,54 @@ void test2() {
 		delay(1500);
 
 		osc.unlink(graph2);
+	}
+}
+
+void audio_out_test() {
+	Serial.begin(9600);
+
+	AudioMemory(100);
+
+	::AudioControlSGTL5000 audio_shield;
+
+	audio_shield.enable();
+	audio_shield.volume(1.0);
+
+	using namespace sndbx;
+	AudioGraph graph;
+	Oscillator osc;
+	AudioOut out;
+
+	// AudioOut out;
+
+	osc.link(graph);
+    out.link(graph);
+	const auto osc_out = osc.patch_point(ModulePort{PortType::OUT});
+	const auto out_l = out.patch_point(ModulePort{PortType::IN});
+
+	// Serial.println(out_r.id);
+	// Serial.println(out_r.port);
+
+	constexpr static auto ms = 1500;
+	while (true) {
+		audio::connect(osc_out, out_l, graph);
+		// Serial.println(graph.patches().size());
+		delay(ms);
+		audio::disconnect(osc_out, out_l, graph);
+		// Serial.println(graph.patches().size());
+		delay(ms);
+		// assert(graph.connect(osc_out.id, out_id));
+		// // audio::connect(osc_out, out_l, graph);
+		// // Serial.println(graph.patches().size());
+		// delay(ms);
+		// assert(graph.disconnect(osc_out.id, out_id));
+		// // audio::disconnect(osc_out, out_l, graph);
+		// // Serial.println(graph.patches().size());
+		// delay(ms);
+		// audio::connect(osc_out, out_r, graph);
+		// delay(ms);
+		// audio::disconnect(osc_out, out_r, graph);
+		// delay(ms);
 	}
 }
 

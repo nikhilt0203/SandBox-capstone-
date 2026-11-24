@@ -6,16 +6,16 @@
 
 namespace sndbx {
 
-struct ModuleID : public nst::strong_alias<std::uint32_t, ModuleID> {
-	using strong_alias::strong_alias;
+// struct ModuleID : public nst::strong_alias<std::uint32_t, ModuleID> {
+// 	using strong_alias::strong_alias;
 
-	constexpr bool operator==(const ModuleID &other) const {
-		return value == other.value;
-	}
-	constexpr bool operator!=(const ModuleID &other) const {
-		return value != other.value;
-	}
-};
+// 	constexpr bool operator==(const ModuleID &other) const {
+// 		return value == other.value;
+// 	}
+// 	constexpr bool operator!=(const ModuleID &other) const {
+// 		return value != other.value;
+// 	}
+// };
 
 } // namespace sndbx
 

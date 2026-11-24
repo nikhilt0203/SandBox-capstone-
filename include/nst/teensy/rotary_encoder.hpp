@@ -24,29 +24,26 @@ inline constexpr bool can_hold_encoder_events_v =
 
 } // namespace detail
 
-template <class EventContainer> class RotaryEncoder {
-	static_assert(
-	    detail::can_hold_encoder_events_v<EventContainer>,
-	    "Container must hold EncoderTurnEvent or another convertible type.");
-
+class RotaryEncoder {
   public:
-	RotaryEncoder(nst::pin pin1, nst::pin pin2, std::uint8_t encoder_num,
-	              EventContainer &events)
-	    : encoder_{pin1.num, pin2.num}, events_{events},
-	      encoder_num_{encoder_num} {}
+	RotaryEncoder(nst::pin pin1, nst::pin pin2, std::uint8_t encoder_num)
+	    : encoder_{pin1.num, pin2.num}, encoder_num_{encoder_num} {}
 
-	void update() {
+	template <class EventQueue> void update(EventQueue &queue) {
+		static_assert(detail::can_hold_encoder_events_v<EventQueue>,
+		              "Container must hold EncoderTurnEvent or another "
+		              "convertible type.");
 		const int cur_pos = read();
 		const auto delta = cur_pos - old_pos_;
 
 		const std::int8_t steps = delta / 4;
 
 		if (steps != 0) {
-			if constexpr (std::is_same_v<typename EventContainer::value_type,
+			if constexpr (std::is_same_v<typename EventQueue::value_type,
 			                             EncoderTurnEvent>) {
-				events_.emplace_back(encoder_num_, steps);
+				queue.emplace_back(encoder_num_, steps);
 			} else {
-				events_.emplace_back(EncoderTurnEvent{encoder_num_, steps});
+				queue.emplace_back(EncoderTurnEvent{encoder_num_, steps});
 			}
 			old_pos_ += delta;
 		}
@@ -57,7 +54,6 @@ template <class EventContainer> class RotaryEncoder {
 
   private:
 	mutable Encoder encoder_;
-	EventContainer &events_;
 	std::int16_t old_pos_{};
 	std::uint8_t encoder_num_;
 };
@@ -66,23 +62,18 @@ template <std::size_t N>
 using EncoderPins = std::array<std::pair<nst::pin, nst::pin>, N>;
 
 namespace detail {
-template <std::size_t N, typename EventContainer, std::size_t... Is>
+template <std::size_t N, std::size_t... Is>
 auto make_encoder_array_impl(const EncoderPins<N> &encoder_pins,
-                             EventContainer &events,
                              std::index_sequence<Is...>) {
-	return std::array{RotaryEncoder{encoder_pins[Is].first,
-	                                encoder_pins[Is].second, Is, events}...};
+	return std::array{
+	    RotaryEncoder{encoder_pins[Is].first, encoder_pins[Is].second, Is}...};
 }
 
 } // namespace detail
 
-template <std::size_t N, typename EventContainer>
-[[nodiscard]] auto make_encoder_array(const EncoderPins<N> &encoder_pins,
-                                      EventContainer &events) {
-	static_assert(
-	    detail::can_hold_encoder_events_v<EventContainer>,
-	    "Container must hold EncoderTurnEvent or another convertible type.");
-	return detail::make_encoder_array_impl<N>(encoder_pins, events,
+template <std::size_t N>
+[[nodiscard]] auto make_encoder_array(const EncoderPins<N> &encoder_pins) {
+	return detail::make_encoder_array_impl<N>(encoder_pins,
 	                                          std::make_index_sequence<N>{});
 }
 

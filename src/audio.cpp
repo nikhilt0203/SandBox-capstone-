@@ -1,6 +1,6 @@
 #include "audio.hpp"
 
-AudioControlSGTL5000 audio_shield;
+static AudioControlSGTL5000 audio_shield;
 
 namespace sndbx::audio {
 

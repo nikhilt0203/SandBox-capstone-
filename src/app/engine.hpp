@@ -1,13 +1,14 @@
 #ifndef SANDBOX_ENGINE_HPP_
 #define SANDBOX_ENGINE_HPP_
 
-#include <optional>
+#include <nst/expected.hpp>
+#include <nst/poly_view.hpp>
 
 #include "audio.hpp"
 #include "config/config.hpp"
-#include "modules/factory/module_registry.hpp"
+#include "modules/factory/module_map.hpp"
+#include "modules/factory/module_pools.hpp"
 #include "modules/module_interfaces.hpp"
-#include <nst/teensy/audio_guard.hpp>
 
 namespace sndbx {
 
@@ -29,16 +30,16 @@ struct ModuleConnection {
 	std::uint8_t input_idx;
 };
 
+enum class Error {
+	CAPACITY_REACHED,
+	MODULE_POOL_EXHAUSTED,
+	LOCATION_OCCUPIED,
+	MODULE_AUDIO_FAILED,
+	NONE
+};
+
 class Engine {
   public:
-	enum class Error {
-		CAPACITY_REACHED,
-		MODULE_POOL_EXHAUSTED,
-		LOCATION_OCCUPIED,
-		MODULE_AUDIO_FAILED,
-		NONE
-	};
-
 	bool connect(ModulePosition src_pos, std::uint8_t output_idx,
 	             ModulePosition dst_pos, std::uint8_t input_idx);
 
@@ -49,13 +50,15 @@ class Engine {
 
 	bool disconnect_first(ModulePosition src_pos, ModulePosition dst_pos);
 
+	bool has_module(ModulePosition pos) { return module_map_.is_occupied(pos); }
+
 	nst::expected<ModuleView, Error> create_module(ModuleType type,
 	                                               ModulePosition pos) {
-		if (modules_.size() == limits::max_modules) {
+		if (module_map_.is_full()) {
 			return Error::CAPACITY_REACHED;
 		}
 
-		if (module_exists(pos)) {
+		if (module_map_.is_occupied(pos)) {
 			return Error::LOCATION_OCCUPIED;
 		}
 
@@ -63,14 +66,13 @@ class Engine {
 			return Error::MODULE_POOL_EXHAUSTED;
 		}
 		// link to audio graph if module is Patchable, delete module if failure
-		const auto id = module_id(pos);
-		auto &module = modules_[id];
-		if (module.holds<Patchable>() &&
-		    !module.get<Patchable>().link(audio_graph_)) {
-			modules_.erase(id);
+		auto &new_module = module_map_[pos];
+		if (new_module.holds<Patchable>() &&
+		    !new_module.get<Patchable>().link(audio_graph_)) {
+			delete_module(pos);
 			return Error::MODULE_AUDIO_FAILED;
 		}
-		return module;
+		return new_module;
 	}
 
 	[[nodiscard]] bool connection_exists(ModulePosition src_pos,
@@ -81,101 +83,40 @@ class Engine {
 	                                     ModulePosition dst_pos,
 	                                     std::uint8_t input_idx) const;
 
-	[[nodiscard]] const auto &modules() const { return modules_; }
-	[[nodiscard]] auto &modules() { return modules_; }
-
-	[[nodiscard]] auto &connections() { return connections_; }
 	[[nodiscard]] const auto &connections() const { return connections_; }
 
-	void save_current_patch() {
-		// auto save_val = [this](auto v) {
-		// 	preset_buffer_.push_back(std::byte{v});
-		// };
-
-		// for (std::size_t i{}; i < limits::grid_size; ++i) {
-		// 	const auto pos = ModulePosition{i};
-		// 	const auto id = get_module_id(pos);
-		// 	if (!id) {
-		// 		continue;
-		// 	}
-
-		// 	const auto type = factory_.type_at(pos);
-		// 	const auto &module = factory_[*id];
-
-		// 	save_val(type.value);
-		// 	save_val(pos.value);
-		// 	nst::invoke_if<Serializable>(
-		// 	    module, [this](const auto &s) { s.serialize(preset_buffer_); });
-		// }
-		// for (const auto c : connections_) {
-		// 	save_val(0);
-		// 	save_val(c.src_pos.value);
-		// 	save_val(c.output_idx);
-		// 	save_val(c.dst_pos.value);
-		// 	save_val(c.input_idx);
-		// }
-	}
+	void save_patch(std::string_view name) {}
 
 	void delete_module(ModulePosition pos) {
-		assert(module_exists(pos));
-		auto &entry = module_map_[pos.value];
-		arena::release_module(entry->type, entry->ptr);
-		modules_.erase(entry->id);
-		entry.reset();
+		module_map_.remove(pos, module_pools::release);
 	}
 
-	[[nodiscard]] const auto &get_module(ModuleID id) const {
-		return modules_[id];
+	[[nodiscard]] const auto &get_module(ModulePosition pos) const {
+		return module_map_[pos];
 	}
 
-	[[nodiscard]] auto &get_module(ModuleID id) { return modules_[id]; }
-
-	[[nodiscard]] ModuleID module_id(ModulePosition pos) const {
-		const auto &entry = module_map_[pos.value];
-		assert(entry.has_value());
-		return entry->id;
-	}
-
-	[[nodiscard]] ModuleType type(ModulePosition pos) const {
-		const auto &entry = module_map_[pos.value];
-		assert(entry.has_value());
-		return entry->type;
-	}
-
-	[[nodiscard]] bool module_exists(ModulePosition pos) const {
-		return module_map_[pos.value].has_value();
-	}
-
-	template <class Module, typename... Args>
-	bool create_module(ModulePosition pos, Args &&...args) {
-		assert(pos.value < module_map_.size());
-		auto module_ptr =
-		    arena::acquire_module<Module>(std::forward<Args>(args)...);
-		if (!module_ptr) {
-			return false;
-		}
-		auto new_id = modules_.add(module_ptr);
-		module_map_[pos.value] = MapEntry{*new_id, module_type<Module>,
-		                          (void *)module_ptr};
-		return true;
+	[[nodiscard]] auto &get_module(ModulePosition pos) {
+		return module_map_[pos];
 	}
 
   private:
-	struct MapEntry {
-		ModuleID id;
-		ModuleType type;
-		void *ptr;
-	};
-
-	using ModuleMap = std::array<std::optional<MapEntry>, limits::grid_size>;
-	ModuleRegistry<ModuleView, limits::max_modules> modules_{};
-	ModuleMap module_map_{};
-
 	AudioGraph audio_graph_;
+	ModuleMap<ModuleView, limits::max_modules> module_map_{};
+
 	nst::inplace_vector<ModuleConnection, limits::max_module_connections>
 	    connections_;
 
 	SerializationBuffer preset_buffer_;
+
+	template <class Module, typename... Args>
+	bool create_module(ModulePosition pos, Args &&...args) {
+		if (auto module_ptr =
+		        module_pools::acquire<Module>(std::forward<Args>(args)...)) {
+			module_map_.add(module_ptr, pos);
+			return true;
+		}
+		return false;
+	}
 
 	template <std::size_t... Is>
 	bool create_module_impl(ModuleType type, ModulePosition pos,

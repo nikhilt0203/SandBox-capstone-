@@ -12,17 +12,15 @@ class Displayable {
   public:
 	virtual ~Displayable() = default;
 
-	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const {
-		return module_info<struct Default>;
-	}
+	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const = 0;
 
 	[[nodiscard]] virtual ColoredText display_text() const {
 		const auto name = display_info().name;
-		return ColoredText{name.first.view(), name.second};
+		return ColoredText{name.text.view(), name.color};
 	}
 
 	[[nodiscard]] virtual nst::teensy::ColorRGB led_color() const {
-		return display_info().name.second;
+		return display_info().name.color;
 	}
 };
 

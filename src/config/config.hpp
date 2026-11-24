@@ -44,6 +44,11 @@ constexpr auto bank_start_idx = 56U;
 constexpr auto led_brightness = 0.7f;
 constexpr auto screen_brightness = 0.7f;
 
+constexpr auto mode_button_num = 0;
+constexpr auto save_button_num = 1;
+constexpr auto load_button_num = 2;
+constexpr auto shift_button_num = 3;
+
 } // namespace sndbx::config
 
 #endif

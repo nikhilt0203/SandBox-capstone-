@@ -11,14 +11,14 @@ using namespace nst::teensy;
 constexpr std::array i2c_addrs{0x2E, 0x30, 0x31, 0x2f, 0x2E, 0x30, 0x31, 0x2f};
 
 // Event queue can be any emplace_back-supporting container
-//(holding a type constructible from nst::teensy::TrellisKeyEvent)
-static std::vector<TrellisKeyEvent> key_events;
+//(holding a type constructible from nst::teensy::TrellisEvent)
+static std::vector<TrellisEvent> key_events;
 
 // Create MultiTrellis keypad w/ I2C addresses (passed as template param) and
 // a reference to the event queue
 static auto keypad = make_multitrellis<i2c_addrs>(key_events);
 
-void handle_key_event(const TrellisKeyEvent &e) {
+void handle_key_event(const TrellisEvent &e) {
 	Serial.printf("Key %d pressed!\n", e.key_num);
 }
 

@@ -55,11 +55,13 @@ nst::teensy::ColorRGB Envelope::led_color() const { return 0xFFFF00; }
 void Envelope::trigger(AudioEdge e) {
 	switch (e) {
 	case AudioEdge::RISING_EDGE:
+		Serial.println("pressed!");
 		env_.noteOn();
-		break;
+		return;
 	case AudioEdge::FALLING_EDGE:
+		Serial.println("released!");
 		env_.noteOff();
-		break;
+		return;
 	}
 }
 

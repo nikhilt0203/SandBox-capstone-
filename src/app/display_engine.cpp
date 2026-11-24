@@ -6,7 +6,6 @@ namespace sndbx {
 
 namespace {
 // Helpers to convert between position index and row, col
-template <typename T = ModulePosition::underlying_t>
 auto to_row_col(ModulePosition pos) {
 	return std::pair{pos.value / limits::grid_rows,
 	                 pos.value % limits::grid_cols};
@@ -26,14 +25,12 @@ auto connected_module_colors(const Engine &e, ModulePosition pos) {
 
 	for (auto &c : e.connections()) {
 		if (c.dst_pos == pos) {
-			const auto id = e.module_id(c.src_pos);
-			const auto &m = e.get_module(id);
+			const auto &m = e.get_module(c.src_pos);
 			if (auto d = m.get_if<Displayable>()) {
 				input_colors[c.input_idx] = d->led_color();
 			}
 		} else if (c.src_pos == pos) {
-			const auto id = e.module_id(c.dst_pos);
-			const auto &m = e.get_module(id);
+			const auto &m = e.get_module(c.dst_pos);
 			if (auto d = m.get_if<Displayable>()) {
 				output_colors[c.output_idx] = d->led_color();
 			}
@@ -41,11 +38,13 @@ auto connected_module_colors(const Engine &e, ModulePosition pos) {
 	}
 	return std::pair{input_colors, output_colors};
 }
+
+void init_canvas(GFXcanvas16 &c) { c.setFont(&FreeSansBoldOblique9pt7b); }
+
 } // namespace
 
 DisplayEngine::DisplayEngine(Adafruit_MultiTrellis &t) : led_grid_{t} {
-	screen_.modify_canvas(
-	    [](auto b) { b->setFont(&FreeSansBoldOblique9pt7b); });
+	screen_.modify_canvas(init_canvas);
 }
 
 void DisplayEngine::render_frame() {
@@ -82,7 +81,7 @@ auto DisplayEngine::get_path(ModulePosition start, ModulePosition end)
 
 void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 	const auto path_color =
-	    (display_grid_[src.value]->color * config::led_brightness).hex();
+	    (display_grid_[src.value]->module.led_color() * config::led_brightness).hex();
 
 	auto draw_path = [this, path_color](const auto &path) {
 		for (auto idx : path) {
@@ -90,8 +89,8 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 		}
 	};
 
-	auto num_modules_crossed = [this](const auto &path) {
-		std::size_t crossings{};
+	auto count_modules_crossed = [this](const auto &path) {
+		int crossings{};
 		for (auto idx : path) {
 			if (display_grid_[idx]) {
 				++crossings;
@@ -102,7 +101,7 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 
 	// prefer the path that crosses the least number of other modules
 	const auto path1 = get_path(src, dst);
-	const auto path1_crossings = num_modules_crossed(path1);
+	const auto path1_crossings = count_modules_crossed(path1);
 
 	if (path1_crossings == 0) {
 		draw_path(path1);
@@ -110,7 +109,7 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 	}
 
 	const auto path2 = get_path(dst, src);
-	const auto path2_crossings = num_modules_crossed(path1);
+	const auto path2_crossings = count_modules_crossed(path1);
 
 	if (path2_crossings < path1_crossings) {
 		draw_path(path2);
@@ -119,7 +118,6 @@ void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 
 void DisplayEngine::add_module(const Displayable &module, ModulePosition pos) {
 	display_grid_[pos.value].emplace(module);
-	led_grid_.draw_pixel(pos.value, module.led_color());
 }
 
 void DisplayEngine::reset(ModulePosition pos) {
@@ -132,7 +130,7 @@ void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 		return;
 	}
 
-	const auto &[ctrl_vals, _, module] = *entry;
+	const auto &[ctrl_vals, module] = *entry;
 	const auto &info = module.display_info();
 
 	const auto [input_colors, output_colors] =
@@ -151,10 +149,10 @@ void DisplayEngine::display_module(const Engine &engine, ModulePosition pos) {
 }
 
 void DisplayEngine::update_module_ctrl(ModulePosition pos, std::size_t idx,
-                                       float value) {
+                                       float normalized_val) {
 	// scale from float 0.0 - 1.0 to 0 - 255
 	display_grid_[pos.value]->ctrl_vals[idx] =
-	    value * std::numeric_limits<std::uint8_t>::max();
+	    normalized_val * std::numeric_limits<std::uint8_t>::max();
 }
 
 } // namespace sndbx

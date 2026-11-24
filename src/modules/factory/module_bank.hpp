@@ -11,6 +11,8 @@ struct ModuleBankEntry {
 	ModuleDescription description;
 };
 
+namespace detail {
+
 template <std::size_t... Is>
 inline constexpr auto make_module_bank(std::index_sequence<Is...>) {
 	return std::array<ModuleBankEntry, ModuleBankTypes::size>{[]() {
@@ -20,13 +22,16 @@ inline constexpr auto make_module_bank(std::index_sequence<Is...>) {
 	}()...};
 }
 
+} // namespace detail
+
 inline constexpr auto module_bank =
-    make_module_bank(ModuleBankTypes::index_sequence{});
+    detail::make_module_bank(ModuleBankTypes::index_sequence{});
 
 template <class Module,
           typename = std::enable_if_t<ModuleBankTypes::contains_v<Module> &&
                                       ModuleTypes::contains_v<Module>>>
-inline constexpr std::size_t bank_index = ModuleBankTypes::index_of<Module>;
+inline constexpr std::size_t module_bank_index =
+    ModuleBankTypes::index_of<Module>;
 
 } // namespace sndbx
 

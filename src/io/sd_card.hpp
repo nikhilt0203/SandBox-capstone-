@@ -2,7 +2,6 @@
 #define SANDBOX_SD_CARD_HPP_
 
 #include <SD.h>
-#include "logger.hpp"
 
 namespace sndbx::sd_card {
 

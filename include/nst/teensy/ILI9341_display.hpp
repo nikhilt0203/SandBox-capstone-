@@ -61,7 +61,7 @@ class TFT {
 	// frame buffers
 	template <typename Func> void modify_canvas(Func &&f) {
 		for (auto b : double_buffer_) {
-			f(b);
+			f(*b);
 		}
 	}
 

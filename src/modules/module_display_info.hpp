@@ -21,8 +21,10 @@ using ModulePortNames = std::array<ModulePortName, limits::max_in_ports>;
 using ModuleControlNames =
     std::array<ModuleControlName, limits::max_module_ctrls>;
 
-using ModuleName = std::pair<nst::inplace_string<limits::max_module_name_len>,
-                             nst::teensy::ColorRGB>;
+struct ModuleName {
+	nst::inplace_string<limits::max_module_name_len> text;
+	nst::teensy::ColorRGB color;
+};
 
 using ModuleDescription = nst::inplace_string<limits::max_module_desc_len>;
 
@@ -44,14 +46,14 @@ template <class Module>
 inline constexpr ModuleDisplayInfo module_info = {
     {"unnamed", 0xFFFFFF}, "unknown", {}, {}, {}};
 
-template <class Module>
-inline constexpr auto num_ins = module_info<Module>.in_names.size();
+// template <class Module>
+// inline constexpr auto num_ins = module_info<Module>.in_names.size();
 
-template <class Module>
-inline constexpr auto num_outs = module_info<Module>.out_names.size();
+// template <class Module>
+// inline constexpr auto num_outs = module_info<Module>.out_names.size();
 
-template <class Module>
-inline constexpr auto num_ctrls = module_info<Module>.ctrl_names.size();
+// template <class Module>
+// inline constexpr auto num_ctrls = module_info<Module>.ctrl_names.size();
 
 } // namespace sndbx
 
