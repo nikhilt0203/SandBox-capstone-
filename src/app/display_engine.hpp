@@ -23,15 +23,15 @@ using LEDGrid =
 
 namespace sndbx::display {
 
-template <typename Display, typename Element, typename... Args>
+template <typename Element, typename Display, typename... Args>
 void draw(Display &d, Args &&...args) {
 	Element{std::forward<Args>(args)..., d.current_frame()}.draw();
 }
 
-template <typename Display, typename Element, typename... Args>
+template <typename Element, typename Display, typename... Args>
 void clear_and_draw(Display &d, Args &&...args) {
 	d.clear();
-	draw<Element>(d, std::forward<Args>(args)...);
+	Element{std::forward<Args>(args)..., d.current_frame()}.draw();
 }
 
 template <typename Display> void clear(Display &d) { d.clear(); }

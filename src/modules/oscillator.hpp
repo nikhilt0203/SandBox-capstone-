@@ -45,17 +45,17 @@ class Oscillator : public Patchable, public Controllable, public Displayable {
 
 	using fm_coeff = nst::ratio<25, 100>;
 
-	constexpr static ModuleControl coarse_ctrl{curves::frequency_curve,
-	                                           &Self::update_frequency};
+	constexpr static auto coarse_ctrl =
+	    ModuleControl{curves::frequency_curve, &Self::update_frequency};
 
-	constexpr static ModuleControl fine_ctrl{curves::linear<int>,
-	                                         &Self::update_frequency};
+	constexpr static auto fine_ctrl =
+	    ModuleControl{curves::linear<int>, &Self::update_frequency};
 
-	constexpr static ModuleControl fm_ctrl{curves::linear<float, fm_coeff>,
-	                                       &Self::update_fm_depth};
+	constexpr static auto fm_ctrl =
+	    ModuleControl{curves::linear<float, fm_coeff>, &Self::update_fm_depth};
 
-	constexpr static ModuleControl waveform_ctrl{curves::linear<std::size_t>,
-	                                             &Self::update_waveform};
+	constexpr static auto waveform_ctrl =
+	    ModuleControl{curves::linear<std::size_t>, &Self::update_waveform};
 
 	AudioSynthWaveformModulated synth_;
 	nst::teensy::AudioID synth_id_;

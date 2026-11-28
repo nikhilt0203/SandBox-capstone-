@@ -66,7 +66,7 @@ class Text : public ScreenElement {
 class ErrorDisplay : public ScreenElement {
   public:
 	ErrorDisplay(std::string_view text, GFXcanvas16 &frame)
-	    : ScreenElement{frame_width, frame_height, frame_},
+	    : ScreenElement{frame_width, frame_height, frame},
 	      text_{{text, 0xFFFFFF, 1}, 0, 120, frame} {
 		text_.center_x();
 	}

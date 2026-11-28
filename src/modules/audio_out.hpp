@@ -29,11 +29,11 @@ class AudioOut : public Patchable,
 	const ModuleDisplayInfo &display_info() const override;
 
 	void serialize(SerializationBuffer &sb) const override {
-		// save<AudioOut>(sb, gain_);
+		save_params(sb, gain_);
 	}
 
-	void deserialize(const SerializationBuffer &sb) override {
-		// load(sb, gain_);
+	void deserialize(SerializationBuffer &sb) override {
+		load_params(sb, gain_);
 	}
 
   private:

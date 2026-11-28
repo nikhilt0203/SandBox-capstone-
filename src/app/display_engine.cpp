@@ -81,7 +81,8 @@ auto DisplayEngine::get_path(ModulePosition start, ModulePosition end)
 
 void DisplayEngine::draw_connection(ModulePosition src, ModulePosition dst) {
 	const auto path_color =
-	    (display_grid_[src.value]->module.led_color() * config::led_brightness).hex();
+	    (display_grid_[src.value]->module.led_color() * config::led_brightness)
+	        .hex();
 
 	auto draw_path = [this, path_color](const auto &path) {
 		for (auto idx : path) {

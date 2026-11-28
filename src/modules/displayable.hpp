@@ -15,7 +15,7 @@ class Displayable {
 	[[nodiscard]] virtual const ModuleDisplayInfo &display_info() const = 0;
 
 	[[nodiscard]] virtual ColoredText display_text() const {
-		const auto name = display_info().name;
+		const auto &name = display_info().name;
 		return ColoredText{name.text.view(), name.color};
 	}
 

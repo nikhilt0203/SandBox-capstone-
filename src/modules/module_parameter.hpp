@@ -47,12 +47,6 @@ class ModuleParameter {
 	[[nodiscard]] constexpr auto min() const { return min_; }
 	[[nodiscard]] constexpr auto max() const { return max_; }
 	[[nodiscard]] constexpr auto value() const noexcept { return value_; }
-	[[nodiscard]] constexpr auto ratio() const noexcept {
-		return (static_cast<float>(value_) - static_cast<float>(min_)) /
-		       static_cast<float>(max_ - min_);
-	}
-
-	void denormalize(float value) { set((max_ - min_) * value); }
 
 	constexpr operator T() const noexcept { return value_; }
 
@@ -100,36 +94,44 @@ class ModuleParameter {
 	T max_;
 };
 
-template <typename T, typename BoundsPolicy = ClampAtBounds>
-inline ModuleParameter<T, BoundsPolicy> make_param(T min, T max) {
-	return {min, max};
+template <typename T, typename BoundsPolicy>
+[[nodiscard]] constexpr auto
+normalized(const ModuleParameter<T, BoundsPolicy> &param) noexcept {
+	return (static_cast<float>(param.value()) -
+	        static_cast<float>(param.min())) /
+	       static_cast<float>(param.max() - param.min());
 }
 
+template <typename T, typename BoundsPolicy>
+constexpr void denormalize(ModuleParameter<T, BoundsPolicy> &param,
+                           float value) noexcept {
+	param = (param.max() - param.min()) * value;
+}
 // Holds a curve function ptr and a member function ptr for when the parameter
 // value changes
 template <class Module, typename T> class ModuleControl {
-	using OnParamChange = void (Module::*)();
-	using ParamCurve = T (*)(T, int);
-	ParamCurve curve;
-	OnParamChange update;
+	using UpdateFunc = void (Module::*)();
+	using CurveFunc = T (*)(T, int);
+
+	CurveFunc curve;
+	UpdateFunc update;
 
   public:
-	// Construct a ModuleControl a custom adjustment curve
-	constexpr ModuleControl(ParamCurve curve, OnParamChange update)
+	constexpr ModuleControl(CurveFunc curve, UpdateFunc update)
 	    : curve{curve}, update{update} {}
 
 	template <typename BoundsPolicy>
-	constexpr float change(Module &m, ModuleParameter<T, BoundsPolicy> &param,
-	                       int delta) const {
+	float change(Module &m, ModuleParameter<T, BoundsPolicy> &param,
+	             int delta) const {
 		if (delta != 0) {
-			const auto old = param.value();
+			const auto prev = param.value();
 			param = curve(param, delta);
-            Serial.println(param);
-			if (old != param) {
-				(m.*update)();
+			if (prev != param) {
+				(m.*update)(); // call the update member fn on the module if the
+				               // parameter value changed
 			}
 		}
-		return param.ratio();
+		return normalized(param);
 	}
 };
 

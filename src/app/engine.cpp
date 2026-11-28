@@ -75,8 +75,7 @@ bool Engine::connect(ModulePosition src_pos, std::uint8_t output_idx,
 		return false;
 	}
 
-	if (find_connection(connections_, src_pos, output_idx, dst_pos,
-	                    input_idx) != connections_.end()) {
+	if (connection_exists(src_pos, output_idx, dst_pos, input_idx)) {
 		return false;
 	}
 
@@ -121,7 +120,7 @@ static std::array<bool, limits::max_out_ports> avail_outs;
 
 bool Engine::connect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 	assert(module_map_.is_occupied(src_pos) &&
-	       module_map_.is_occupied(src_pos));
+	       module_map_.is_occupied(dst_pos));
 	avail_ins.fill(true);
 	avail_outs.fill(true);
 
@@ -157,17 +156,24 @@ bool Engine::disconnect_first(ModulePosition src_pos, ModulePosition dst_pos) {
 
 bool Engine::connection_exists(ModulePosition src_pos,
                                ModulePosition dst_pos) const {
-	return std::find_if(connections_.begin(), connections_.end(),
-	                    [src_pos, dst_pos](const auto &c) {
-		                    return src_pos == c.src_pos && dst_pos == c.dst_pos;
-	                    }) != connections_.end();
+	for (const auto &c : connections_) {
+		if (src_pos == c.src_pos && dst_pos == c.dst_pos) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Engine::connection_exists(ModulePosition src_pos, std::uint8_t output_idx,
                                ModulePosition dst_pos,
                                std::uint8_t input_idx) const {
-	return find_connection(connections_, src_pos, output_idx, dst_pos,
-	                       input_idx) != connections_.end();
+	for (const auto &c : connections_) {
+		if (src_pos == c.src_pos && dst_pos == c.dst_pos &&
+		    c.input_idx == input_idx && c.output_idx == output_idx) {
+			return true;
+		}
+	}
+	return false;
 }
 
 } // namespace sndbx

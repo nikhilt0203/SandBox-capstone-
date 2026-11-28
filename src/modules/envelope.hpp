@@ -67,15 +67,17 @@ class Envelope : public Patchable,
 	constexpr static auto sustain_curve =
 	    curves::linear<float, nst::ratio<25, 100>>;
 
-	constexpr static ModuleControl attack_ctrl{ms_curve, &Self::update_attack};
+	constexpr static auto attack_ctrl =
+	    ModuleControl{ms_curve, &Self::update_attack};
 
-	constexpr static ModuleControl decay_ctrl{ms_curve, &Self::update_decay};
+	constexpr static auto decay_ctrl =
+	    ModuleControl{ms_curve, &Self::update_decay};
 
-	constexpr static ModuleControl sustain_ctrl{sustain_curve,
-	                                            &Self::update_sustain};
+	constexpr static auto sustain_ctrl =
+	    ModuleControl{sustain_curve, &Self::update_sustain};
 
-	constexpr static ModuleControl release_ctrl{ms_curve,
-	                                            &Self::update_release};
+	constexpr static auto release_ctrl =
+	    ModuleControl{ms_curve, &Self::update_release};
 };
 
 } // namespace sndbx

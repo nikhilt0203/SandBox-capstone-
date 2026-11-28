@@ -54,7 +54,7 @@ template <typename TypeErasedWrapper, std::size_t N> class ModuleMap {
 	[[nodiscard]] bool is_full() const { return size_ == N; }
 
 	const auto &data() const { return data_; }
-	auto &data() const { return data_; }
+	auto &data() { return data_; }
 
   private:
 	auto &get(ModulePosition pos) {

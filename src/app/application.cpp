@@ -95,9 +95,32 @@ void App::rotate_module_bank(std::int8_t amt) {
 	bank_window_ = (((bank_window_ + amt) % max) + max) % max;
 }
 
+void print_error_msg(Error e) {
+	const auto msg = [e]() -> std::string_view {
+		switch (e) {
+		case Error::CAPACITY_REACHED:
+			return "No more modules may be added.";
+		case Error::MODULE_AUDIO_FAILED:
+			return "Not enough audio memory remaining.";
+		case Error::MODULE_POOL_EXHAUSTED:
+			return "No more modules may be added.";
+		case Error::LOCATION_OCCUPIED:
+			break;
+		case Error::NONE:
+			break;
+		}
+		return "";
+	}();
+
+	if (!msg.empty()) {
+		display::clear_and_draw<ui::ErrorDisplay>(display_engine.screen(), msg);
+	}
+}
+
 bool create_module(ModuleType type, ModulePosition pos) {
 	auto result = engine.create_module(type, pos);
 	if (!result) {
+		print_error_msg(result.error());
 		return false;
 	}
 	nst::invoke_if<Displayable>(*result, [pos](const auto &module) {
@@ -107,8 +130,6 @@ bool create_module(ModuleType type, ModulePosition pos) {
 	    *result, [pos](auto &module) { populate_ctrl_vals(module, pos); });
 	return true;
 }
-
-static std::optional<KeypadEvent> saved_keypad_evt{};
 
 void App::select_module(ModulePosition pos) {
 	selection_.emplace(ModuleSelection{engine.get_module(pos), pos});
@@ -156,6 +177,7 @@ struct : TimedAction {
 
 struct : TimedAction {
 	ModulePosition src_pos;
+	bool timeout(std::uint32_t now_ms) { return now_ms - time_started > 1500; }
 } patch_modules_action{};
 
 struct : TimedAction {
@@ -214,14 +236,19 @@ void App::handle_keypad_press(KeypadEvent evt) {
 				    });
 			}
 			reset(create_module_action);
+			reset(patch_modules_action);
 			break;
 		}
-		if (patch_modules_action.is_started && module_at_pos) {
-			if (evt.time - patch_modules_action.time_started)
-				if (!engine.connect_first(ModulePosition{last_key_num}, pos)) {
-					engine.disconnect_first(ModulePosition{last_key_num}, pos);
-				}
-			saved_keypad_evt.reset();
+		if (module_at_pos && patch_modules_action.is_started &&
+		    !patch_modules_action.timeout(evt.time)) {
+			const auto first_pos = patch_modules_action.src_pos;
+
+			if (first_pos != pos) {
+				engine.connection_exists(first_pos, pos)
+				    ? engine.disconnect(first_pos, 0, pos, 0)
+				    : engine.connect(first_pos, 0, pos, 0);
+			}
+			reset(patch_modules_action);
 		}
 	}
 	};
@@ -271,8 +298,17 @@ void App::operator()(KnobEvent evt) {
 }
 
 void App::operator()(ButtonEvent evt) {
-	if (evt.button_num == config::mode_button_num) {
+	switch (evt.edge) {
+	case ButtonEvent::Edge::PRESSED: {
+		if (evt.button_num == config::mode_button_num) {
+			app_state_ =
+			    (app_state_ == State::EDIT) ? State::VIEW : State::EDIT;
+		}
+		break;
 	}
+	case ButtonEvent::Edge::RELEASED:
+		break;
+	};
 }
 
 } // namespace sndbx
